@@ -3,8 +3,6 @@ import ReactDOM from 'react-dom/client';
 import App from './wiki-framework/src/App.jsx';
 import ErrorBoundary from './wiki-framework/src/components/common/ErrorBoundary.jsx';
 import './wiki-framework/src/styles/index.css';
-import './src/styles/custom.css';
-import './src/scripts/logo-enhancement.js';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

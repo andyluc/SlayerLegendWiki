@@ -4,7 +4,7 @@
   "description": "My custom wiki built with GitHub Wiki Framework",
   "type": "module",
   "scripts": {
-    "predev": "node scripts/copyConfig.js",
+    "predev": "node scripts/killDevServer.js && node scripts/copyConfig.js",
     "dev": "concurrently --kill-others --names \"CONFIG,VITE\" --prefix-colors \"cyan,green\" \"npm:dev:watch\" \"npm:dev:server\"",
     "dev:server": "vite",
     "dev:watch": "node scripts/watchConfig.js",

@@ -32,6 +32,7 @@ Parent Project (this repo)       Framework Submodule
 - `scripts/` - Build scripts (copyConfig.js, buildSearchIndex.js)
 - `.env.local` - GitHub OAuth credentials
 - `tailwind.config.js` - Theme customization
+- `research/` - Research indexes and useful information (use this when adding content to the wiki)
 
 **Auto-generated files (DO NOT EDIT):**
 - `public/wiki-config.json` - Auto-copied from root (gitignored)

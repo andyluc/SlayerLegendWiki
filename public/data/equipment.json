@@ -1,45 +1,458 @@
-{
-  "weapons": [
-    {
-      "id": "common-sword-1",
-      "name": "Common Sword",
-      "grade": "Common",
-      "tier": 1,
-      "attack": 50,
-      "dropLocations": ["Stage 1-20"],
-      "fusionCost": null
-    },
-    {
-      "id": "advanced-sword-1",
-      "name": "Advanced Sword",
-      "grade": "Advanced",
-      "tier": 2,
-      "attack": 150,
-      "dropLocations": ["Stage 20-40"],
-      "fusionCost": 5
-    },
-    {
-      "id": "rare-sword-1",
-      "name": "Rare Sword",
-      "grade": "Rare",
-      "tier": 3,
-      "attack": 400,
-      "dropLocations": ["Stage 40-80"],
-      "fusionCost": 5
-    }
-  ],
-  "accessories": [
-    {
-      "id": "common-ring-1",
-      "name": "Common Ring",
-      "grade": "Common",
-      "tier": 1,
-      "stats": {
-        "hp": 500,
-        "hpRegen": 10,
-        "manaRegen": 5
-      },
-      "dropLocations": ["Stage 1-20"]
-    }
-  ]
-}
+[
+  {
+    "id": 1,
+    "name": "Innocence",
+    "requirements": 2000,
+    "attack": 6300,
+    "disassemblyReward": 1000,
+    "stageRequirement": "Black Forest"
+  },
+  {
+    "id": 2,
+    "name": "Coolness",
+    "requirements": 9000,
+    "attack": 9750,
+    "disassemblyReward": 4500,
+    "stageRequirement": "Red Mountain"
+  },
+  {
+    "id": 3,
+    "name": "Desire",
+    "requirements": 28000,
+    "attack": 14699,
+    "disassemblyReward": 14000,
+    "stageRequirement": "Land of Desire"
+  },
+  {
+    "id": 4,
+    "name": "Effort",
+    "requirements": 75000,
+    "attack": 33600,
+    "disassemblyReward": 37500,
+    "stageRequirement": "Forgotten Castle"
+  },
+  {
+    "id": 5,
+    "name": "Patience",
+    "requirements": 88800,
+    "attack": 72000,
+    "disassemblyReward": 44400,
+    "stageRequirement": "Frozen Wood"
+  },
+  {
+    "id": 6,
+    "name": "Hatred",
+    "requirements": 109200,
+    "attack": 96000,
+    "disassemblyReward": 54600,
+    "stageRequirement": "Land of Hate"
+  },
+  {
+    "id": 7,
+    "name": "Dignity",
+    "requirements": 375000,
+    "attack": 144000,
+    "disassemblyReward": 187500,
+    "stageRequirement": "Sand Plain"
+  },
+  {
+    "id": 8,
+    "name": "Agony",
+    "requirements": 450000,
+    "attack": 182400,
+    "disassemblyReward": 225000,
+    "stageRequirement": "Aslan North Coast"
+  },
+  {
+    "id": 9,
+    "name": "Joy",
+    "requirements": 525000,
+    "attack": 230400,
+    "disassemblyReward": 262500,
+    "stageRequirement": "Unknown Forest"
+  },
+  {
+    "id": 10,
+    "name": "Rage",
+    "requirements": 1875000,
+    "attack": 250560,
+    "disassemblyReward": 937500,
+    "stageRequirement": "Canyon of Rage"
+  },
+  {
+    "id": 11,
+    "name": "Condolence",
+    "requirements": 2250000,
+    "attack": 309120,
+    "disassemblyReward": 1125000,
+    "stageRequirement": "Wailing Forest"
+  },
+  {
+    "id": 12,
+    "name": "Yearning",
+    "requirements": 2625000,
+    "attack": 375000,
+    "disassemblyReward": 1312500,
+    "stageRequirement": "Wind Plateau"
+  },
+  {
+    "id": 13,
+    "name": "Pride",
+    "requirements": 7500000,
+    "attack": 440000,
+    "disassemblyReward": 3750000,
+    "stageRequirement": "Lava Plateau"
+  },
+  {
+    "id": 14,
+    "name": "Bravery",
+    "requirements": 9000000,
+    "attack": 492000,
+    "disassemblyReward": 4500000,
+    "stageRequirement": "Red Desert"
+  },
+  {
+    "id": 15,
+    "name": "Runaway",
+    "requirements": 10500000,
+    "attack": 504000,
+    "disassemblyReward": 5250000,
+    "stageRequirement": "Plain of the White Night"
+  },
+  {
+    "id": 16,
+    "name": "Dullness",
+    "requirements": 22500000,
+    "attack": 559000,
+    "disassemblyReward": 11250000,
+    "stageRequirement": "Frozen Lake"
+  },
+  {
+    "id": 17,
+    "name": "Exciting",
+    "requirements": 27000000,
+    "attack": 616000,
+    "disassemblyReward": 13500000,
+    "stageRequirement": "Moon Shelter"
+  },
+  {
+    "id": 18,
+    "name": "Corruption",
+    "requirements": 31500000,
+    "attack": 675000,
+    "disassemblyReward": 15750000,
+    "stageRequirement": "Capricious Hill"
+  },
+  {
+    "id": 19,
+    "name": "Romance",
+    "requirements": 67500000,
+    "attack": 736000,
+    "disassemblyReward": 33750000,
+    "stageRequirement": "Empty Forest"
+  },
+  {
+    "id": 20,
+    "name": "Silence",
+    "requirements": 81000000,
+    "attack": 799000,
+    "disassemblyReward": 40500000,
+    "stageRequirement": "Nephilim Wood"
+  },
+  {
+    "id": 21,
+    "name": "Oblivion",
+    "requirements": 94500000,
+    "attack": 864000,
+    "disassemblyReward": 47250000,
+    "stageRequirement": "Ancient Altar"
+  },
+  {
+    "id": 22,
+    "name": "Regret",
+    "requirements": 202500000,
+    "attack": 931000,
+    "disassemblyReward": 101250000,
+    "stageRequirement": "Ruins of Ancient Kingdom"
+  },
+  {
+    "id": 23,
+    "name": "Willingness",
+    "requirements": 243000000,
+    "attack": 1000000,
+    "disassemblyReward": 121500000,
+    "stageRequirement": "Delusion Forest"
+  },
+  {
+    "id": 24,
+    "name": "Grit",
+    "requirements": 283500000,
+    "attack": 1260000,
+    "disassemblyReward": 141750000,
+    "stageRequirement": "Fireflies Cave"
+  },
+  {
+    "id": 25,
+    "name": "Hope",
+    "requirements": 607500000,
+    "attack": 1452000,
+    "disassemblyReward": 303750000,
+    "stageRequirement": "Abandoned Pier"
+  },
+  {
+    "id": 26,
+    "name": "Calmness",
+    "requirements": 729000000,
+    "attack": 1669800,
+    "disassemblyReward": 364500000,
+    "stageRequirement": "Sea of Stars"
+  },
+  {
+    "id": 27,
+    "name": "Dream",
+    "requirements": 850500000,
+    "attack": 1916640,
+    "disassemblyReward": 425250000,
+    "stageRequirement": "Land of the Dead"
+  },
+  {
+    "id": 28,
+    "name": "Faith",
+    "requirements": 1822500000,
+    "attack": 2196150,
+    "disassemblyReward": 911250000,
+    "stageRequirement": "Dark Wood"
+  },
+  {
+    "id": 29,
+    "name": "Temptation",
+    "requirements": 2187000000,
+    "attack": 2512395,
+    "disassemblyReward": 1093500000,
+    "stageRequirement": "Ice Desert"
+  },
+  {
+    "id": 30,
+    "name": "Wound",
+    "requirements": 2551500000,
+    "attack": 2869928,
+    "disassemblyReward": 1275750000,
+    "stageRequirement": "Mysterious Hill"
+  },
+  {
+    "id": 31,
+    "name": "Wild",
+    "requirements": 5467500000,
+    "attack": 3273844,
+    "disassemblyReward": 2733750000,
+    "stageRequirement": "Primeval Forest"
+  },
+  {
+    "id": 32,
+    "name": "Ambition",
+    "requirements": 6561000000,
+    "attack": 3729844,
+    "disassemblyReward": 3280500000,
+    "stageRequirement": "Upside-Down Forest"
+  },
+  {
+    "id": 33,
+    "name": "Solitude",
+    "requirements": 7654500000,
+    "attack": 4244305,
+    "disassemblyReward": 3827250000,
+    "stageRequirement": "Soul's Playground"
+  },
+  {
+    "id": 34,
+    "name": "Envy",
+    "requirements": 16402500000,
+    "attack": 4824360,
+    "disassemblyReward": 8201250000,
+    "stageRequirement": "Lost Forest"
+  },
+  {
+    "id": 35,
+    "name": "Wisdom",
+    "requirements": 19683000000,
+    "attack": 5477984,
+    "disassemblyReward": 9841500000,
+    "stageRequirement": "Underground Cave"
+  },
+  {
+    "id": 36,
+    "name": "Vision",
+    "requirements": 22963500000,
+    "attack": 6214088,
+    "disassemblyReward": 11481750000,
+    "stageRequirement": "Misty Road"
+  },
+  {
+    "id": 37,
+    "name": "Ordeal",
+    "requirements": 49207500000,
+    "attack": 7042633,
+    "disassemblyReward": 24603750000,
+    "stageRequirement": "Cliff Edge"
+  },
+  {
+    "id": 38,
+    "name": "Friendship",
+    "requirements": 59049000000,
+    "attack": 7974746,
+    "disassemblyReward": 29524500000,
+    "stageRequirement": "Underwater Cave"
+  },
+  {
+    "id": 39,
+    "name": "Skilfulness",
+    "requirements": 68890500000,
+    "attack": 9022856,
+    "disassemblyReward": 34445250000,
+    "stageRequirement": "Dragon Grave"
+  },
+  {
+    "id": 40,
+    "name": "Relax",
+    "requirements": 147622500000,
+    "attack": 10200840,
+    "disassemblyReward": 73811250000,
+    "stageRequirement": "Forgotten Abyss"
+  },
+  {
+    "id": 41,
+    "name": "Conceit",
+    "requirements": 177147000000,
+    "attack": 11524192,
+    "disassemblyReward": 88573500000,
+    "stageRequirement": "Sky Island"
+  },
+  {
+    "id": 42,
+    "name": "Instinct",
+    "requirements": 206671500000,
+    "attack": 13010206,
+    "disassemblyReward": 103335750000,
+    "stageRequirement": "Ancient Ruins"
+  },
+  {
+    "id": 43,
+    "name": "Ecstasy",
+    "requirements": 442867500000,
+    "attack": 14678181,
+    "disassemblyReward": 221433750000,
+    "stageRequirement": "Giant's Glass"
+  },
+  {
+    "id": 44,
+    "name": "Honor",
+    "requirements": 531441000000,
+    "attack": 16549649,
+    "disassemblyReward": 265720500000,
+    "stageRequirement": "Desert Gorge"
+  },
+  {
+    "id": 45,
+    "name": "Grand",
+    "requirements": 620014500000,
+    "attack": 18648629,
+    "disassemblyReward": 310007250000,
+    "stageRequirement": "Vortex"
+  },
+  {
+    "id": 46,
+    "name": "Blessing",
+    "requirements": 1328602500000,
+    "attack": 21001909,
+    "disassemblyReward": 664301250000,
+    "stageRequirement": "Land of Prophecy"
+  },
+  {
+    "id": 47,
+    "name": "FightingWill",
+    "requirements": 1594323000000,
+    "attack": 23639358,
+    "disassemblyReward": 797161500000,
+    "stageRequirement": "Story of the Stars"
+  },
+  {
+    "id": 48,
+    "name": "Transition",
+    "requirements": 1860043500000,
+    "attack": 24176616,
+    "disassemblyReward": 930021750000,
+    "stageRequirement": null
+  },
+  {
+    "id": 49,
+    "name": "Interest",
+    "requirements": 3985807500000,
+    "attack": 29093173,
+    "disassemblyReward": 1992903750000,
+    "stageRequirement": null
+  },
+  {
+    "id": 50,
+    "name": "Intelligence",
+    "requirements": 4782969000000,
+    "attack": 32400940,
+    "disassemblyReward": 2391484500000,
+    "stageRequirement": null
+  },
+  {
+    "id": 51,
+    "name": "Greed",
+    "requirements": 5580130500000,
+    "attack": 36068451,
+    "disassemblyReward": 2790065250000,
+    "stageRequirement": null
+  },
+  {
+    "id": 52,
+    "name": "Vow",
+    "requirements": 11957422500000,
+    "attack": 40133666,
+    "disassemblyReward": 5978711250000,
+    "stageRequirement": null
+  },
+  {
+    "id": 53,
+    "name": "Anxiety",
+    "requirements": 14348907000000,
+    "attack": 44638465,
+    "disassemblyReward": 7174453500000,
+    "stageRequirement": null
+  },
+  {
+    "id": 54,
+    "name": "Vigor",
+    "requirements": 16740391500000,
+    "attack": 49629046,
+    "disassemblyReward": 8370195750000,
+    "stageRequirement": null
+  },
+  {
+    "id": 55,
+    "name": "Expectation",
+    "requirements": 35872267500000,
+    "attack": 55156359,
+    "disassemblyReward": 17936133750000,
+    "stageRequirement": null
+  },
+  {
+    "id": 56,
+    "name": "Wanderer",
+    "requirements": 43046721000000,
+    "attack": 61276594,
+    "disassemblyReward": 21523360500000,
+    "stageRequirement": null
+  },
+  {
+    "id": 57,
+    "name": "Deviation",
+    "requirements": 50221174500000,
+    "attack": 68051704,
+    "disassemblyReward": 25110587250000,
+    "stageRequirement": null
+  }
+]

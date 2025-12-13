@@ -7,7 +7,12 @@
       "owner": "BenDol",
       "repo": "SlayerLegendWiki",
       "branch": "main",
-      "contentPath": "public/content"
+      "contentPath": "public/content",
+      "namespaces": {
+        "enabled": true,
+        "allowedBranches": ["main", "dev"],
+        "defaultBranch": "main"
+      }
     }
   },
   "categories": [

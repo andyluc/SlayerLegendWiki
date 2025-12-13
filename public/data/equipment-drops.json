@@ -1,0 +1,208 @@
+{
+  "equipmentTypes": [
+    "Accessory",
+    "Weapon"
+  ],
+  "equipmentRarities": [
+    "Common 1",
+    "Common 2",
+    "Common 3",
+    "Common 4",
+    "Epic 1",
+    "Epic 2",
+    "Epic 3",
+    "Epic 4",
+    "Great 1",
+    "Great 2",
+    "Great 3",
+    "Great 4",
+    "Legendary 3",
+    "Legendary 4",
+    "Rare 1",
+    "Rare 2",
+    "Rare 3",
+    "Rare 4"
+  ],
+  "equipmentDrops": [
+    {
+      "type": "Weapon",
+      "rarity": "Common 4",
+      "probability": "0.1"
+    },
+    {
+      "type": "Accessory",
+      "rarity": "Common 4",
+      "probability": "0.5"
+    },
+    {
+      "type": "Weapon",
+      "rarity": "Common 3",
+      "probability": "0.1"
+    },
+    {
+      "type": "Accessory",
+      "rarity": "Common 3",
+      "probability": "0.5"
+    },
+    {
+      "type": "Weapon",
+      "rarity": "Common 2",
+      "probability": "0.1"
+    },
+    {
+      "type": "Accessory",
+      "rarity": "Common 2",
+      "probability": "0.5"
+    },
+    {
+      "type": "Weapon",
+      "rarity": "Common 1",
+      "probability": "0.1"
+    },
+    {
+      "type": "Accessory",
+      "rarity": "Common 1",
+      "probability": "0.3"
+    },
+    {
+      "type": "Weapon",
+      "rarity": "Great 4",
+      "probability": "0.1"
+    },
+    {
+      "type": "Accessory",
+      "rarity": "Great 4",
+      "probability": "0.3"
+    },
+    {
+      "type": "Weapon",
+      "rarity": "Great 3",
+      "probability": "0.1"
+    },
+    {
+      "type": "Accessory",
+      "rarity": "Great 3",
+      "probability": "0.3"
+    },
+    {
+      "type": "Weapon",
+      "rarity": "Great 2",
+      "probability": "0.1"
+    },
+    {
+      "type": "Accessory",
+      "rarity": "Great 2",
+      "probability": "0.3"
+    },
+    {
+      "type": "Weapon",
+      "rarity": "Great 1",
+      "probability": "0.1"
+    },
+    {
+      "type": "Accessory",
+      "rarity": "Great 1",
+      "probability": "0.2"
+    },
+    {
+      "type": "Weapon",
+      "rarity": "Rare 4",
+      "probability": "0.1"
+    },
+    {
+      "type": "Accessory",
+      "rarity": "Rare 4",
+      "probability": "0.1"
+    },
+    {
+      "type": "Accessory",
+      "rarity": "Rare 3",
+      "probability": "0.1"
+    },
+    {
+      "type": "Weapon",
+      "rarity": "Rare 3",
+      "probability": "0.1"
+    },
+    {
+      "type": "Weapon",
+      "rarity": "Rare 2",
+      "probability": "0.1"
+    },
+    {
+      "type": "Accessory",
+      "rarity": "Rare 2",
+      "probability": "0.2"
+    },
+    {
+      "type": "Weapon",
+      "rarity": "Rare 1",
+      "probability": "0.08"
+    },
+    {
+      "type": "Accessory",
+      "rarity": "Rare 1",
+      "probability": "0.08"
+    },
+    {
+      "type": "Weapon",
+      "rarity": "Epic 4",
+      "probability": "0.08"
+    },
+    {
+      "type": "Accessory",
+      "rarity": "Epic 4",
+      "probability": "0.14"
+    },
+    {
+      "type": "Weapon",
+      "rarity": "Epic 3",
+      "probability": "0.1"
+    },
+    {
+      "type": "Accessory",
+      "rarity": "Epic 3",
+      "probability": "0.1"
+    },
+    {
+      "type": "Weapon",
+      "rarity": "Epic 2",
+      "probability": "0.05"
+    },
+    {
+      "type": "Accessory",
+      "rarity": "Epic 2",
+      "probability": "0.07"
+    },
+    {
+      "type": "Accessory",
+      "rarity": "Epic 1",
+      "probability": "0.05"
+    },
+    {
+      "type": "Weapon",
+      "rarity": "Epic 1",
+      "probability": "0.05"
+    },
+    {
+      "type": "Weapon",
+      "rarity": "Legendary 4",
+      "probability": "0.03"
+    },
+    {
+      "type": "Accessory",
+      "rarity": "Legendary 4",
+      "probability": "0.04"
+    },
+    {
+      "type": "Weapon",
+      "rarity": "Legendary 3",
+      "probability": "0.03"
+    },
+    {
+      "type": "Accessory",
+      "rarity": "Legendary 3",
+      "probability": "0.03"
+    }
+  ]
+}
