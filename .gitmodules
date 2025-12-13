@@ -1,0 +1,4 @@
+[submodule "wiki-framework"]
+	path = wiki-framework
+	url = https://github.com/BenDol/GithubWiki.git
+	branch = main
