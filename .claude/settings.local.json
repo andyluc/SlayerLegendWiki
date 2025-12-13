@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C \"C:\\Projects\\slayerlegend\\wiki\" status)",
+      "Bash(npm install:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npm run build:search:*)",
+      "Bash(npm run build:*)",
+      "Bash(cat:*)",
+      "Bash(pkill:*)",
+      "Bash(git init:*)",
+      "Bash(git submodule:*)",
+      "Bash(test:*)",
+      "Bash(git fetch:*)",
+      "Bash(git checkout:*)",
+      "Bash(git pull:*)",
+      "Bash(findstr:*)",
+    ]
+  }
+}

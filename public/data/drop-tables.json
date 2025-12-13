@@ -1,0 +1,35 @@
+{
+  "stages": {
+    "1-20": {
+      "equipment": ["Common Weapons", "Common Accessories"],
+      "gold": "Low",
+      "exp": "Low"
+    },
+    "20-40": {
+      "equipment": ["Advanced Weapons", "Advanced Accessories"],
+      "gold": "Medium",
+      "exp": "Medium"
+    },
+    "40-80": {
+      "equipment": ["Rare Weapons", "Rare Accessories"],
+      "gold": "High",
+      "exp": "High"
+    }
+  },
+  "dungeons": {
+    "dragon-valley": {
+      "primaryDrop": "Attribute Stones",
+      "secondaryDrops": ["Gold", "Equipment"]
+    },
+    "forest-of-circulation": {
+      "primaryDrop": "Mana Crystals",
+      "attempts": 3,
+      "dailyLimit": true
+    },
+    "closed-mine": {
+      "primaryDrop": "Enhance Cubes",
+      "secondaryDrops": ["Gold", "Diamond", "EXP", "Attribute Stones"],
+      "entryItem": "Glow Feathers"
+    }
+  }
+}

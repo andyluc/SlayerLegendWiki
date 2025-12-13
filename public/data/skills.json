@@ -1,0 +1,62 @@
+{
+  "fire": [
+    {
+      "id": "fireball",
+      "name": "Fireball",
+      "element": "fire",
+      "type": "active",
+      "damage": 120,
+      "cooldown": 3,
+      "mana": 20,
+      "description": "Launches a fireball dealing fire damage to enemies",
+      "unlockLevel": 1
+    },
+    {
+      "id": "hellfire-slash",
+      "name": "Hellfire Slash",
+      "element": "fire",
+      "type": "active",
+      "damage": 250,
+      "cooldown": 5,
+      "mana": 35,
+      "description": "Powerful fire-based slash attack",
+      "unlockLevel": 50
+    }
+  ],
+  "water": [
+    {
+      "id": "water-shield",
+      "name": "Water Shield",
+      "element": "water",
+      "type": "active",
+      "damage": 0,
+      "cooldown": 10,
+      "mana": 25,
+      "description": "Creates a protective water barrier",
+      "unlockLevel": 20
+    }
+  ],
+  "earth": [
+    {
+      "id": "earth-will",
+      "name": "Earth's Will",
+      "element": "earth",
+      "type": "passive",
+      "description": "Increases defense and HP",
+      "unlockLevel": 30
+    }
+  ],
+  "wind": [
+    {
+      "id": "speed-sword",
+      "name": "Speed Sword",
+      "element": "wind",
+      "type": "active",
+      "damage": 180,
+      "cooldown": 2,
+      "mana": 15,
+      "description": "Fast wind-based slashing attack",
+      "unlockLevel": 10
+    }
+  ]
+}

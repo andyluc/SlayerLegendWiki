@@ -32,8 +32,9 @@ lerna-debug.log*
 build
 dist
 
-# Search index (generated)
+# Generated files (auto-copied from root)
 public/search-index.json
+public/wiki-config.json
 
 # OS files
 Thumbs.db

@@ -1,11 +1,11 @@
 {
   "wiki": {
-    "title": "My Custom Wiki",
-    "description": "Documentation powered by GitHub Wiki Framework",
-    "logo": "/logo.svg",
+    "title": "Slayer Legend Wiki",
+    "description": "Complete guide for Slayer Legend: Idle RPG (슬레이어 키우기)",
+    "logo": "/logo.png",
     "repository": {
-      "owner": "yourusername",
-      "repo": "my-wiki",
+      "owner": "BenDol",
+      "repo": "SlayerLegendWiki",
       "branch": "main",
       "contentPath": "content"
     }
@@ -15,10 +15,73 @@
       "id": "getting-started",
       "title": "Getting Started",
       "path": "getting-started",
-      "icon": "🚀",
+      "icon": "🎮",
       "showInHeader": true,
       "allowContributions": true,
       "order": 1
+    },
+    {
+      "id": "characters",
+      "title": "Characters",
+      "path": "characters",
+      "icon": "⚔️",
+      "showInHeader": true,
+      "allowContributions": true,
+      "order": 2
+    },
+    {
+      "id": "equipment",
+      "title": "Equipment",
+      "path": "equipment",
+      "icon": "🛡️",
+      "showInHeader": true,
+      "allowContributions": true,
+      "order": 3
+    },
+    {
+      "id": "companions",
+      "title": "Companions",
+      "path": "companions",
+      "icon": "🤝",
+      "showInHeader": true,
+      "allowContributions": true,
+      "order": 4
+    },
+    {
+      "id": "skills",
+      "title": "Skills",
+      "path": "skills",
+      "icon": "✨",
+      "showInHeader": true,
+      "allowContributions": true,
+      "order": 5
+    },
+    {
+      "id": "content",
+      "title": "Content",
+      "path": "content",
+      "icon": "🗺️",
+      "showInHeader": true,
+      "allowContributions": true,
+      "order": 6
+    },
+    {
+      "id": "progression",
+      "title": "Progression",
+      "path": "progression",
+      "icon": "📈",
+      "showInHeader": true,
+      "allowContributions": true,
+      "order": 7
+    },
+    {
+      "id": "resources",
+      "title": "Resources",
+      "path": "resources",
+      "icon": "💎",
+      "showInHeader": true,
+      "allowContributions": true,
+      "order": 8
     },
     {
       "id": "guides",
@@ -27,16 +90,25 @@
       "icon": "📚",
       "showInHeader": true,
       "allowContributions": true,
-      "order": 2
+      "order": 9
     },
     {
-      "id": "reference",
-      "title": "Reference",
-      "path": "reference",
+      "id": "database",
+      "title": "Database",
+      "path": "database",
       "icon": "📖",
-      "showInHeader": true,
+      "showInHeader": false,
       "allowContributions": true,
-      "order": 3
+      "order": 10
+    },
+    {
+      "id": "tools",
+      "title": "Tools",
+      "path": "tools",
+      "icon": "🛠️",
+      "showInHeader": true,
+      "allowContributions": false,
+      "order": 11
     }
   ],
   "features": {
@@ -45,9 +117,12 @@
     "pageHistory": true,
     "editPages": true,
     "darkMode": true,
-    "tags": true
+    "tags": true,
+    "buildSharing": true,
+    "calculators": true,
+    "progressTracking": true
   },
   "theme": {
-    "primaryColor": "#3b82f6"
+    "primaryColor": "#dc2626"
   }
 }

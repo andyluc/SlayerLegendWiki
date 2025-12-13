@@ -1,0 +1,24 @@
+{
+  "damage": {
+    "baseDamage": "Attack * Skill Multiplier",
+    "criticalDamage": "Base Damage * (1 + Critical Damage%)",
+    "elementalDamage": "Damage * Elemental Multiplier (2.0 for advantage, 0.7 for disadvantage)",
+    "finalDamage": "Base * Crit * Elemental * Other Bonuses"
+  },
+  "enhancement": {
+    "goldCost": "100 * (1.15 ^ Level) * Grade Multiplier",
+    "gradeMultipliers": {
+      "common": 1,
+      "advanced": 1.5,
+      "rare": 2,
+      "hero": 3,
+      "legendary": 5,
+      "mythic": 8,
+      "immortal": 12
+    }
+  },
+  "fusion": {
+    "ratio": "5:1",
+    "description": "5 items of grade N → 1 item of grade N+1"
+  }
+}

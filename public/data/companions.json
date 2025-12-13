@@ -1,0 +1,56 @@
+{
+  "companions": [
+    {
+      "id": "ellie",
+      "name": "Ellie",
+      "element": "wind",
+      "unlockStage": 1,
+      "bonuses": [
+        "Increases Accuracy",
+        "Increases Attack",
+        "Reduces Enemy HP",
+        "Wind Damage bonus from leveling"
+      ],
+      "attributeStone": "Green (Wind)"
+    },
+    {
+      "id": "zeke",
+      "name": "Zeke",
+      "element": "earth",
+      "unlockStage": 10,
+      "bonuses": [
+        "Increases HP",
+        "Increases Critical Damage",
+        "Increases Attack Sum",
+        "Earth Damage bonus from leveling"
+      ],
+      "attributeStone": "Yellow (Earth)"
+    },
+    {
+      "id": "miho",
+      "name": "Miho",
+      "element": "fire",
+      "unlockStage": 25,
+      "bonuses": [
+        "Increases Damage Resist",
+        "Increases Dodge",
+        "Increases Total Gold Earned",
+        "Fire Damage bonus from leveling"
+      ],
+      "attributeStone": "Red (Fire)"
+    },
+    {
+      "id": "luna",
+      "name": "Luna",
+      "element": "water",
+      "unlockStage": 50,
+      "bonuses": [
+        "Increases Mana Recovery",
+        "Increases Extra Mana",
+        "Increases Skill Damage",
+        "Water Damage bonus from leveling"
+      ],
+      "attributeStone": "Blue (Water)"
+    }
+  ]
+}

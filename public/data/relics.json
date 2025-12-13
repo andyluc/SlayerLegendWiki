@@ -1,0 +1,26 @@
+{
+  "relics": [
+    {
+      "id": "bracelet-speed",
+      "name": "Bracelet of Speed",
+      "maxLevel": 50,
+      "bonus": "Attack Speed",
+      "description": "Increases attack speed"
+    },
+    {
+      "id": "ring-power",
+      "name": "Ring of Power",
+      "maxLevel": 70,
+      "bonus": "Attack Power",
+      "description": "Increases overall attack power"
+    },
+    {
+      "id": "amulet-critical",
+      "name": "Critical Amulet",
+      "maxLevel": 70,
+      "bonus": "Critical Rate",
+      "description": "Increases critical hit chance"
+    }
+  ],
+  "total": 12
+}

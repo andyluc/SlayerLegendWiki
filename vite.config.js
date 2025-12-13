@@ -1,6 +1,7 @@
 import { createWikiConfigSync } from './wiki-framework/vite.config.base.js';
 import { loggerPlugin } from './wiki-framework/vite-plugin-logger.js';
 import { githubProxyPlugin } from './wiki-framework/vite-plugin-github-proxy.js';
+import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
 /**
  * Parent wiki configuration
@@ -13,8 +14,25 @@ export default createWikiConfigSync({
   // Content location (relative to this file)
   contentPath: './content',
 
+  // Explicitly use parent project's public directory
+  publicDir: './public',
+
   // Additional plugins specific to your wiki
   plugins: [
+    nodePolyfills({
+      // Enable polyfills for Buffer and other Node.js globals
+      // This is needed for gray-matter which is used in:
+      // - PageViewerPage.jsx
+      // - PageEditorPage.jsx
+      // - SectionPage.jsx (removed but may be added back)
+      globals: {
+        Buffer: true,
+        global: true,
+        process: true,
+      },
+      // Include protocol polyfills for buffer, process, etc.
+      protocolImports: true,
+    }),
     loggerPlugin(),
     githubProxyPlugin(),
   ],

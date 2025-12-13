@@ -1,0 +1,20 @@
+{
+  "tiers": [
+    {"id": 1, "name": "Stone", "multiplier": 1},
+    {"id": 2, "name": "Bronze", "multiplier": 1.2},
+    {"id": 3, "name": "Silver", "multiplier": 1.5},
+    {"id": 4, "name": "Gold", "multiplier": 2},
+    {"id": 5, "name": "Mithril", "multiplier": 2.5},
+    {"id": 6, "name": "Dragonos", "multiplier": 3.5},
+    {"id": 7, "name": "Warfrost", "multiplier": 5},
+    {"id": 8, "name": "Blue Abyss", "multiplier": 7},
+    {"id": 9, "name": "Cyclos", "multiplier": 10},
+    {"id": 10, "name": "Ancient Kennine", "multiplier": 15},
+    {"id": 11, "name": "Gigalock", "multiplier": 20},
+    {"id": 12, "name": "Eisenhardt", "multiplier": 30},
+    {"id": 13, "name": "Diadd", "multiplier": 45},
+    {"id": 14, "name": "Eldinwood", "multiplier": 70}
+  ],
+  "total": 27,
+  "note": "27 total tiers in the game. Stat multiplier increases with each promotion."
+}

@@ -1,0 +1,21 @@
+{
+  "classes": [
+    {
+      "id": "warrior",
+      "name": "Warrior",
+      "unlockLevel": 250,
+      "awakeningStages": 5,
+      "bonuses": ["High Attack", "Physical Damage Focus"],
+      "description": "Strong melee fighter with high attack power"
+    },
+    {
+      "id": "mage",
+      "name": "Mage",
+      "unlockLevel": 250,
+      "awakeningStages": 5,
+      "bonuses": ["High Skill Damage", "Mana Efficiency"],
+      "description": "Magical damage dealer with powerful skills"
+    }
+  ],
+  "total": 19
+}
