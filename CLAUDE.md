@@ -593,6 +593,37 @@ The prestige badge system is fully documented in `PRESTIGE.md`. Key points:
 - Architecture ready for multi-user support
 - Debug logs available in browser console (search for "PrestigeAvatar")
 
+### Contributor Highscore
+The contributor highscore feature displays a ranked leaderboard of wiki contributors based on their pull request activity.
+
+**Configuration** (`features.contributorHighscore` in wiki-config.json):
+```json
+{
+  "features": {
+    "contributorHighscore": {
+      "enabled": true,
+      "cacheMinutes": 30,
+      "displayLimit": 100
+    }
+  }
+}
+```
+
+**Configuration Options:**
+- `enabled` - Enable/disable the highscore feature (default: false)
+- `cacheMinutes` - Cache duration in minutes before data refreshes (default: 30)
+- `displayLimit` - Number of contributors to show initially before "Show All" button (default: 100)
+
+**Features:**
+- **Podium Display**: Top 3 contributors shown on visual podium with special styling
+- **Ranked List**: All other contributors displayed in ordered list
+- **Show More/Less**: Configurable toggle button appears when total contributors exceeds `displayLimit`
+- **Caching**: Results cached to reduce GitHub API calls
+- **Force Refresh**: Repository owners can manually refresh cached data
+- **Scoring**: Based on merged PRs (3x), open PRs (1x), and closed PRs (0.5x)
+
+**Access:** Available at `/#/contributor-highscore` route
+
 ### Keyboard Shortcuts
 - `Ctrl+K` - Open search modal
 - `Ctrl+Shift+D` - Toggle Developer Tools panel

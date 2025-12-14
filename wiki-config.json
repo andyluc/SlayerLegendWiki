@@ -216,7 +216,8 @@
     },
     "contributorHighscore": {
       "enabled": true,
-      "cacheMinutes": 30
+      "cacheMinutes": 30,
+      "displayLimit": 100
     }
   },
   "theme": {
