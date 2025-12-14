@@ -186,12 +186,19 @@ All static assets should be placed in the `public/` directory at the root of you
 ### Directory Structure
 ```
 public/
-├── logo.svg           # Wiki logo
-├── favicon.ico        # Browser favicon
-├── images/            # Content images
+├── site.webmanifest           # Web app manifest
+├── icon/                      # App icons and favicons
+│   ├── favicon.ico            # Browser favicon (16x16, 32x32, 48x48)
+│   ├── favicon-16x16.png      # 16x16 PNG favicon
+│   ├── favicon-32x32.png      # 32x32 PNG favicon
+│   ├── apple-touch-icon.png   # Apple touch icon (180x180)
+│   ├── android-chrome-192x192.png  # Android icon (192x192)
+│   └── android-chrome-512x512.png  # Android icon (512x512)
+├── images/                    # Content images and wiki logo
+│   ├── logo.png               # Wiki logo
 │   ├── screenshot1.png
 │   └── diagram.svg
-└── assets/            # Other static files
+└── assets/                    # Other static files
 ```
 
 ### Using Static Assets
@@ -200,7 +207,10 @@ public/
 ```json
 {
   "wiki": {
-    "logo": "/logo.svg"    // Served from public/logo.svg
+    "logo": "/images/logo.png",       // Served from public/images/logo.png
+    "favicon": "/icon/favicon.ico",   // Served from public/icon/favicon.ico
+    "manifest": "/site.webmanifest",  // Served from public/site.webmanifest
+    "themeColor": "#3b82f6"           // Browser theme color (mobile)
   }
 }
 ```
@@ -211,16 +221,80 @@ public/
 ![Diagram](/images/diagram.svg)
 ```
 
-**In HTML (index.html):**
-```html
-<link rel="icon" type="image/svg+xml" href="/favicon.ico" />
-```
+**Note:** The favicon is automatically loaded from wiki-config.json. No need to edit index.html!
 
 ### Important Notes
 - Files in `public/` are served at the root path (`/`)
 - Images are copied as-is to the build output (no processing)
 - Use absolute paths starting with `/` to reference public assets
 - For GitHub Pages, assets work the same way (base URL is handled by Vite)
+
+## Progressive Web App (PWA) Support
+
+The wiki supports Progressive Web App features through the web app manifest file.
+
+### Web App Manifest Configuration
+
+**1. Create manifest file:** Place `site.webmanifest` in `public/` directory
+
+Example `public/site.webmanifest`:
+```json
+{
+  "name": "My Wiki",
+  "short_name": "Wiki",
+  "description": "My awesome wiki",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#3b82f6",
+  "background_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/icon/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
+```
+
+**2. Configure in wiki-config.json:**
+```json
+{
+  "wiki": {
+    "manifest": "/site.webmanifest",
+    "themeColor": "#3b82f6"
+  }
+}
+```
+
+**3. Create app icons:** Place PNG icons in `public/icon/`
+- `android-chrome-192x192.png` - 192x192px icon for Android
+- `android-chrome-512x512.png` - 512x512px icon for Android
+- `apple-touch-icon.png` - 180x180px icon for iOS
+- `favicon.ico` - Multi-size ICO file for browsers
+
+### PWA Benefits
+- **Install to Home Screen**: Users can install your wiki as a standalone app on mobile/desktop
+- **Offline Support**: With service workers, content can be cached for offline access
+- **Native App Feel**: Runs in standalone window without browser UI
+- **Custom Theme**: Control the browser theme color on mobile devices
+
+### Theme Color
+The `themeColor` in wiki-config.json sets the mobile browser's address bar color to match your wiki's branding.
 
 ## Content Management
 
@@ -321,6 +395,9 @@ Must update when deploying:
 - `wiki.title` - Wiki name
 - `wiki.description` - Wiki description
 - `wiki.logo` - Path to logo (e.g., "/logo.svg")
+- `wiki.favicon` - Path to favicon (e.g., "/favicon.ico", "/favicon.png", "/favicon.svg")
+- `wiki.manifest` - Path to web app manifest (e.g., "/site.webmanifest")
+- `wiki.themeColor` - Browser theme color for mobile (e.g., "#3b82f6")
 - `wiki.repository.owner` - GitHub username
 - `wiki.repository.repo` - Repository name
 - `sections[]` - Navigation sections
