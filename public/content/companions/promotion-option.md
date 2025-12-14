@@ -1,11 +1,12 @@
 ---
 id: promotion-option
 title: Promotion Option
-description: You can use dice to produce random companion promotion options
+description: The player can use dice to produce random companion promotion options
 tags:
   - promotionoption
 category: Companions
 date: '2025-12-14'
+order: 0
 ---
 ##  Recommended Rolls
 
