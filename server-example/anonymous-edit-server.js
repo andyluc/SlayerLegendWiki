@@ -239,7 +239,7 @@ app.post('/api/anonymous-edit', rateLimitMiddleware, async (req, res) => {
     console.log(`[Anonymous Edit] Commit created: ${commit.commit.sha}`);
 
     // Generate PR title and body
-    const prTitle = `Update ${metadata?.title || pageId}`;
+    const prTitle = `[Edit] ${metadata?.title || pageId}`;
     const attribution = process.env.ATTRIBUTION_FORMAT ||
                        'Contributed anonymously via wiki editor';
     const prBody = generatePRBody({ section, pageId, editSummary, metadata }, attribution);
