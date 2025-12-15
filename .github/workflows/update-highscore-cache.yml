@@ -7,6 +7,13 @@ name: Update Contributor Highscore Cache
 # The cache is stored in a GitHub issue with the label "highscore-cache"
 # and is read by the wiki's highscore page for all users.
 #
+# Cache Structure:
+# - All Time: Total contributions from repos.listContributors()
+# - This Month: Commits from the last 30 days
+# - This Week: Commits from the last 7 days
+#
+# All contributor data includes userId for username-change immunity
+#
 # Schedule: Runs daily at 2 AM UTC
 # Manual: Can be triggered manually via GitHub UI (Actions tab)
 on:
@@ -33,33 +40,139 @@ jobs:
           script: |
             const CACHE_ISSUE_TITLE = '[Cache] Contributor Highscore';
 
-            console.log('🔍 Fetching contributor statistics...');
+            console.log('🔍 Fetching contributor statistics for all time periods...');
 
-            // Fetch contributor stats
-            const { data: contributors } = await github.rest.repos.listContributors({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              per_page: 100
-            });
+            /**
+             * Fetch all-time contributor stats
+             */
+            async function fetchAllTimeContributors() {
+              console.log('📊 Fetching all-time contributors...');
 
-            console.log(`✅ Found ${contributors.length} contributors`);
+              const { data: contributors } = await github.rest.repos.listContributors({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                per_page: 100
+              });
 
-            // Format contributor data
-            const formattedContributors = contributors.map(contributor => ({
-              login: contributor.login,
-              avatarUrl: contributor.avatar_url,
-              contributions: contributor.contributions,
-              profileUrl: contributor.html_url,
-              prestige: 0
-            }));
+              console.log(`✅ Found ${contributors.length} all-time contributors`);
 
-            // Sort by contributions (descending)
-            formattedContributors.sort((a, b) => b.contributions - a.contributions);
+              // Format contributor data with userId
+              const formatted = contributors.map(contributor => ({
+                userId: contributor.id,
+                login: contributor.login,
+                avatarUrl: contributor.avatar_url,
+                contributions: contributor.contributions,
+                profileUrl: contributor.html_url,
+                prestige: 0,
+                type: contributor.type
+              }));
 
-            // Create cache data
+              // Sort by contributions (descending)
+              formatted.sort((a, b) => b.contributions - a.contributions);
+
+              return formatted;
+            }
+
+            /**
+             * Fetch commits within a date range and aggregate by author
+             */
+            async function fetchCommitsInDateRange(since, until) {
+              console.log(`📊 Fetching commits from ${since} to ${until}...`);
+
+              const commits = [];
+              let page = 1;
+              const perPage = 100;
+
+              // Fetch all commits in date range (with pagination)
+              while (true) {
+                const { data } = await github.rest.repos.listCommits({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  since,
+                  until,
+                  per_page: perPage,
+                  page: page,
+                });
+
+                if (data.length === 0) break;
+                commits.push(...data);
+
+                // If we got fewer than perPage, we've reached the end
+                if (data.length < perPage) break;
+                page++;
+              }
+
+              console.log(`✅ Found ${commits.length} commits in date range`);
+
+              // Aggregate commits by author (use user ID as key for permanent identification)
+              const contributorMap = new Map();
+
+              for (const commit of commits) {
+                const author = commit.author || commit.commit.author;
+                const login = author?.login;
+                const userId = author?.id;
+
+                // Skip commits without a GitHub user (e.g., local git commits)
+                if (!login) continue;
+
+                // Use user ID as key (permanent), fallback to login for local commits
+                const key = userId ? userId.toString() : `legacy:${login}`;
+
+                if (contributorMap.has(key)) {
+                  contributorMap.get(key).contributions++;
+                  // Update login in case username changed
+                  contributorMap.get(key).login = login;
+                } else {
+                  contributorMap.set(key, {
+                    userId: userId || null,
+                    login: login,
+                    avatarUrl: author.avatar_url,
+                    contributions: 1,
+                    profileUrl: author.html_url,
+                    prestige: 0,
+                    type: author.type || 'User',
+                  });
+                }
+              }
+
+              // Convert map to array and sort by contributions
+              const contributors = Array.from(contributorMap.values());
+              contributors.sort((a, b) => b.contributions - a.contributions);
+
+              console.log(`✅ Found ${contributors.length} unique contributors in date range`);
+              return contributors;
+            }
+
+            // Calculate date ranges
+            const now = new Date();
+            const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+            // Fetch all three categories in parallel
+            const [allTimeContributors, thisMonthContributors, thisWeekContributors] = await Promise.all([
+              fetchAllTimeContributors(),
+              fetchCommitsInDateRange(oneMonthAgo.toISOString(), now.toISOString()),
+              fetchCommitsInDateRange(oneWeekAgo.toISOString(), now.toISOString()),
+            ]);
+
+            // Create cache data with all categories
             const cacheData = {
-              lastUpdated: new Date().toISOString(),
-              contributors: formattedContributors
+              lastUpdated: now.toISOString(),
+              categories: {
+                allTime: {
+                  contributors: allTimeContributors,
+                },
+                thisMonth: {
+                  startDate: oneMonthAgo.toISOString(),
+                  endDate: now.toISOString(),
+                  contributors: thisMonthContributors,
+                },
+                thisWeek: {
+                  startDate: oneWeekAgo.toISOString(),
+                  endDate: now.toISOString(),
+                  contributors: thisWeekContributors,
+                },
+              },
             };
 
             console.log('🔍 Looking for cache issue...');
@@ -103,5 +216,17 @@ jobs:
 
             console.log(`✅ Cache updated successfully!`);
             console.log(`   Issue: #${issueNumber}`);
-            console.log(`   Contributors: ${contributors.length}`);
-            console.log(`   Top 3: ${formattedContributors.slice(0, 3).map(c => c.login).join(', ')}`);
+            console.log(`   Last Updated: ${cacheData.lastUpdated}`);
+            console.log('');
+            console.log('📊 Category Statistics:');
+            console.log(`   All Time: ${allTimeContributors.length} contributors`);
+            console.log(`   This Month: ${thisMonthContributors.length} contributors`);
+            console.log(`   This Week: ${thisWeekContributors.length} contributors`);
+            console.log('');
+            console.log(`🏆 Top 3 All Time: ${allTimeContributors.slice(0, 3).map(c => `${c.login} (${c.contributions})`).join(', ')}`);
+            if (thisMonthContributors.length > 0) {
+              console.log(`🔥 Top 3 This Month: ${thisMonthContributors.slice(0, 3).map(c => `${c.login} (${c.contributions})`).join(', ')}`);
+            }
+            if (thisWeekContributors.length > 0) {
+              console.log(`⚡ Top 3 This Week: ${thisWeekContributors.slice(0, 3).map(c => `${c.login} (${c.contributions})`).join(', ')}`);
+            }
