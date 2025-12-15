@@ -95,7 +95,7 @@ jobs:
                 repo: context.repo.repo,
                 title: CACHE_ISSUE_TITLE,
                 body: JSON.stringify(cacheData, null, 2),
-                labels: ['highscore-cache', 'automation']
+                labels: ['highscore-cache', 'automated']
               });
 
               issueNumber = newIssue.number;

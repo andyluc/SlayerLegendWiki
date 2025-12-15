@@ -157,7 +157,7 @@ jobs:
                 repo: context.repo.repo,
                 title: CACHE_ISSUE_TITLE,
                 body: JSON.stringify(cacheData, null, 2),
-                labels: ['prestige-cache', 'automation']
+                labels: ['prestige-cache', 'automated']
               });
 
               issueNumber = newIssue.number;
