@@ -12,4 +12,4 @@ id: fire-skills
 Skills guide
 
 
-asdasd ada asd adad asdasdasdads asdasd
+asdasd ada a
