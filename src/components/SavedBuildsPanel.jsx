@@ -379,13 +379,6 @@ const SavedBuildsPanel = ({ currentBuild, buildName, maxSlots, onLoadBuild, allo
               })}
             </div>
           )}
-
-          {/* Build Limit Info */}
-          {savedBuilds.length > 0 && (
-            <div className="mt-4 text-xs text-gray-500 dark:text-gray-400 text-center">
-              {savedBuilds.length} / 10 builds saved
-            </div>
-          )}
         </>
       )}
     </div>

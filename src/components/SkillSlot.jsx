@@ -21,6 +21,8 @@ import { getSkillGradeColor } from '../../wiki-framework/src/utils/rarityColors'
  * - onSelectSkill: Callback when add button clicked
  * - onRemoveSkill: Callback when skill clicked (to remove)
  * - onLevelChange: Callback when level changed
+ * - readOnly: If true, clicking skill shows info instead of removing
+ * - onSkillClick: Callback when skill clicked in readOnly mode
  */
 const SkillSlot = ({
   skill = null,
@@ -29,7 +31,9 @@ const SkillSlot = ({
   slotNumber,
   onSelectSkill,
   onRemoveSkill,
-  onLevelChange
+  onLevelChange,
+  readOnly = false,
+  onSkillClick
 }) => {
   const [showLevelInput, setShowLevelInput] = useState(false);
   const levelBadgeRef = useRef(null);
@@ -131,7 +135,7 @@ const SkillSlot = ({
       {/* Skill Icon Container */}
       <div
         className="relative w-20 h-20 sm:w-20 sm:h-20 cursor-pointer"
-        onClick={onRemoveSkill}
+        onClick={readOnly ? () => onSkillClick?.(skill) : onRemoveSkill}
       >
         {/* Base Slot */}
         <img
@@ -161,12 +165,21 @@ const SkillSlot = ({
           )}
         </div>
 
-        {/* Remove indicator on hover */}
-        <div className="absolute inset-0 bg-red-500/0 group-hover:bg-red-500/20 rounded-lg transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-          <span className="text-white text-xs font-bold bg-red-600 px-2 py-1 rounded">
-            Remove
-          </span>
-        </div>
+        {/* Hover indicator */}
+        {!readOnly && (
+          <div className="absolute inset-0 bg-red-500/0 group-hover:bg-red-500/20 rounded-lg transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+            <span className="text-white text-xs font-bold bg-red-600 px-2 py-1 rounded">
+              Remove
+            </span>
+          </div>
+        )}
+        {readOnly && (
+          <div className="absolute inset-0 bg-blue-500/0 group-hover:bg-blue-500/20 rounded-lg transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+            <span className="text-white text-xs font-bold bg-blue-600 px-2 py-1 rounded">
+              View
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Level Badge - Top Center */}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
+import { useBlocker } from 'react-router-dom';
 import { Share2, Download, Upload, Settings, Trash2, Copy, Check, Save, Loader, CheckCircle2 } from 'lucide-react';
 import SkillSlot from './SkillSlot';
 import SkillSelector from './SkillSelector';
@@ -66,7 +67,7 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
           // Deserialize build (convert skill IDs back to full skill objects)
           const deserializedBuild = deserializeBuild(decodedBuild, skills);
           setBuild({ slots: deserializedBuild.slots });
-          setHasUnsavedChanges(false); // Loaded from URL, no unsaved changes yet
+          setHasUnsavedChanges(true); // Mark as having changes to block navigation
         }
       } catch (error) {
         console.error('Failed to load build from URL:', error);
@@ -85,15 +86,41 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
     // Deserialize build to ensure skill objects are current
     const deserializedBuild = deserializeBuild(initialBuild, skills);
     setBuild({ slots: deserializedBuild.slots });
-    setHasUnsavedChanges(false); // Initial load, no unsaved changes
+    setHasUnsavedChanges(true); // Mark as having changes to block navigation
   }, [skills, isModal, initialBuild]);
 
-  // Warn before leaving page with unsaved changes (only in page mode, not modal)
+  // Check if there are actual meaningful changes
+  const hasActualChanges = hasUnsavedChanges && (
+    buildName.trim() !== '' ||
+    build.slots.some(slot => slot.skill !== null)
+  );
+
+  // Use React Router's useBlocker for navigation blocking (only in page mode, not modal)
+  const blocker = useBlocker(!isModal && hasActualChanges);
+
+  // Handle the blocker state
+  useEffect(() => {
+    if (isModal) return; // Skip for modal mode
+
+    if (blocker.state === 'blocked') {
+      const confirmed = window.confirm(
+        'You have unsaved changes. Are you sure you want to leave? Your changes will be lost.'
+      );
+
+      if (confirmed) {
+        blocker.proceed();
+      } else {
+        blocker.reset();
+      }
+    }
+  }, [blocker, isModal]);
+
+  // Warn before leaving page with unsaved changes (browser close/refresh, only in page mode)
   useEffect(() => {
     if (isModal) return; // Skip for modal mode
 
     const handleBeforeUnload = (e) => {
-      if (hasUnsavedChanges) {
+      if (hasActualChanges) {
         e.preventDefault();
         e.returnValue = '';
         return '';
@@ -105,31 +132,7 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [hasUnsavedChanges, isModal]);
-
-  // Track hash changes for in-app navigation (only in page mode)
-  useEffect(() => {
-    if (isModal) return; // Skip for modal mode
-
-    const handleHashChange = (e) => {
-      if (hasUnsavedChanges) {
-        const confirmed = window.confirm(
-          'You have unsaved changes. Are you sure you want to leave? Your changes will be lost.'
-        );
-        if (!confirmed) {
-          e.preventDefault();
-          // Restore the previous hash
-          window.history.pushState(null, '', e.oldURL);
-        }
-      }
-    };
-
-    window.addEventListener('hashchange', handleHashChange);
-
-    return () => {
-      window.removeEventListener('hashchange', handleHashChange);
-    };
-  }, [hasUnsavedChanges, isModal]);
+  }, [hasActualChanges, isModal]);
 
   const loadSkills = async () => {
     try {
@@ -224,11 +227,21 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
 
   /**
    * Check if current build matches any saved build and update highlighting
+   * Note: This only tracks which build is loaded, not unsaved changes
    */
   useEffect(() => {
+    // Check if there's any content
+    const hasContent = buildName.trim() !== '' || build.slots.some(slot => slot.skill !== null);
+
     if (!isAuthenticated || savedBuilds.length === 0) {
       if (currentLoadedBuildId !== null) {
         setCurrentLoadedBuildId(null);
+      }
+      // If not authenticated or no saved builds, only update if no content
+      if (!hasContent && hasUnsavedChanges) {
+        setHasUnsavedChanges(false);
+      } else if (hasContent && !hasUnsavedChanges) {
+        setHasUnsavedChanges(true);
       }
       return;
     }
@@ -236,14 +249,18 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
     // Find matching build
     const matchingBuild = savedBuilds.find(savedBuild => buildsMatch(savedBuild));
 
-    if (matchingBuild && currentLoadedBuildId !== matchingBuild.id) {
+    if (matchingBuild) {
       setCurrentLoadedBuildId(matchingBuild.id);
-      setHasUnsavedChanges(false);
-    } else if (!matchingBuild && currentLoadedBuildId !== null) {
+      // Don't automatically clear hasUnsavedChanges when matching
+      // It should only be cleared when explicitly loading or after successful save
+    } else {
       setCurrentLoadedBuildId(null);
-      setHasUnsavedChanges(true);
+      // Mark as having changes if there's content and no match
+      if (hasContent && !hasUnsavedChanges) {
+        setHasUnsavedChanges(true);
+      }
     }
-  }, [buildName, maxSlots, build, savedBuilds, isAuthenticated]);
+  }, [buildName, maxSlots, build, savedBuilds, isAuthenticated, hasUnsavedChanges]);
 
   // Handle slot actions
   const handleSelectSlot = (index) => {
@@ -330,6 +347,24 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Check if there are actual meaningful changes (not just initial state)
+    const hasActualChanges = hasUnsavedChanges && (
+      buildName.trim() !== '' ||
+      build.slots.some(slot => slot.skill !== null)
+    );
+
+    // Check for unsaved changes before importing
+    if (hasActualChanges) {
+      const confirmed = window.confirm(
+        'You have unsaved changes. Importing a build will discard your current changes. Continue?'
+      );
+      if (!confirmed) {
+        // Reset file input
+        event.target.value = '';
+        return;
+      }
+    }
+
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
@@ -340,30 +375,51 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
         // Deserialize build to ensure skill objects are current
         const deserializedBuild = deserializeBuild(buildData, skills);
         setBuild({ slots: deserializedBuild.slots });
-        setHasUnsavedChanges(false); // Imported from file, no unsaved changes yet
+        setHasUnsavedChanges(true); // Mark as having changes to block navigation
       } catch (error) {
         console.error('Failed to import build:', error);
         alert('Failed to import build. Invalid file format.');
       }
     };
     reader.readAsText(file);
+
+    // Reset file input for next import
+    event.target.value = '';
   };
 
   // Clear build
   const handleClearBuild = () => {
     if (!confirm('Clear all skills from this build?')) return;
     setBuild({ slots: Array(maxSlots).fill(null).map(() => ({ skill: null, level: 1 })) });
+    setBuildName('');
+    setHasUnsavedChanges(false); // No content after clearing
+    setCurrentLoadedBuildId(null); // No loaded build after clearing
   };
 
   // Load build from saved builds
   const handleLoadBuild = (savedBuild) => {
+    // Check if there are actual meaningful changes (not just initial state)
+    const hasActualChanges = hasUnsavedChanges && (
+      buildName.trim() !== '' ||
+      build.slots.some(slot => slot.skill !== null)
+    );
+
+    // Check for unsaved changes before loading
+    if (hasActualChanges) {
+      const confirmed = window.confirm(
+        'You have unsaved changes. Loading this build will discard your current changes. Continue?'
+      );
+      if (!confirmed) return;
+    }
+
     setBuildName(savedBuild.name);
     setMaxSlots(savedBuild.maxSlots);
 
     // Deserialize build to ensure skill objects are current
     const deserializedBuild = deserializeBuild(savedBuild, skills);
     setBuild({ slots: deserializedBuild.slots });
-    // The effect will automatically detect the match and set currentLoadedBuildId
+    setHasUnsavedChanges(true); // Mark as having changes to block navigation
+    setCurrentLoadedBuildId(savedBuild.id); // Track which build is currently loaded
   };
 
   // Save build to backend
@@ -403,6 +459,7 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
       const sortedBuilds = data.builds.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
       setSavedBuilds(sortedBuilds);
       setSaveSuccess(true);
+      setHasUnsavedChanges(false); // Clear unsaved changes after successful save
 
       // Cache the updated builds
       setCache('skill-builds', user.id, sortedBuilds);

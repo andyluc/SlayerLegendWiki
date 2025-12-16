@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useBlocker } from 'react-router-dom';
 import { Share2, Download, Upload, Trash2, Copy, Check, Edit, Plus, Save, Loader, CheckCircle2 } from 'lucide-react';
 import SkillBuilderModal from './SkillBuilderModal';
 import SkillSlot from './SkillSlot';
+import SkillInformation from './SkillInformation';
 import SavedLoadoutsPanel from './SavedLoadoutsPanel';
 import { encodeLoadout, decodeLoadout } from '../../wiki-framework/src/utils/battleLoadoutEncoder';
 import { useAuthStore } from '../../wiki-framework/src/store/authStore';
@@ -27,6 +29,8 @@ const BattleLoadouts = () => {
   const [skills, setSkills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showSkillBuilder, setShowSkillBuilder] = useState(false);
+  const [showSkillInfo, setShowSkillInfo] = useState(false);
+  const [selectedSkill, setSelectedSkill] = useState(null);
   const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -66,10 +70,34 @@ const BattleLoadouts = () => {
     }
   }, [skills]);
 
-  // Warn before leaving page with unsaved changes
+  // Check if there are actual meaningful changes
+  const hasActualChanges = hasUnsavedChanges && (
+    loadoutName.trim() !== '' ||
+    currentLoadout.skillBuild !== null
+  );
+
+  // Use React Router's useBlocker for navigation blocking
+  const blocker = useBlocker(hasActualChanges);
+
+  // Handle the blocker state
+  useEffect(() => {
+    if (blocker.state === 'blocked') {
+      const confirmed = window.confirm(
+        'You have unsaved changes. Are you sure you want to leave? Your changes will be lost.'
+      );
+
+      if (confirmed) {
+        blocker.proceed();
+      } else {
+        blocker.reset();
+      }
+    }
+  }, [blocker.state]);
+
+  // Warn before leaving page with unsaved changes (browser close/refresh)
   useEffect(() => {
     const handleBeforeUnload = (e) => {
-      if (hasUnsavedChanges) {
+      if (hasActualChanges) {
         e.preventDefault();
         e.returnValue = '';
         return '';
@@ -81,29 +109,7 @@ const BattleLoadouts = () => {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [hasUnsavedChanges]);
-
-  // Track hash changes for in-app navigation
-  useEffect(() => {
-    const handleHashChange = (e) => {
-      if (hasUnsavedChanges) {
-        const confirmed = window.confirm(
-          'You have unsaved changes. Are you sure you want to leave? Your changes will be lost.'
-        );
-        if (!confirmed) {
-          e.preventDefault();
-          // Restore the previous hash
-          window.history.pushState(null, '', e.oldURL);
-        }
-      }
-    };
-
-    window.addEventListener('hashchange', handleHashChange);
-
-    return () => {
-      window.removeEventListener('hashchange', handleHashChange);
-    };
-  }, [hasUnsavedChanges]);
+  }, [hasActualChanges]);
 
   const loadSkills = async () => {
     try {
@@ -186,6 +192,20 @@ const BattleLoadouts = () => {
 
   // Load saved loadout
   const handleLoadLoadout = (loadout) => {
+    // Check if there are actual meaningful changes (not just initial state)
+    const hasActualChanges = hasUnsavedChanges && (
+      loadoutName.trim() !== '' ||
+      currentLoadout.skillBuild !== null
+    );
+
+    // Check for unsaved changes before loading
+    if (hasActualChanges) {
+      const confirmed = window.confirm(
+        'You have unsaved changes. Loading this loadout will discard your current changes. Continue?'
+      );
+      if (!confirmed) return;
+    }
+
     // Deserialize the skill build if it exists
     const deserializedLoadout = {
       ...loadout,
@@ -304,6 +324,24 @@ const BattleLoadouts = () => {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Check if there are actual meaningful changes (not just initial state)
+    const hasActualChanges = hasUnsavedChanges && (
+      loadoutName.trim() !== '' ||
+      currentLoadout.skillBuild !== null
+    );
+
+    // Check for unsaved changes before importing
+    if (hasActualChanges) {
+      const confirmed = window.confirm(
+        'You have unsaved changes. Importing a loadout will discard your current changes. Continue?'
+      );
+      if (!confirmed) {
+        // Reset file input
+        event.target.value = '';
+        return;
+      }
+    }
+
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
@@ -324,6 +362,9 @@ const BattleLoadouts = () => {
       }
     };
     reader.readAsText(file);
+
+    // Reset file input for next import
+    event.target.value = '';
   };
 
   // Clear loadout
@@ -359,6 +400,28 @@ const BattleLoadouts = () => {
       {/* Main Content */}
       <div className="relative">
         <div className={`max-w-7xl mx-auto px-3 sm:px-4 pt-6 pb-6 ${isAuthenticated ? 'pb-24' : ''}`}>
+
+        {/* Saved Loadouts Panel */}
+        <SavedLoadoutsPanel
+          key={refreshTrigger}
+          currentLoadout={currentLoadout}
+          onLoadLoadout={handleLoadLoadout}
+          currentLoadedLoadoutId={currentLoadedLoadoutId}
+        />
+
+        {/* Loadout Name Panel */}
+        <div className="bg-white dark:bg-gray-900 rounded-lg p-4 mb-4 border border-gray-200 dark:border-gray-800 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Loadout Name:</label>
+            <input
+              type="text"
+              value={loadoutName}
+              onChange={(e) => setLoadoutName(e.target.value)}
+              className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400"
+              placeholder="Enter loadout name..."
+            />
+          </div>
+        </div>
 
         {/* Actions Panel */}
         <div className="bg-white dark:bg-gray-900 rounded-lg p-4 mb-4 border border-gray-200 dark:border-gray-800 shadow-sm">
@@ -409,59 +472,49 @@ const BattleLoadouts = () => {
           </div>
         </div>
 
-        {/* Saved Loadouts Panel */}
-        <SavedLoadoutsPanel
-          key={refreshTrigger}
-          currentLoadout={currentLoadout}
-          onLoadLoadout={handleLoadLoadout}
-          currentLoadedLoadoutId={currentLoadedLoadoutId}
-        />
-
-        {/* Loadout Name Panel */}
-        <div className="bg-white dark:bg-gray-900 rounded-lg p-4 mb-4 border border-gray-200 dark:border-gray-800 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Loadout Name:</label>
-            <input
-              type="text"
-              value={loadoutName}
-              onChange={(e) => setLoadoutName(e.target.value)}
-              className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400"
-              placeholder="Enter loadout name..."
-            />
-          </div>
-        </div>
-
         {/* Skills Section */}
         <SkillsSection
           skillBuild={currentLoadout.skillBuild}
           onEdit={() => setShowSkillBuilder(true)}
           onClear={handleClearSkillBuild}
+          onSkillClick={(skill) => {
+            setSelectedSkill(skill);
+            setShowSkillInfo(true);
+          }}
         />
 
-        {/* Other Sections - Placeholders */}
-        <PlaceholderSection
-          title="Accompanying Spirit"
-          description="Spirit Builder coming soon"
-          icon="🔮"
-        />
+        {/* Two Column Layout for Other Sections */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left Column */}
+          <div className="space-y-6">
+            <PlaceholderSection
+              title="Spirits"
+              description="Spirit Builder coming soon"
+              icon="🔮"
+            />
 
-        <PlaceholderSection
-          title="Skill Stone"
-          description="Skill Stone Builder coming soon"
-          icon="💎"
-        />
+            <PlaceholderSection
+              title="Slayer Promotion Abilities"
+              description="Promotion Ability Builder coming soon"
+              icon="⭐"
+            />
+          </div>
 
-        <PlaceholderSection
-          title="Slayer Promotion Additional Ability"
-          description="Promotion Ability Builder coming soon"
-          icon="⭐"
-        />
+          {/* Right Column */}
+          <div className="space-y-6">
+            <PlaceholderSection
+              title="Skill Stones"
+              description="Skill Stone Builder coming soon"
+              icon="💎"
+            />
 
-        <PlaceholderSection
-          title="Familiar Skill"
-          description="Familiar Builder coming soon"
-          icon="🐾"
-        />
+            <PlaceholderSection
+              title="Familiar"
+              description="Familiar Builder coming soon"
+              icon="🐾"
+            />
+          </div>
+        </div>
         </div>
 
         {/* Sticky Footer with Save Button */}
@@ -514,6 +567,16 @@ const BattleLoadouts = () => {
         initialBuild={currentLoadout.skillBuild}
         onSave={handleSkillBuildSave}
       />
+
+      {/* Skill Information Modal */}
+      <SkillInformation
+        skill={selectedSkill}
+        isOpen={showSkillInfo}
+        onClose={() => {
+          setShowSkillInfo(false);
+          setSelectedSkill(null);
+        }}
+      />
     </div>
   );
 };
@@ -521,9 +584,9 @@ const BattleLoadouts = () => {
 /**
  * Skills Section Component
  */
-const SkillsSection = ({ skillBuild, onEdit, onClear }) => {
+const SkillsSection = ({ skillBuild, onEdit, onClear, onSkillClick }) => {
   return (
-    <div className="bg-gray-800 rounded-lg p-6 mb-6">
+    <div style={{ paddingBottom: '2.5rem' }} className="bg-gray-800 rounded-lg p-6 mb-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <span className="text-xl font-bold text-white">Skills to use</span>
@@ -565,6 +628,7 @@ const SkillsSection = ({ skillBuild, onEdit, onClear }) => {
                 onRemoveSkill={() => {}}
                 onLevelChange={() => {}}
                 readOnly={true}
+                onSkillClick={onSkillClick}
               />
             ))}
           </div>
@@ -590,7 +654,7 @@ const SkillsSection = ({ skillBuild, onEdit, onClear }) => {
  */
 const PlaceholderSection = ({ title, description, icon }) => {
   return (
-    <div className="bg-gray-800 rounded-lg p-6 mb-6 opacity-60">
+    <div className="bg-gray-800 rounded-lg p-6 opacity-60">
       <div className="flex items-center gap-2 mb-4">
         <span className="text-2xl">{icon}</span>
         <span className="text-xl font-bold text-white">{title}</span>

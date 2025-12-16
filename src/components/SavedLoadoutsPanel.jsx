@@ -276,13 +276,6 @@ const SavedLoadoutsPanel = ({ currentLoadout, onLoadLoadout, currentLoadedLoadou
               })}
             </div>
           )}
-
-          {/* Loadout Limit Info */}
-          {savedLoadouts.length > 0 && (
-            <div className="mt-4 text-xs text-gray-500 dark:text-gray-400 text-center">
-              {savedLoadouts.length} / 10 loadouts saved
-            </div>
-          )}
         </>
       )}
     </div>
