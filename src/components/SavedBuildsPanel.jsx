@@ -5,6 +5,7 @@ import { useWikiConfig } from '../../wiki-framework/src/hooks/useWikiConfig';
 import { useLoginFlow } from '../../wiki-framework/src/hooks/useLoginFlow';
 import LoginModal from '../../wiki-framework/src/components/auth/LoginModal';
 import { getUserBuilds } from '../../wiki-framework/src/services/github/skillBuilds';
+import { getCache, setCache, mergeCacheWithGitHub } from '../utils/buildCache';
 
 /**
  * SavedBuildsPanel Component
@@ -40,16 +41,33 @@ const SavedBuildsPanel = ({ currentBuild, buildName, maxSlots, onLoadBuild, allo
     setError(null);
 
     try {
-      const builds = await getUserBuilds(
+      // Get cached builds
+      const cachedBuilds = getCache('skill-builds', user.id);
+
+      // Fetch from GitHub
+      const githubBuilds = await getUserBuilds(
         config.wiki.repository.owner,
         config.wiki.repository.repo,
         user.login,
         user.id
       );
-      setSavedBuilds(builds.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)));
+
+      // Merge cached data with GitHub data, prioritizing cache for recent updates
+      const mergedBuilds = mergeCacheWithGitHub(cachedBuilds, githubBuilds);
+
+      setSavedBuilds(mergedBuilds.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)));
+
+      // Update cache with merged results
+      setCache('skill-builds', user.id, mergedBuilds);
     } catch (err) {
       console.error('[SavedBuilds] Failed to load builds:', err);
       setError('Failed to load saved builds');
+
+      // Fall back to cached data if GitHub fetch fails
+      const cachedBuilds = getCache('skill-builds', user.id);
+      if (cachedBuilds) {
+        setSavedBuilds(cachedBuilds.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)));
+      }
     } finally {
       setLoading(false);
     }
@@ -87,8 +105,12 @@ const SavedBuildsPanel = ({ currentBuild, buildName, maxSlots, onLoadBuild, allo
       }
 
       const data = await response.json();
-      setSavedBuilds(data.builds.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)));
+      const sortedBuilds = data.builds.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      setSavedBuilds(sortedBuilds);
       setSaveSuccess(true);
+
+      // Cache the updated builds
+      setCache('skill-builds', user.id, sortedBuilds);
 
       // Hide success message after 2 seconds
       setTimeout(() => setSaveSuccess(false), 2000);
@@ -125,7 +147,11 @@ const SavedBuildsPanel = ({ currentBuild, buildName, maxSlots, onLoadBuild, allo
       }
 
       const data = await response.json();
-      setSavedBuilds(data.builds.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)));
+      const sortedBuilds = data.builds.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      setSavedBuilds(sortedBuilds);
+
+      // Update cache after deletion
+      setCache('skill-builds', user.id, sortedBuilds);
     } catch (err) {
       console.error('[SavedBuilds] Failed to delete build:', err);
       setError(err.message || 'Failed to delete build');

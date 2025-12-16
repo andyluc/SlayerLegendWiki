@@ -162,6 +162,7 @@
       "path": "guides",
       "icon": "📚",
       "allowContributions": true,
+      "hideTitleInSidebar": true,
       "order": 9
     },
     {

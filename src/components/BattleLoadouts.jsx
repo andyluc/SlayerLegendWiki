@@ -5,6 +5,7 @@ import SkillSlot from './SkillSlot';
 import SavedLoadoutsPanel from './SavedLoadoutsPanel';
 import { encodeLoadout, decodeLoadout } from '../../wiki-framework/src/utils/battleLoadoutEncoder';
 import { useAuthStore } from '../../wiki-framework/src/store/authStore';
+import { setCache } from '../utils/buildCache';
 
 /**
  * BattleLoadouts Component
@@ -225,6 +226,13 @@ const BattleLoadouts = () => {
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to save loadout');
+      }
+
+      const data = await response.json();
+
+      // Cache the updated loadouts
+      if (data.loadouts) {
+        setCache('battle-loadouts', user.id, data.loadouts);
       }
 
       setSaveSuccess(true);

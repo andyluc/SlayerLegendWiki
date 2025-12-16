@@ -5,6 +5,7 @@ import { useWikiConfig } from '../../wiki-framework/src/hooks/useWikiConfig';
 import { useLoginFlow } from '../../wiki-framework/src/hooks/useLoginFlow';
 import LoginModal from '../../wiki-framework/src/components/auth/LoginModal';
 import { getUserLoadouts } from '../../wiki-framework/src/services/github/battleLoadouts';
+import { getCache, setCache, mergeCacheWithGitHub } from '../utils/buildCache';
 
 /**
  * SavedLoadoutsPanel Component
@@ -37,16 +38,33 @@ const SavedLoadoutsPanel = ({ currentLoadout, onLoadLoadout }) => {
     setError(null);
 
     try {
-      const loadouts = await getUserLoadouts(
+      // Get cached loadouts
+      const cachedLoadouts = getCache('battle-loadouts', user.id);
+
+      // Fetch from GitHub
+      const githubLoadouts = await getUserLoadouts(
         config.wiki.repository.owner,
         config.wiki.repository.repo,
         user.login,
         user.id
       );
-      setSavedLoadouts(loadouts.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)));
+
+      // Merge cached data with GitHub data, prioritizing cache for recent updates
+      const mergedLoadouts = mergeCacheWithGitHub(cachedLoadouts, githubLoadouts);
+
+      setSavedLoadouts(mergedLoadouts.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)));
+
+      // Update cache with merged results
+      setCache('battle-loadouts', user.id, mergedLoadouts);
     } catch (err) {
       console.error('[SavedLoadouts] Failed to load loadouts:', err);
       setError('Failed to load saved loadouts');
+
+      // Fall back to cached data if GitHub fetch fails
+      const cachedLoadouts = getCache('battle-loadouts', user.id);
+      if (cachedLoadouts) {
+        setSavedLoadouts(cachedLoadouts.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)));
+      }
     } finally {
       setLoading(false);
     }
@@ -77,7 +95,11 @@ const SavedLoadoutsPanel = ({ currentLoadout, onLoadLoadout }) => {
       }
 
       const data = await response.json();
-      setSavedLoadouts(data.loadouts.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)));
+      const sortedLoadouts = data.loadouts.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      setSavedLoadouts(sortedLoadouts);
+
+      // Update cache after deletion
+      setCache('battle-loadouts', user.id, sortedLoadouts);
     } catch (err) {
       console.error('[SavedLoadouts] Failed to delete loadout:', err);
       setError(err.message || 'Failed to delete loadout');
