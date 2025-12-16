@@ -1,72 +1,157 @@
 ---
 title: Guides
-description: Step-by-step guides for using your wiki
-tags: [guides, documentation]
+description: Strategy guides and tips for Slayer Legend
+tags: [guides, strategy, tips]
 category: Guides
-date: 2025-12-13
+date: 2025-12-16
 ---
 
 # Guides
 
-Welcome to the guides section! Here you'll find step-by-step tutorials for working with your wiki.
+Welcome to the Slayer Legend strategy guides! Here you'll find tips, strategies, and detailed guides to help you progress through the game.
 
-## Available Guides
+## Progression Guides
 
-### Content Management
+### Early Game (Stages 1-100)
+- Focus on completing the main story stages
+- Upgrade your starting weapon (Innocence) to level 10+
+- Unlock and level your first companion
+- Save diamonds for important upgrades
+- Complete daily quests for steady resource income
 
-- [Creating Content](creating-content) - Learn how to write and organize pages
-- [Markdown Syntax](markdown-syntax) - Master GitHub Flavored Markdown
-- [Using Tags](using-tags) - Organize content with tags and categories
+### Mid Game (Stages 100-500)
+- Push for Bronze promotion as soon as possible
+- Start farming specific stages for equipment
+- Invest in skill refinement for your main skills
+- Build a balanced skill build for your playstyle
+- Join events for rare materials
 
-### Configuration
+### Late Game (Stages 500+)
+- Focus on optimizing your build efficiency
+- Farm high-tier equipment and relics
+- Max out skill mastery for critical skills
+- Complete Memory Tree objectives
+- Push for higher promotions (Silver, Gold, Mithril)
 
-- [Wiki Configuration](configuration) - Customize your wiki settings
-- [Theme Customization](theme-customization) - Change colors and styling
-- [Adding Sections](adding-sections) - Create new navigation sections
+## Combat Strategies
 
-### Advanced Features
+### Element Synergy
+- Fire skills excel at single-target burst damage
+- Water skills provide crowd control and defense
+- Earth skills offer sustained damage and tankiness
+- Wind skills deliver fast attacks and mobility
 
-- [GitHub OAuth Setup](github-oauth) - Enable authentication and editing
-- [Search Configuration](search-configuration) - Optimize search functionality
-- [Deployment](deployment) - Deploy to GitHub Pages
+### Skill Combinations
+Check out the [Skill Builder](/skill-builder) tool to create and share optimized skill builds for different situations.
 
-## Quick Tips
+### Boss Strategies
+- Learn attack patterns and dodge timing
+- Bring appropriate element counters
+- Stack damage buffs before burst windows
+- Keep defense skills on cooldown
+- Use companions strategically
 
-### Writing Good Documentation
+## Resource Management
 
-1. **Be Clear and Concise** - Use simple language
-2. **Use Examples** - Show, don't just tell
-3. **Add Screenshots** - Visual aids help understanding
-4. **Keep It Updated** - Review and update regularly
+### Gold Efficiency
+- Prioritize equipment enhancement early
+- Don't over-invest in low-tier equipment
+- Save gold for promotion costs
+- Use the Enhancement Calculator in [Tools](/tools)
 
-### Markdown Best Practices
+### Diamond Spending
+Priority order for F2P players:
+1. Equipment inventory slots (one-time investment)
+2. Critical event items
+3. Premium equipment/companions (if needed)
+4. Convenience items last
 
-```markdown
-# Use proper heading hierarchy
+### Material Farming
+- Farm stages with best drop rates (see [Database](/database))
+- Focus on materials needed for current goals
+- Don't hoard materials - use them to progress
+- Events often have better material rates
 
-## Start with H2 for main sections
+## Equipment Guide
 
-### Use H3 for subsections
+### Weapon Progression Path
+1. **Innocence** (Common) - Your starter weapon
+2. **Effort** (Great) - First major upgrade around Stage 50
+3. **Pride** (Rare) - Mid-game powerhouse
+4. **Faith** (Epic) - Late game transition
+5. **Willingness** (Legendary) - End game goal
 
-- Use bullet points for lists
-- Keep paragraphs short
-- **Bold** important terms
-- Use `code` for commands
-```
+### Enhancement Strategy
+- Enhance your current weapon to +10 before upgrading
+- Check efficiency ratings (see [Equipment](/equipment))
+- Consider fusion for material recovery
+- Soul weapons become important at high levels
 
-### Content Organization
+## Companion Management
 
-```
-content/
-├── getting-started/     # Beginner-friendly content
-├── guides/              # Step-by-step tutorials
-└── reference/           # Technical documentation
-```
+### Companion Priority
+1. **Ellie** - Best all-around companion, unlock ASAP
+2. **Zeke** - Tank option for difficult content
+3. **Miho** - DPS boost for farming
+4. **Luna** - Support healer for survivability
 
-## Need Help?
+### Companion Enhancement
+- Level companions alongside your character
+- Promotion options unlock at key milestones
+- Don't neglect companion equipment
+- Max their key skills first
 
-If you're stuck, check out:
+## Advanced Tips
 
-- [Framework Documentation](https://github.com/BenDol/GithubWiki)
-- [Community Discussions](https://github.com/yourusername/your-wiki/discussions)
-- [Report an Issue](https://github.com/yourusername/your-wiki/issues)
+### Efficient Progression
+- Don't rush stages - farm for stable clears
+- Upgrade in small increments
+- Use all available resources (companions, skills, equipment)
+- Join community discussions for meta strategies
+
+### Build Optimization
+Use our tools to optimize your character:
+- [Skill Builder](/skill-builder) - Create the perfect skill loadout
+- [Battle Loadouts](/battle-loadouts) - Save complete configurations
+- [Database](/database) - Reference for all game data
+
+### Common Mistakes to Avoid
+- ❌ Spreading resources too thin across multiple builds
+- ❌ Ignoring promotions (huge stat boosts!)
+- ❌ Selling equipment before considering fusion
+- ❌ Not using companions effectively
+- ❌ Skipping daily quests and events
+
+## Community Resources
+
+### Getting Help
+- Check the [Getting Started](/getting-started) section for basics
+- Read specific guides for [Characters](/characters), [Skills](/skills), and [Equipment](/equipment)
+- Use our [Skill Builder](/skill-builder) to plan your build
+- Share strategies with other players
+
+### Contributing Tips
+Have your own strategies or tips to share? Help the community by:
+- Sharing successful build configurations
+- Documenting effective farming routes
+- Contributing to page edits (see [Contributing](/meta/contributing))
+- Reporting outdated information
+
+## Popular Guides by Topic
+
+### Character Development
+- [Promotions Guide](/characters/promotions) - Understanding the promotion system
+- [Stats Explained](/characters/stats) - What each stat does
+- [Training Log](/characters/training-log) - Tracking your progress
+
+### Equipment Mastery
+- [Enhancement System](/equipment/enhancement) - Upgrade your gear
+- [Fusion Guide](/equipment/fusion) - Convert old equipment
+- [Soul Weapons](/equipment/soul-weapons) - End-game weapons
+
+### Skill Building
+- [Skill Mechanics](/skills/skill-mechanics) - How skills work
+- [Skill Mastery](/skills/skill-mastery) - Leveling up skills
+- [Build Templates](/skills/skill-builds) - Pre-made builds to try
+
+Happy gaming, Slayer!

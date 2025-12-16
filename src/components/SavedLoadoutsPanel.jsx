@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Loader, Trash2, Clock, CheckCircle2, LogIn } from 'lucide-react';
+import { Save, Loader, Trash2, Clock, CheckCircle2, LogIn, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuthStore } from '../../wiki-framework/src/store/authStore';
 import { useWikiConfig } from '../../wiki-framework/src/hooks/useWikiConfig';
 import { useLoginFlow } from '../../wiki-framework/src/hooks/useLoginFlow';
@@ -23,6 +23,7 @@ const SavedLoadoutsPanel = ({ currentLoadout, onLoadLoadout, currentLoadedLoadou
   const [savedLoadouts, setSavedLoadouts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isExpanded, setIsExpanded] = useState(true);
 
   // Load saved loadouts on mount
   useEffect(() => {
@@ -177,42 +178,54 @@ const SavedLoadoutsPanel = ({ currentLoadout, onLoadLoadout, currentLoadedLoadou
   }
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-lg p-4 sm:p-6 border border-gray-200 dark:border-gray-800 shadow-sm mb-8">
+    <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-800 shadow-sm mb-8">
       {/* Header */}
-      <div className="mb-4">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center justify-between hover:opacity-80 transition-opacity"
+      >
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
           <Save className="w-5 h-5" />
           <span>Saved Loadouts</span>
         </h3>
-      </div>
-
-      {/* Error Message */}
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-800 dark:text-red-200">
-          {error}
+        <div className="p-2 text-gray-600 dark:text-gray-400">
+          {isExpanded ? (
+            <ChevronUp className="w-5 h-5" />
+          ) : (
+            <ChevronDown className="w-5 h-5" />
+          )}
         </div>
-      )}
+      </button>
 
-      {/* Loading State */}
-      {loading && (
-        <div className="flex items-center justify-center py-8">
-          <Loader className="w-6 h-6 text-gray-400 animate-spin" />
-        </div>
-      )}
+      {isExpanded && (
+        <>
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-800 dark:text-red-200">
+              {error}
+            </div>
+          )}
 
-      {/* Empty State */}
-      {!loading && savedLoadouts.length === 0 && (
-        <div className="text-center py-8">
-          <p className="text-gray-600 dark:text-gray-400 text-sm">
-            No saved loadouts yet. Configure your loadout and click "Save Loadout" in the footer to save it.
-          </p>
-        </div>
-      )}
+          {/* Loading State */}
+          {loading && (
+            <div className="flex items-center justify-center py-8">
+              <Loader className="w-6 h-6 text-gray-400 animate-spin" />
+            </div>
+          )}
 
-      {/* Loadouts List */}
-      {!loading && savedLoadouts.length > 0 && (
-        <div className="space-y-2">
-          {savedLoadouts.map((loadout) => {
+          {/* Empty State */}
+          {!loading && savedLoadouts.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
+                No saved loadouts yet. Configure your loadout and click "Save Loadout" in the footer to save it.
+              </p>
+            </div>
+          )}
+
+          {/* Loadouts List */}
+          {!loading && savedLoadouts.length > 0 && (
+            <div className="max-h-96 overflow-y-auto space-y-2">
+              {savedLoadouts.map((loadout) => {
             const isCurrentlyLoaded = currentLoadedLoadoutId === loadout.id;
             return (
               <div
@@ -260,15 +273,17 @@ const SavedLoadoutsPanel = ({ currentLoadout, onLoadLoadout, currentLoadedLoadou
                 </button>
               </div>
             );
-          })}
-        </div>
-      )}
+              })}
+            </div>
+          )}
 
-      {/* Loadout Limit Info */}
-      {savedLoadouts.length > 0 && (
-        <div className="mt-4 text-xs text-gray-500 dark:text-gray-400 text-center">
-          {savedLoadouts.length} / 10 loadouts saved
-        </div>
+          {/* Loadout Limit Info */}
+          {savedLoadouts.length > 0 && (
+            <div className="mt-4 text-xs text-gray-500 dark:text-gray-400 text-center">
+              {savedLoadouts.length} / 10 loadouts saved
+            </div>
+          )}
+        </>
       )}
     </div>
   );

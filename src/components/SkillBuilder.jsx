@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
-import { Share2, Download, Upload, Settings, Trash2, Copy, Check } from 'lucide-react';
+import { Share2, Download, Upload, Settings, Trash2, Copy, Check, Save, Loader, CheckCircle2 } from 'lucide-react';
 import SkillSlot from './SkillSlot';
 import SkillSelector from './SkillSelector';
 import SavedBuildsPanel from './SavedBuildsPanel';
 import { encodeBuild, decodeBuild } from '../../wiki-framework/src/components/wiki/BuildEncoder';
+import { useAuthStore } from '../../wiki-framework/src/store/authStore';
+import { setCache } from '../utils/buildCache';
 
 /**
  * SkillBuilder Component
@@ -22,9 +24,10 @@ import { encodeBuild, decodeBuild } from '../../wiki-framework/src/components/wi
  * @param {boolean} allowSavingBuilds - If true, shows build name field and save-related UI (default: true)
  */
 const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave = null, allowSavingBuilds = true }, ref) => {
+  const { isAuthenticated, user } = useAuthStore();
   const [skills, setSkills] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [buildName, setBuildName] = useState('My Build');
+  const [buildName, setBuildName] = useState('');
   const [maxSlots, setMaxSlots] = useState(10);
   const [autoMaxLevel, setAutoMaxLevel] = useState(false);
   const [build, setBuild] = useState({
@@ -35,6 +38,10 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
   const [copied, setCopied] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [currentLoadedBuildId, setCurrentLoadedBuildId] = useState(null);
+  const [savedBuilds, setSavedBuilds] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState(null);
 
   // Load skills data
   useEffect(() => {
@@ -53,7 +60,7 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
       try {
         const decodedBuild = decodeBuild(encodedBuild);
         if (decodedBuild) {
-          setBuildName(decodedBuild.name || 'My Skill Build');
+          setBuildName(decodedBuild.name || '');
           setMaxSlots(decodedBuild.maxSlots || 10);
 
           // Deserialize build (convert skill IDs back to full skill objects)
@@ -186,6 +193,58 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
     };
   };
 
+  /**
+   * Compare current build with a saved build to check if they match
+   */
+  const buildsMatch = (savedBuild) => {
+    if (!savedBuild) return false;
+
+    // Check name and maxSlots
+    if (savedBuild.name !== buildName) return false;
+    if (savedBuild.maxSlots !== maxSlots) return false;
+
+    // Check if all slots match
+    for (let i = 0; i < maxSlots; i++) {
+      const currentSlot = build.slots[i];
+      const savedSlot = savedBuild.slots[i];
+
+      // Both empty
+      if (!currentSlot?.skill && !savedSlot?.skill) continue;
+
+      // One empty, one not
+      if (!currentSlot?.skill || !savedSlot?.skill) return false;
+
+      // Check skill ID and level
+      if (currentSlot.skill.id !== savedSlot.skill?.id) return false;
+      if (currentSlot.level !== savedSlot.level) return false;
+    }
+
+    return true;
+  };
+
+  /**
+   * Check if current build matches any saved build and update highlighting
+   */
+  useEffect(() => {
+    if (!isAuthenticated || savedBuilds.length === 0) {
+      if (currentLoadedBuildId !== null) {
+        setCurrentLoadedBuildId(null);
+      }
+      return;
+    }
+
+    // Find matching build
+    const matchingBuild = savedBuilds.find(savedBuild => buildsMatch(savedBuild));
+
+    if (matchingBuild && currentLoadedBuildId !== matchingBuild.id) {
+      setCurrentLoadedBuildId(matchingBuild.id);
+      setHasUnsavedChanges(false);
+    } else if (!matchingBuild && currentLoadedBuildId !== null) {
+      setCurrentLoadedBuildId(null);
+      setHasUnsavedChanges(true);
+    }
+  }, [buildName, maxSlots, build, savedBuilds, isAuthenticated]);
+
   // Handle slot actions
   const handleSelectSlot = (index) => {
     setSelectedSlotIndex(index);
@@ -211,24 +270,18 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
       level: autoMaxLevel ? (skill.maxLevel || 130) : 1
     };
     setBuild({ slots: newSlots });
-    setHasUnsavedChanges(true);
-    setCurrentLoadedBuildId(null); // Clear loaded build ID when making changes
   };
 
   const handleRemoveSkill = (index) => {
     const newSlots = [...build.slots];
     newSlots[index] = { skill: null, level: 1 };
     setBuild({ slots: newSlots });
-    setHasUnsavedChanges(true);
-    setCurrentLoadedBuildId(null); // Clear loaded build ID when making changes
   };
 
   const handleLevelChange = (index, newLevel) => {
     const newSlots = [...build.slots];
     newSlots[index].level = newLevel;
     setBuild({ slots: newSlots });
-    setHasUnsavedChanges(true);
-    setCurrentLoadedBuildId(null); // Clear loaded build ID when making changes
   };
 
   // Share build
@@ -281,7 +334,7 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
     reader.onload = (e) => {
       try {
         const buildData = JSON.parse(e.target.result);
-        setBuildName(buildData.name || 'Imported Build');
+        setBuildName(buildData.name || '');
         setMaxSlots(buildData.maxSlots || 10);
 
         // Deserialize build to ensure skill objects are current
@@ -300,8 +353,6 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
   const handleClearBuild = () => {
     if (!confirm('Clear all skills from this build?')) return;
     setBuild({ slots: Array(maxSlots).fill(null).map(() => ({ skill: null, level: 1 })) });
-    setHasUnsavedChanges(true);
-    setCurrentLoadedBuildId(null); // Clear loaded build ID when making changes
   };
 
   // Load build from saved builds
@@ -312,8 +363,58 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
     // Deserialize build to ensure skill objects are current
     const deserializedBuild = deserializeBuild(savedBuild, skills);
     setBuild({ slots: deserializedBuild.slots });
-    setHasUnsavedChanges(false); // Loaded from saved, no unsaved changes
-    setCurrentLoadedBuildId(savedBuild.id); // Track which build is currently loaded
+    // The effect will automatically detect the match and set currentLoadedBuildId
+  };
+
+  // Save build to backend
+  const saveBuild = async () => {
+    if (!user || !isAuthenticated) return;
+
+    setSaving(true);
+    setSaveError(null);
+    setSaveSuccess(false);
+
+    try {
+      const buildData = {
+        name: buildName,
+        maxSlots,
+        slots: build.slots,
+      };
+
+      const response = await fetch('/.netlify/functions/save-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'skill-build',
+          username: user.login,
+          userId: user.id,
+          data: buildData,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save build');
+      }
+
+      const data = await response.json();
+      const sortedBuilds = data.builds.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      setSavedBuilds(sortedBuilds);
+      setSaveSuccess(true);
+
+      // Cache the updated builds
+      setCache('skill-builds', user.id, sortedBuilds);
+
+      // Hide success message after 2 seconds
+      setTimeout(() => setSaveSuccess(false), 2000);
+    } catch (err) {
+      console.error('[SkillBuilder] Failed to save build:', err);
+      setSaveError(err.message || 'Failed to save build');
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Save build (modal mode only)
@@ -382,44 +483,70 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
         </div>
       )}
 
-      {/* Build Name Field - Controlled by allowSavingBuilds */}
-      {allowSavingBuilds && (
-        <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-          <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
+      {/* Saved Builds Panel */}
+      <div className={`${isModal ? 'px-4 pt-6 pb-0' : 'max-w-7xl mx-auto px-3 sm:px-4 pt-2 pb-0'}`}>
+        <SavedBuildsPanel
+          currentBuild={build}
+          buildName={buildName}
+          maxSlots={maxSlots}
+          onLoadBuild={handleLoadBuild}
+          allowSavingBuilds={false}
+          currentLoadedBuildId={currentLoadedBuildId}
+          onBuildsChange={setSavedBuilds}
+          defaultExpanded={!isModal}
+        />
+      </div>
+
+      {/* Main Content */}
+      <div className={`${isModal ? 'px-4 pt-1 pb-3' : 'max-w-7xl mx-auto px-3 sm:px-4 pt-1 pb-3'}`}>
+        {/* Build Name Panel - Controlled by allowSavingBuilds */}
+        {allowSavingBuilds && (
+          <div className="bg-white dark:bg-gray-900 rounded-lg p-4 mb-4 border border-gray-200 dark:border-gray-800 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Build Name:</label>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Build Name:</label>
               <input
                 type="text"
                 value={buildName}
                 onChange={(e) => {
                   setBuildName(e.target.value);
-                  setHasUnsavedChanges(true);
-                  setCurrentLoadedBuildId(null); // Clear loaded build ID when making changes
                 }}
                 className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400"
                 placeholder="Enter build name..."
               />
+              {isAuthenticated && (
+                <button
+                  onClick={saveBuild}
+                  disabled={saving || saveSuccess}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
+                >
+                  {saving ? (
+                    <>
+                      <Loader className="w-4 h-4 animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : saveSuccess ? (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Saved!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      <span>Save Build</span>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
+            {/* Save Error Message */}
+            {saveError && (
+              <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-800 dark:text-red-200">
+                {saveError}
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Saved Builds Panel */}
-      {!isModal && (
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 pt-6 pb-0">
-          <SavedBuildsPanel
-            currentBuild={build}
-            buildName={buildName}
-            maxSlots={maxSlots}
-            onLoadBuild={handleLoadBuild}
-            allowSavingBuilds={allowSavingBuilds}
-            currentLoadedBuildId={currentLoadedBuildId}
-          />
-        </div>
-      )}
-
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6">
         {/* Actions Panel */}
         {!isModal && (
           <div className="bg-white dark:bg-gray-900 rounded-lg p-4 mb-4 border border-gray-200 dark:border-gray-800 shadow-sm">
@@ -489,8 +616,6 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
                       newSlots.push({ skill: null, level: 1 });
                     }
                     setBuild({ slots: newSlots.slice(0, newMax) });
-                    setHasUnsavedChanges(true);
-                    setCurrentLoadedBuildId(null); // Clear loaded build ID when making changes
                   }}
                   className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
                 >

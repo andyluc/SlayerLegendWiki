@@ -97,13 +97,13 @@ const SkillBuilderModal = ({ isOpen, onClose, initialBuild = null, onSave }) => 
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto">
           <SkillBuilder
             ref={builderRef}
             isModal={true}
             initialBuild={initialBuild}
             onSave={handleSave}
-            allowSavingBuilds={false}
+            allowSavingBuilds={true}
           />
         </div>
 

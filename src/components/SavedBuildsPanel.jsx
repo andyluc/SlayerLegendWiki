@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Loader, Trash2, Clock, CheckCircle2, LogIn } from 'lucide-react';
+import { Save, Loader, Trash2, Clock, CheckCircle2, LogIn, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuthStore } from '../../wiki-framework/src/store/authStore';
 import { useWikiConfig } from '../../wiki-framework/src/hooks/useWikiConfig';
 import { useLoginFlow } from '../../wiki-framework/src/hooks/useLoginFlow';
@@ -17,7 +17,7 @@ import { getCache, setCache, mergeCacheWithGitHub } from '../utils/buildCache';
  * - Delete builds
  * - Mobile-friendly UI
  */
-const SavedBuildsPanel = ({ currentBuild, buildName, maxSlots, onLoadBuild, allowSavingBuilds = true, currentLoadedBuildId = null }) => {
+const SavedBuildsPanel = ({ currentBuild, buildName, maxSlots, onLoadBuild, allowSavingBuilds = true, currentLoadedBuildId = null, onBuildsChange = null, defaultExpanded = true }) => {
   const { isAuthenticated, user } = useAuthStore();
   const { config } = useWikiConfig();
   const loginFlow = useLoginFlow();
@@ -26,6 +26,7 @@ const SavedBuildsPanel = ({ currentBuild, buildName, maxSlots, onLoadBuild, allo
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState(null);
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   // Load saved builds on mount
   useEffect(() => {
@@ -33,6 +34,13 @@ const SavedBuildsPanel = ({ currentBuild, buildName, maxSlots, onLoadBuild, allo
       loadBuilds();
     }
   }, [isAuthenticated, user]);
+
+  // Notify parent when builds change
+  useEffect(() => {
+    if (onBuildsChange) {
+      onBuildsChange(savedBuilds);
+    }
+  }, [savedBuilds, onBuildsChange]);
 
   const loadBuilds = async () => {
     if (!user || !config) return;
@@ -235,131 +243,150 @@ const SavedBuildsPanel = ({ currentBuild, buildName, maxSlots, onLoadBuild, allo
   }
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-lg p-4 sm:p-6 border border-gray-200 dark:border-gray-800 shadow-sm mb-8">
+    <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-800 shadow-sm mb-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-          <Save className="w-5 h-5" />
-          <span>Saved Builds</span>
-        </h3>
-        {allowSavingBuilds && (
-          <button
-            onClick={saveBuild}
-            disabled={saving || saveSuccess}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg text-sm font-medium transition-colors"
-          >
-            {saving ? (
-              <>
-                <Loader className="w-4 h-4 animate-spin" />
-                <span className="hidden sm:inline">Saving...</span>
-              </>
-            ) : saveSuccess ? (
-              <>
-                <CheckCircle2 className="w-4 h-4" />
-                <span className="hidden sm:inline">Saved!</span>
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4" />
-                <span>Save Build</span>
-              </>
-            )}
-          </button>
-        )}
-      </div>
-
-      {/* Error Message */}
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-800 dark:text-red-200">
-          {error}
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center justify-between hover:opacity-80 transition-opacity"
+      >
+        <div className="flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <Save className="w-5 h-5" />
+            <span>Saved Builds</span>
+          </h3>
+          {allowSavingBuilds && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                saveBuild();
+              }}
+              disabled={saving || saveSuccess}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              {saving ? (
+                <>
+                  <Loader className="w-4 h-4 animate-spin" />
+                  <span className="hidden sm:inline">Saving...</span>
+                </>
+              ) : saveSuccess ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span className="hidden sm:inline">Saved!</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>Save Build</span>
+                </>
+              )}
+            </button>
+          )}
         </div>
-      )}
-
-      {/* Loading State */}
-      {loading && (
-        <div className="flex items-center justify-center py-8">
-          <Loader className="w-6 h-6 text-gray-400 animate-spin" />
+        <div className="p-2 text-gray-600 dark:text-gray-400">
+          {isExpanded ? (
+            <ChevronUp className="w-5 h-5" />
+          ) : (
+            <ChevronDown className="w-5 h-5" />
+          )}
         </div>
-      )}
+      </button>
 
-      {/* Empty State */}
-      {!loading && savedBuilds.length === 0 && (
-        <div className="text-center py-8">
-          <p className="text-gray-600 dark:text-gray-400 text-sm">
-            No saved builds yet. Click "Save Build" to store your current build.
-          </p>
-        </div>
-      )}
-
-      {/* Builds List */}
-      {!loading && savedBuilds.length > 0 && (
-        <div className="space-y-2">
-          {savedBuilds.map((build) => {
-            const isCurrentlyLoaded = currentLoadedBuildId === build.id;
-            return (
-              <div
-                key={build.id}
-                className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
-                  isCurrentlyLoaded
-                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 dark:border-blue-500'
-                    : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500'
-                }`}
-              >
-                <button
-                  onClick={() => handleLoadBuild(build)}
-                  className="flex-1 text-left min-w-0"
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <h4 className={`font-semibold truncate ${
-                      isCurrentlyLoaded
-                        ? 'text-blue-900 dark:text-blue-100'
-                        : 'text-gray-900 dark:text-white'
-                    }`}>
-                      {build.name}
-                    </h4>
-                    {isCurrentlyLoaded && (
-                      <span className="text-xs font-medium text-blue-600 dark:text-blue-400 flex-shrink-0">
-                        (Loaded)
-                      </span>
-                    )}
-                    <span className={`text-xs flex-shrink-0 ${
-                      isCurrentlyLoaded
-                        ? 'text-blue-600 dark:text-blue-400'
-                        : 'text-gray-500 dark:text-gray-400'
-                    }`}>
-                      {build.maxSlots} slots
-                    </span>
-                  </div>
-                  <div className={`flex items-center gap-2 text-xs ${
-                    isCurrentlyLoaded
-                      ? 'text-blue-700 dark:text-blue-300'
-                      : 'text-gray-500 dark:text-gray-400'
-                  }`}>
-                    <Clock className="w-3 h-3" />
-                    <span>{formatDate(build.updatedAt)}</span>
-                    <span>•</span>
-                    <span>{build.slots.filter(s => s.skill).length} skills</span>
-                  </div>
-                </button>
-
-              <button
-                onClick={() => deleteBuild(build.id)}
-                className="flex-shrink-0 p-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                title="Delete build"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+      {isExpanded && (
+        <>
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-800 dark:text-red-200">
+              {error}
             </div>
-            );
-          })}
-        </div>
-      )}
+          )}
 
-      {/* Build Limit Info */}
-      {savedBuilds.length > 0 && (
-        <div className="mt-4 text-xs text-gray-500 dark:text-gray-400 text-center">
-          {savedBuilds.length} / 10 builds saved
-        </div>
+          {/* Loading State */}
+          {loading && (
+            <div className="flex items-center justify-center py-8">
+              <Loader className="w-6 h-6 text-gray-400 animate-spin" />
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!loading && savedBuilds.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
+                No saved builds yet. Click "Save Build" to store your current build.
+              </p>
+            </div>
+          )}
+
+          {/* Builds List */}
+          {!loading && savedBuilds.length > 0 && (
+            <div className="max-h-96 overflow-y-auto space-y-2">
+              {savedBuilds.map((build) => {
+                const isCurrentlyLoaded = currentLoadedBuildId === build.id;
+                return (
+                  <div
+                    key={build.id}
+                    className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                      isCurrentlyLoaded
+                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 dark:border-blue-500'
+                        : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500'
+                    }`}
+                  >
+                    <button
+                      onClick={() => handleLoadBuild(build)}
+                      className="flex-1 text-left min-w-0"
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className={`font-semibold truncate ${
+                          isCurrentlyLoaded
+                            ? 'text-blue-900 dark:text-blue-100'
+                            : 'text-gray-900 dark:text-white'
+                        }`}>
+                          {build.name}
+                        </h4>
+                        {isCurrentlyLoaded && (
+                          <span className="text-xs font-medium text-blue-600 dark:text-blue-400 flex-shrink-0">
+                            (Loaded)
+                          </span>
+                        )}
+                        <span className={`text-xs flex-shrink-0 ${
+                          isCurrentlyLoaded
+                            ? 'text-blue-600 dark:text-blue-400'
+                            : 'text-gray-500 dark:text-gray-400'
+                        }`}>
+                          {build.maxSlots} slots
+                        </span>
+                      </div>
+                      <div className={`flex items-center gap-2 text-xs ${
+                        isCurrentlyLoaded
+                          ? 'text-blue-700 dark:text-blue-300'
+                          : 'text-gray-500 dark:text-gray-400'
+                      }`}>
+                        <Clock className="w-3 h-3" />
+                        <span>{formatDate(build.updatedAt)}</span>
+                        <span>•</span>
+                        <span>{build.slots.filter(s => s.skill).length} skills</span>
+                      </div>
+                    </button>
+
+                  <button
+                    onClick={() => deleteBuild(build.id)}
+                    className="flex-shrink-0 p-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                    title="Delete build"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Build Limit Info */}
+          {savedBuilds.length > 0 && (
+            <div className="mt-4 text-xs text-gray-500 dark:text-gray-400 text-center">
+              {savedBuilds.length} / 10 builds saved
+            </div>
+          )}
+        </>
       )}
     </div>
   );

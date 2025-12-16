@@ -22,8 +22,8 @@ import { setCache } from '../utils/buildCache';
  */
 const BattleLoadouts = () => {
   const { isAuthenticated, user } = useAuthStore();
-  const [loadoutName, setLoadoutName] = useState('My Loadout');
-  const [currentLoadout, setCurrentLoadout] = useState(createEmptyLoadout('My Loadout'));
+  const [loadoutName, setLoadoutName] = useState('');
+  const [currentLoadout, setCurrentLoadout] = useState(createEmptyLoadout(''));
   const [skills, setSkills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showSkillBuilder, setShowSkillBuilder] = useState(false);
@@ -57,7 +57,7 @@ const BattleLoadouts = () => {
             skillBuild: decodedLoadout.skillBuild ? deserializeSkillBuild(decodedLoadout.skillBuild, skills) : null
           };
           setCurrentLoadout(deserializedLoadout);
-          setLoadoutName(deserializedLoadout.name || 'My Loadout');
+          setLoadoutName(deserializedLoadout.name || '');
           setHasUnsavedChanges(false); // Loaded from URL, no unsaved changes yet
         }
       } catch (error) {
@@ -316,7 +316,7 @@ const BattleLoadouts = () => {
         };
 
         setCurrentLoadout(deserializedLoadout);
-        setLoadoutName(deserializedLoadout.name || 'My Loadout');
+        setLoadoutName(deserializedLoadout.name || '');
         setHasUnsavedChanges(false); // Imported from file, no unsaved changes yet
       } catch (error) {
         console.error('Failed to import loadout:', error);
@@ -358,25 +358,7 @@ const BattleLoadouts = () => {
 
       {/* Main Content */}
       <div className="relative">
-        {/* Loadout Name Field - Sticky */}
-        <div className="sticky top-16 z-30 bg-gray-50 dark:bg-gray-950 pt-6 pb-2">
-          <div className="max-w-7xl mx-auto px-3 sm:px-4">
-            <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-800 shadow-sm">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Loadout Name:</label>
-                <input
-                  type="text"
-                  value={loadoutName}
-                  onChange={(e) => setLoadoutName(e.target.value)}
-                  className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400"
-                  placeholder="Enter loadout name..."
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className={`max-w-7xl mx-auto px-3 sm:px-4 pb-6 ${isAuthenticated ? 'pb-24' : ''}`}>
+        <div className={`max-w-7xl mx-auto px-3 sm:px-4 pt-6 pb-6 ${isAuthenticated ? 'pb-24' : ''}`}>
 
         {/* Actions Panel */}
         <div className="bg-white dark:bg-gray-900 rounded-lg p-4 mb-4 border border-gray-200 dark:border-gray-800 shadow-sm">
@@ -434,6 +416,20 @@ const BattleLoadouts = () => {
           onLoadLoadout={handleLoadLoadout}
           currentLoadedLoadoutId={currentLoadedLoadoutId}
         />
+
+        {/* Loadout Name Panel */}
+        <div className="bg-white dark:bg-gray-900 rounded-lg p-4 mb-4 border border-gray-200 dark:border-gray-800 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Loadout Name:</label>
+            <input
+              type="text"
+              value={loadoutName}
+              onChange={(e) => setLoadoutName(e.target.value)}
+              className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400"
+              placeholder="Enter loadout name..."
+            />
+          </div>
+        </div>
 
         {/* Skills Section */}
         <SkillsSection
