@@ -1,0 +1,234 @@
+import React, { useState, useEffect } from 'react';
+import { Save, Loader, Trash2, Clock, CheckCircle2, LogIn } from 'lucide-react';
+import { useAuthStore } from '../../wiki-framework/src/store/authStore';
+import { useWikiConfig } from '../../wiki-framework/src/hooks/useWikiConfig';
+import { useLoginFlow } from '../../wiki-framework/src/hooks/useLoginFlow';
+import LoginModal from '../../wiki-framework/src/components/auth/LoginModal';
+import { getUserLoadouts } from '../../wiki-framework/src/services/github/battleLoadouts';
+
+/**
+ * SavedLoadoutsPanel Component
+ *
+ * Displays and manages user's saved battle loadouts
+ * Features:
+ * - Load saved loadouts
+ * - Delete loadouts
+ * - Mobile-friendly UI
+ */
+const SavedLoadoutsPanel = ({ currentLoadout, onLoadLoadout }) => {
+  const { isAuthenticated, user } = useAuthStore();
+  const { config } = useWikiConfig();
+  const loginFlow = useLoginFlow();
+  const [savedLoadouts, setSavedLoadouts] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Load saved loadouts on mount
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      loadLoadouts();
+    }
+  }, [isAuthenticated, user]);
+
+  const loadLoadouts = async () => {
+    if (!user || !config) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const loadouts = await getUserLoadouts(
+        config.wiki.repository.owner,
+        config.wiki.repository.repo,
+        user.login,
+        user.id
+      );
+      setSavedLoadouts(loadouts.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)));
+    } catch (err) {
+      console.error('[SavedLoadouts] Failed to load loadouts:', err);
+      setError('Failed to load saved loadouts');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteLoadout = async (loadoutId) => {
+    if (!user || !isAuthenticated) return;
+    if (!confirm('Delete this loadout?')) return;
+
+    setError(null);
+
+    try {
+      const response = await fetch('/.netlify/functions/deleteBattleLoadout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: user.login,
+          userId: user.id,
+          loadoutId,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete loadout');
+      }
+
+      const data = await response.json();
+      setSavedLoadouts(data.loadouts.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)));
+    } catch (err) {
+      console.error('[SavedLoadouts] Failed to delete loadout:', err);
+      setError(err.message || 'Failed to delete loadout');
+    }
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  const handleLoadLoadout = (loadout) => {
+    const confirmed = window.confirm(
+      `Loading "${loadout.name}" will replace your current loadout. Continue?`
+    );
+    if (!confirmed) return;
+
+    onLoadLoadout(loadout);
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <>
+        <div className="bg-white dark:bg-gray-900 rounded-lg p-6 border border-gray-200 dark:border-gray-800 shadow-sm mb-8">
+          <div className="text-center">
+            <Save className="w-12 h-12 text-gray-400 dark:text-gray-600 mx-auto mb-3" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              Sign In to Save Loadouts
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Sign in with GitHub to save your battle loadouts and access them anytime.
+            </p>
+            <button
+              onClick={loginFlow.handleLogin}
+              disabled={loginFlow.isLoading}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              {loginFlow.isLoading ? (
+                <>
+                  <Loader className="w-4 h-4 animate-spin" />
+                  <span>Connecting...</span>
+                </>
+              ) : (
+                <>
+                  <LogIn className="w-4 h-4" />
+                  <span>Sign in</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        <LoginModal
+          showModal={loginFlow.showModal}
+          deviceFlow={loginFlow.deviceFlow}
+          error={loginFlow.error}
+          isWaiting={loginFlow.isWaiting}
+          onCancel={loginFlow.handleCancel}
+          onCopyCode={loginFlow.copyUserCode}
+          onOpenGitHub={loginFlow.openGitHub}
+        />
+      </>
+    );
+  }
+
+  return (
+    <div className="bg-white dark:bg-gray-900 rounded-lg p-4 sm:p-6 border border-gray-200 dark:border-gray-800 shadow-sm mb-8">
+      {/* Header */}
+      <div className="mb-4">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+          <Save className="w-5 h-5" />
+          <span>Saved Loadouts</span>
+        </h3>
+      </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-800 dark:text-red-200">
+          {error}
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-8">
+          <Loader className="w-6 h-6 text-gray-400 animate-spin" />
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!loading && savedLoadouts.length === 0 && (
+        <div className="text-center py-8">
+          <p className="text-gray-600 dark:text-gray-400 text-sm">
+            No saved loadouts yet. Configure your loadout and click "Save Loadout" in the footer to save it.
+          </p>
+        </div>
+      )}
+
+      {/* Loadouts List */}
+      {!loading && savedLoadouts.length > 0 && (
+        <div className="space-y-2">
+          {savedLoadouts.map((loadout) => (
+            <div
+              key={loadout.id}
+              className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 transition-colors"
+            >
+              <button
+                onClick={() => handleLoadLoadout(loadout)}
+                className="flex-1 text-left min-w-0"
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <h4 className="font-semibold text-gray-900 dark:text-white truncate">
+                    {loadout.name}
+                  </h4>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                  <Clock className="w-3 h-3" />
+                  <span>{formatDate(loadout.updatedAt)}</span>
+                </div>
+              </button>
+
+              <button
+                onClick={() => deleteLoadout(loadout.id)}
+                className="flex-shrink-0 p-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                title="Delete loadout"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Loadout Limit Info */}
+      {savedLoadouts.length > 0 && (
+        <div className="mt-4 text-xs text-gray-500 dark:text-gray-400 text-center">
+          {savedLoadouts.length} / 10 loadouts saved
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default SavedLoadoutsPanel;

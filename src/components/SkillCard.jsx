@@ -1,5 +1,5 @@
 import React from 'react';
-import { getSkillImage, getGenericSkillIcon } from '../services/imageService';
+import { getSkillImage, getGenericSkillIcon, getElementIcon } from '../services/imageService';
 import { getGradeBackgroundColor } from '../../wiki-framework/src/utils/rarityColors';
 
 /**
@@ -123,10 +123,13 @@ const SkillCard = ({ id, name, skill, mode = 'detailed' }) => {
           </div>
         </div>
 
-        {/* Attribute Badge */}
-        <span className={`bg-gradient-to-r ${attributeGradient} text-white text-[9px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0`}>
-          {skillData.attribute}
-        </span>
+        {/* Attribute Icon */}
+        <img
+          src={getElementIcon(skillData.attribute)}
+          alt={skillData.attribute}
+          title={skillData.attribute}
+          className="w-5 h-5 flex-shrink-0"
+        />
       </div>
     );
   }
@@ -156,9 +159,12 @@ const SkillCard = ({ id, name, skill, mode = 'detailed' }) => {
               <span className={`${gradeColor} text-white text-[10px] font-bold px-2 py-0.5 rounded-full`}>
                 {skillData.grade}
               </span>
-              <span className="bg-white/20 backdrop-blur-sm text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
-                {skillData.attribute}
-              </span>
+              <img
+                src={getElementIcon(skillData.attribute)}
+                alt={skillData.attribute}
+                title={skillData.attribute}
+                className="w-6 h-6"
+              />
             </div>
           </div>
         </div>
@@ -274,9 +280,12 @@ const SkillCard = ({ id, name, skill, mode = 'detailed' }) => {
             <span className={`${gradeColor} text-white text-[10px] font-bold px-2 py-0.5 rounded-full`}>
               {skillData.grade}
             </span>
-            <span className="bg-white/20 backdrop-blur-sm text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
-              {skillData.attribute}
-            </span>
+            <img
+              src={getElementIcon(skillData.attribute)}
+              alt={skillData.attribute}
+              title={skillData.attribute}
+              className="w-6 h-6"
+            />
           </div>
         </div>
       </div>

@@ -24,6 +24,12 @@
         "path": "/skill-builder",
         "icon": "⚔️",
         "description": "Create and share skill builds"
+      },
+      {
+        "title": "Battle Loadouts",
+        "path": "/battle-loadouts",
+        "icon": "📖",
+        "description": "Configure and save complete battle loadouts"
       }
     ]
   },
@@ -70,7 +76,8 @@
       {
         "title": "Contributing",
         "path": "/meta/contributing",
-        "icon": "✍️"
+        "icon": "✍️",
+        "showInHeader": false
       },
       {
         "title": "Guidelines",

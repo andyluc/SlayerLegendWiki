@@ -1,5 +1,5 @@
 import React from 'react';
-import SkillBuilder from '../components/SkillBuildSimulator';
+import SkillBuilder from '../components/SkillBuilder';
 
 /**
  * Skill Builder Page

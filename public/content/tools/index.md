@@ -32,6 +32,26 @@ Create, share, and manage your skill builds with an interactive simulator that m
 
 [Open Skill Builder →](/skill-builder)
 
+### 🎯 [Battle Loadouts](/battle-loadouts)
+
+Configure and save complete battle setups with skills, spirits, and equipment all in one place.
+
+**Features:**
+- Named loadout saves (up to 10 per user)
+- Integrated Skill Builder modal
+- Save/Load/Delete loadouts
+- Shareable loadout URLs
+- Export/Import as JSON files
+- GitHub-backed storage
+
+**Perfect for:**
+- Saving different battle configurations
+- Quick-switching between PvP and PvE setups
+- Planning complete builds before implementation
+- Sharing your full battle setup with the community
+
+[Open Battle Loadouts →](/battle-loadouts)
+
 ---
 
 ## Calculators

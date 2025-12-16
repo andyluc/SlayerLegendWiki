@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "predev": "node scripts/killDevServer.js && node scripts/copyConfig.js",
-    "dev": "concurrently --kill-others --names \"CONFIG,VITE\" --prefix-colors \"cyan,green\" \"npm:dev:watch\" \"npm:dev:server\"",
-    "dev:server": "vite",
+    "dev": "concurrently --kill-others --names \"CONFIG,NETLIFY\" --prefix-colors \"cyan,green\" \"npm:dev:watch\" \"npm:dev:server\"",
+    "dev:server": "netlify dev",
     "dev:watch": "node scripts/watchConfig.js",
+    "dev:vite": "concurrently --kill-others --names \"CONFIG,VITE\" --prefix-colors \"cyan,green\" \"npm:dev:watch\" \"vite\"",
     "prebuild": "node scripts/copyConfig.js && node scripts/buildSearchIndex.js",
     "build": "vite build",
     "preview": "vite preview",
@@ -37,10 +38,12 @@
     "zustand": "^4.4.7"
   },
   "devDependencies": {
+    "@octokit/rest": "^20.0.2",
     "@tailwindcss/typography": "^0.5.10",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.16",
     "concurrently": "^9.2.1",
+    "netlify-cli": "^17.0.0",
     "postcss": "^8.4.32",
     "sharp": "^0.33.0",
     "tailwindcss": "^3.4.0",

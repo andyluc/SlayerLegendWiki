@@ -48,7 +48,7 @@ async function loadImageSearchIndex() {
  * @param {string} element - Element name (Fire, Water, Wind, Earth)
  * @returns {string} Path to element icon
  */
-function getElementIcon(element) {
+export function getElementIcon(element) {
   const elementMap = {
     Fire: '/images/icons/typeicon_fire_1.png',
     Water: '/images/icons/typeicon_water_1.png',

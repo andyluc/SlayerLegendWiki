@@ -21,11 +21,17 @@ registerEquipmentPreview(renderEquipmentPreview);
 // Register game-specific custom routes
 import { registerCustomRoutes } from './wiki-framework/src/utils/routeRegistry.js';
 import SkillBuildSimulatorPage from './src/pages/SkillBuildSimulatorPage.jsx';
+import BattleLoadoutsPage from './src/pages/BattleLoadoutsPage.jsx';
 
 registerCustomRoutes([
   {
     path: 'skill-builder',
     component: <SkillBuildSimulatorPage />,
+    suspense: true
+  },
+  {
+    path: 'battle-loadouts',
+    component: <BattleLoadoutsPage />,
     suspense: true
   }
 ]);

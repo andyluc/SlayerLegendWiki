@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { Share2, Download, Upload, Settings, Trash2, Copy, Check } from 'lucide-react';
 import SkillSlot from './SkillSlot';
 import SkillSelector from './SkillSelector';
+import SavedBuildsPanel from './SavedBuildsPanel';
 import { encodeBuild, decodeBuild } from '../../wiki-framework/src/components/wiki/BuildEncoder';
 
 /**
@@ -14,8 +15,13 @@ import { encodeBuild, decodeBuild } from '../../wiki-framework/src/components/wi
  * - Import/Export builds as JSON
  * - Build statistics
  * - Game-accurate UI design
+ *
+ * @param {boolean} isModal - If true, renders in modal mode with Save button instead of Share
+ * @param {object} initialBuild - Initial build data to load (for modal mode)
+ * @param {function} onSave - Callback when Save is clicked in modal mode
+ * @param {boolean} allowSavingBuilds - If true, shows build name field and save-related UI (default: true)
  */
-const SkillBuilder = () => {
+const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave = null, allowSavingBuilds = true }, ref) => {
   const [skills, setSkills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [buildName, setBuildName] = useState('My Build');
@@ -27,15 +33,17 @@ const SkillBuilder = () => {
   const [showSkillSelector, setShowSkillSelector] = useState(false);
   const [selectedSlotIndex, setSelectedSlotIndex] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Load skills data
   useEffect(() => {
     loadSkills();
   }, []);
 
-  // Load build from URL after skills are loaded
+  // Load build from URL after skills are loaded (only in page mode)
   useEffect(() => {
     if (skills.length === 0) return; // Wait for skills to load
+    if (isModal) return; // Skip URL loading in modal mode
 
     const urlParams = new URLSearchParams(window.location.hash.split('?')[1]);
     const encodedBuild = urlParams.get('data');
@@ -50,12 +58,70 @@ const SkillBuilder = () => {
           // Deserialize build (convert skill IDs back to full skill objects)
           const deserializedBuild = deserializeBuild(decodedBuild, skills);
           setBuild({ slots: deserializedBuild.slots });
+          setHasUnsavedChanges(false); // Loaded from URL, no unsaved changes yet
         }
       } catch (error) {
         console.error('Failed to load build from URL:', error);
       }
     }
-  }, [skills]); // Trigger when skills load
+  }, [skills, isModal]); // Trigger when skills load
+
+  // Load initial build in modal mode
+  useEffect(() => {
+    if (skills.length === 0) return; // Wait for skills to load
+    if (!isModal || !initialBuild) return; // Only in modal mode with initial data
+
+    setBuildName(initialBuild.name || 'My Build');
+    setMaxSlots(initialBuild.maxSlots || 10);
+
+    // Deserialize build to ensure skill objects are current
+    const deserializedBuild = deserializeBuild(initialBuild, skills);
+    setBuild({ slots: deserializedBuild.slots });
+    setHasUnsavedChanges(false); // Initial load, no unsaved changes
+  }, [skills, isModal, initialBuild]);
+
+  // Warn before leaving page with unsaved changes (only in page mode, not modal)
+  useEffect(() => {
+    if (isModal) return; // Skip for modal mode
+
+    const handleBeforeUnload = (e) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [hasUnsavedChanges, isModal]);
+
+  // Track hash changes for in-app navigation (only in page mode)
+  useEffect(() => {
+    if (isModal) return; // Skip for modal mode
+
+    const handleHashChange = (e) => {
+      if (hasUnsavedChanges) {
+        const confirmed = window.confirm(
+          'You have unsaved changes. Are you sure you want to leave? Your changes will be lost.'
+        );
+        if (!confirmed) {
+          e.preventDefault();
+          // Restore the previous hash
+          window.history.pushState(null, '', e.oldURL);
+        }
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, [hasUnsavedChanges, isModal]);
 
   const loadSkills = async () => {
     try {
@@ -144,18 +210,21 @@ const SkillBuilder = () => {
       level: autoMaxLevel ? (skill.maxLevel || 130) : 1
     };
     setBuild({ slots: newSlots });
+    setHasUnsavedChanges(true);
   };
 
   const handleRemoveSkill = (index) => {
     const newSlots = [...build.slots];
     newSlots[index] = { skill: null, level: 1 };
     setBuild({ slots: newSlots });
+    setHasUnsavedChanges(true);
   };
 
   const handleLevelChange = (index, newLevel) => {
     const newSlots = [...build.slots];
     newSlots[index].level = newLevel;
     setBuild({ slots: newSlots });
+    setHasUnsavedChanges(true);
   };
 
   // Share build
@@ -214,6 +283,7 @@ const SkillBuilder = () => {
         // Deserialize build to ensure skill objects are current
         const deserializedBuild = deserializeBuild(buildData, skills);
         setBuild({ slots: deserializedBuild.slots });
+        setHasUnsavedChanges(false); // Imported from file, no unsaved changes yet
       } catch (error) {
         console.error('Failed to import build:', error);
         alert('Failed to import build. Invalid file format.');
@@ -226,7 +296,36 @@ const SkillBuilder = () => {
   const handleClearBuild = () => {
     if (!confirm('Clear all skills from this build?')) return;
     setBuild({ slots: Array(maxSlots).fill(null).map(() => ({ skill: null, level: 1 })) });
+    setHasUnsavedChanges(true);
   };
+
+  // Load build from saved builds
+  const handleLoadBuild = (savedBuild) => {
+    setBuildName(savedBuild.name);
+    setMaxSlots(savedBuild.maxSlots);
+
+    // Deserialize build to ensure skill objects are current
+    const deserializedBuild = deserializeBuild(savedBuild, skills);
+    setBuild({ slots: deserializedBuild.slots });
+    setHasUnsavedChanges(false); // Loaded from saved, no unsaved changes
+  };
+
+  // Save build (modal mode only)
+  const handleSaveBuild = () => {
+    if (onSave) {
+      const buildData = {
+        name: buildName,
+        maxSlots,
+        slots: build.slots
+      };
+      onSave(buildData);
+    }
+  };
+
+  // Expose saveBuild function to parent via ref (for modal footer button)
+  useImperativeHandle(ref, () => ({
+    saveBuild: handleSaveBuild
+  }));
 
   // Get element icon
   const getElementIcon = (element) => {
@@ -257,89 +356,99 @@ const SkillBuilder = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-b from-gray-900 to-black">
+      <div className={`flex items-center justify-center ${isModal ? 'min-h-[400px]' : 'min-h-screen'} bg-gradient-to-b from-gray-900 to-black`}>
         <div className="text-white text-xl">Loading skills...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
-          <div className="flex flex-col gap-3">
-            {/* Title */}
+    <div className={isModal ? "bg-gray-50 dark:bg-gray-950" : "min-h-screen bg-gray-50 dark:bg-gray-950"}>
+      {/* Header - Title (only in page mode) */}
+      {!isModal && (
+        <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
             <div className="flex items-center gap-3">
               <img src="/images/skills/Icon_skillCard.png" alt="" className="w-8 h-8 flex-shrink-0" />
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Skill Builder</h1>
             </div>
+          </div>
+        </div>
+      )}
 
-            {/* Build Name - Full Width on Mobile */}
+      {/* Build Name Field - Controlled by allowSavingBuilds */}
+      {allowSavingBuilds && (
+        <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Build Name:</label>
               <input
                 type="text"
                 value={buildName}
-                onChange={(e) => setBuildName(e.target.value)}
+                onChange={(e) => {
+                  setBuildName(e.target.value);
+                  setHasUnsavedChanges(true);
+                }}
                 className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400"
                 placeholder="Enter build name..."
               />
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6">
         {/* Actions Panel */}
-        <div className="bg-white dark:bg-gray-900 rounded-lg p-4 mb-4 border border-gray-200 dark:border-gray-800 shadow-sm">
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={handleShareBuild}
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
-            >
-              {copied ? (
-                <>
-                  <Check className="w-4 h-4 flex-shrink-0 text-green-600 dark:text-green-400" />
-                  <span>Copied!</span>
-                </>
-              ) : (
-                <>
-                  <Share2 className="w-4 h-4 flex-shrink-0 text-blue-600 dark:text-blue-400" />
-                  <span>Share</span>
-                </>
-              )}
-            </button>
+        {!isModal && (
+          <div className="bg-white dark:bg-gray-900 rounded-lg p-4 mb-4 border border-gray-200 dark:border-gray-800 shadow-sm">
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={handleShareBuild}
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-4 h-4 flex-shrink-0 text-green-600 dark:text-green-400" />
+                    <span>Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="w-4 h-4 flex-shrink-0 text-blue-600 dark:text-blue-400" />
+                    <span>Share</span>
+                  </>
+                )}
+              </button>
 
-            <button
-              onClick={handleExportBuild}
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
-            >
-              <Download className="w-4 h-4 flex-shrink-0 text-green-600 dark:text-green-400" />
-              <span>Export</span>
-            </button>
+              <button
+                onClick={handleExportBuild}
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
+              >
+                <Download className="w-4 h-4 flex-shrink-0 text-green-600 dark:text-green-400" />
+                <span>Export</span>
+              </button>
 
-            <label className="flex items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap">
-              <Upload className="w-4 h-4 flex-shrink-0 text-purple-600 dark:text-purple-400" />
-              <span>Import</span>
-              <input
-                type="file"
-                accept=".json"
-                onChange={handleImportBuild}
-                className="hidden"
-              />
-            </label>
+              <label className="flex items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap">
+                <Upload className="w-4 h-4 flex-shrink-0 text-purple-600 dark:text-purple-400" />
+                <span>Import</span>
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={handleImportBuild}
+                  className="hidden"
+                />
+              </label>
 
-            <button
-              onClick={handleClearBuild}
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
-            >
-              <Trash2 className="w-4 h-4 flex-shrink-0 text-red-600 dark:text-red-400" />
-              <span>Clear</span>
-            </button>
+              <button
+                onClick={handleClearBuild}
+                className="flex items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
+              >
+                <Trash2 className="w-4 h-4 flex-shrink-0 text-red-600 dark:text-red-400" />
+                <span>Clear</span>
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Settings Bar */}
         <div className="bg-white dark:bg-gray-900 rounded-lg p-4 mb-6 border border-gray-200 dark:border-gray-800 shadow-sm">
@@ -359,6 +468,7 @@ const SkillBuilder = () => {
                       newSlots.push({ skill: null, level: 1 });
                     }
                     setBuild({ slots: newSlots.slice(0, newMax) });
+                    setHasUnsavedChanges(true);
                   }}
                   className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
                 >
@@ -425,7 +535,7 @@ const SkillBuilder = () => {
         </div>
 
         {/* Bulk Level Actions */}
-        <div className="bg-white dark:bg-gray-900 rounded-lg p-3 border border-gray-200 dark:border-gray-800 shadow-sm mb-6">
+        <div className="bg-white dark:bg-gray-900 rounded-lg p-3 border border-gray-200 dark:border-gray-800 shadow-sm mb-4">
           <div className="flex justify-center gap-2">
             <button
               onClick={() => {
@@ -456,6 +566,15 @@ const SkillBuilder = () => {
           </div>
         </div>
 
+        {/* Saved Builds Panel */}
+        <SavedBuildsPanel
+          currentBuild={build}
+          buildName={buildName}
+          maxSlots={maxSlots}
+          onLoadBuild={handleLoadBuild}
+          allowSavingBuilds={allowSavingBuilds}
+        />
+
         {/* Build Info */}
         <div className="bg-blue-50 dark:bg-blue-900/10 rounded-lg p-4 border border-blue-200 dark:border-blue-900">
           <h3 className="text-base font-semibold mb-2 text-blue-900 dark:text-blue-100">How to Use:</h3>
@@ -479,6 +598,8 @@ const SkillBuilder = () => {
       />
     </div>
   );
-};
+});
+
+SkillBuilder.displayName = 'SkillBuilder';
 
 export default SkillBuilder;

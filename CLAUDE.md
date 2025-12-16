@@ -187,7 +187,10 @@ The framework router automatically includes all registered custom routes at runt
 
 ```bash
 # Development
-npm run dev              # Start dev server + config watcher (http://localhost:5173)
+npm run dev              # Start Netlify dev + config watcher (http://localhost:8888)
+                         # Includes Netlify functions support for skill builds, etc.
+npm run dev:vite         # Start Vite-only dev + config watcher (http://localhost:5173)
+                         # Faster startup, no Netlify functions
 npm run dev:server       # Start ONLY dev server (no config watching)
 npm run dev:watch        # Start ONLY config watcher (no dev server)
 npm run build            # Build for production (auto-copies config + builds search)
@@ -230,9 +233,17 @@ npm run dev
 ```
 This automatically runs BOTH:
 - Config watcher (auto-copies wiki-config.json changes to public/)
-- Vite dev server
+- Netlify dev server (includes Netlify functions for skill builds, etc.)
+
+The server runs at `http://localhost:8888` with full Netlify functions support.
 
 Now you can edit `wiki-config.json` and just refresh your browser (Ctrl+Shift+R)!
+
+**Alternative workflow (Vite-only, faster startup):**
+```bash
+npm run dev:vite
+```
+Runs at `http://localhost:5173` without Netlify functions. Useful when you don't need serverless functions.
 
 ## Static Assets (Images, Logos, etc.)
 

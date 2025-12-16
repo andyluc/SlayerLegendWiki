@@ -46,3 +46,6 @@ logs/debug.log
 external
 # Excluded game assets (not for wiki)
 external/backups/excluded-images/
+
+# Local Netlify folder
+.netlify
