@@ -17,7 +17,7 @@ import { getCache, setCache, mergeCacheWithGitHub } from '../utils/buildCache';
  * - Delete builds
  * - Mobile-friendly UI
  */
-const SavedBuildsPanel = ({ currentBuild, buildName, maxSlots, onLoadBuild, allowSavingBuilds = true }) => {
+const SavedBuildsPanel = ({ currentBuild, buildName, maxSlots, onLoadBuild, allowSavingBuilds = true, currentLoadedBuildId = null }) => {
   const { isAuthenticated, user } = useAuthStore();
   const { config } = useWikiConfig();
   const loginFlow = useLoginFlow();
@@ -294,30 +294,53 @@ const SavedBuildsPanel = ({ currentBuild, buildName, maxSlots, onLoadBuild, allo
       {/* Builds List */}
       {!loading && savedBuilds.length > 0 && (
         <div className="space-y-2">
-          {savedBuilds.map((build) => (
-            <div
-              key={build.id}
-              className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 transition-colors"
-            >
-              <button
-                onClick={() => handleLoadBuild(build)}
-                className="flex-1 text-left min-w-0"
+          {savedBuilds.map((build) => {
+            const isCurrentlyLoaded = currentLoadedBuildId === build.id;
+            return (
+              <div
+                key={build.id}
+                className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                  isCurrentlyLoaded
+                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 dark:border-blue-500'
+                    : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500'
+                }`}
               >
-                <div className="flex items-center gap-2 mb-1">
-                  <h4 className="font-semibold text-gray-900 dark:text-white truncate">
-                    {build.name}
-                  </h4>
-                  <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
-                    {build.maxSlots} slots
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                  <Clock className="w-3 h-3" />
-                  <span>{formatDate(build.updatedAt)}</span>
-                  <span>•</span>
-                  <span>{build.slots.filter(s => s.skill).length} skills</span>
-                </div>
-              </button>
+                <button
+                  onClick={() => handleLoadBuild(build)}
+                  className="flex-1 text-left min-w-0"
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <h4 className={`font-semibold truncate ${
+                      isCurrentlyLoaded
+                        ? 'text-blue-900 dark:text-blue-100'
+                        : 'text-gray-900 dark:text-white'
+                    }`}>
+                      {build.name}
+                    </h4>
+                    {isCurrentlyLoaded && (
+                      <span className="text-xs font-medium text-blue-600 dark:text-blue-400 flex-shrink-0">
+                        (Loaded)
+                      </span>
+                    )}
+                    <span className={`text-xs flex-shrink-0 ${
+                      isCurrentlyLoaded
+                        ? 'text-blue-600 dark:text-blue-400'
+                        : 'text-gray-500 dark:text-gray-400'
+                    }`}>
+                      {build.maxSlots} slots
+                    </span>
+                  </div>
+                  <div className={`flex items-center gap-2 text-xs ${
+                    isCurrentlyLoaded
+                      ? 'text-blue-700 dark:text-blue-300'
+                      : 'text-gray-500 dark:text-gray-400'
+                  }`}>
+                    <Clock className="w-3 h-3" />
+                    <span>{formatDate(build.updatedAt)}</span>
+                    <span>•</span>
+                    <span>{build.slots.filter(s => s.skill).length} skills</span>
+                  </div>
+                </button>
 
               <button
                 onClick={() => deleteBuild(build.id)}
@@ -327,7 +350,8 @@ const SavedBuildsPanel = ({ currentBuild, buildName, maxSlots, onLoadBuild, allo
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

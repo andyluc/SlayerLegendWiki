@@ -33,6 +33,7 @@ const BattleLoadouts = () => {
   const [saveError, setSaveError] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [currentLoadedLoadoutId, setCurrentLoadedLoadoutId] = useState(null);
 
   // Load skills data
   useEffect(() => {
@@ -164,6 +165,7 @@ const BattleLoadouts = () => {
   useEffect(() => {
     setCurrentLoadout(prev => ({ ...prev, name: loadoutName }));
     setHasUnsavedChanges(true);
+    setCurrentLoadedLoadoutId(null); // Clear loaded loadout ID when making changes
   }, [loadoutName]);
 
   // Handle skill builder save
@@ -171,6 +173,7 @@ const BattleLoadouts = () => {
     setCurrentLoadout(prev => ({ ...prev, skillBuild: build }));
     setShowSkillBuilder(false);
     setHasUnsavedChanges(true);
+    setCurrentLoadedLoadoutId(null); // Clear loaded loadout ID when making changes
   };
 
   // Clear skill build
@@ -178,6 +181,7 @@ const BattleLoadouts = () => {
     if (!confirm('Remove skill build from this loadout?')) return;
     setCurrentLoadout(prev => ({ ...prev, skillBuild: null }));
     setHasUnsavedChanges(true);
+    setCurrentLoadedLoadoutId(null); // Clear loaded loadout ID when making changes
   };
 
   // Load saved loadout
@@ -191,6 +195,7 @@ const BattleLoadouts = () => {
     setCurrentLoadout(deserializedLoadout);
     setLoadoutName(deserializedLoadout.name || 'My Loadout');
     setHasUnsavedChanges(false); // Loaded from saved, no unsaved changes
+    setCurrentLoadedLoadoutId(loadout.id); // Track which loadout is currently loaded
   };
 
   // Save loadout
@@ -326,6 +331,7 @@ const BattleLoadouts = () => {
     if (!confirm('Clear current loadout? This cannot be undone.')) return;
     setCurrentLoadout(createEmptyLoadout(loadoutName));
     setHasUnsavedChanges(true);
+    setCurrentLoadedLoadoutId(null); // Clear loaded loadout ID when making changes
   };
 
   if (loading) {
@@ -426,6 +432,7 @@ const BattleLoadouts = () => {
           key={refreshTrigger}
           currentLoadout={currentLoadout}
           onLoadLoadout={handleLoadLoadout}
+          currentLoadedLoadoutId={currentLoadedLoadoutId}
         />
 
         {/* Skills Section */}

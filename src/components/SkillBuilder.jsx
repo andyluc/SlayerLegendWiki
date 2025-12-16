@@ -34,6 +34,7 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
   const [selectedSlotIndex, setSelectedSlotIndex] = useState(null);
   const [copied, setCopied] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [currentLoadedBuildId, setCurrentLoadedBuildId] = useState(null);
 
   // Load skills data
   useEffect(() => {
@@ -211,6 +212,7 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
     };
     setBuild({ slots: newSlots });
     setHasUnsavedChanges(true);
+    setCurrentLoadedBuildId(null); // Clear loaded build ID when making changes
   };
 
   const handleRemoveSkill = (index) => {
@@ -218,6 +220,7 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
     newSlots[index] = { skill: null, level: 1 };
     setBuild({ slots: newSlots });
     setHasUnsavedChanges(true);
+    setCurrentLoadedBuildId(null); // Clear loaded build ID when making changes
   };
 
   const handleLevelChange = (index, newLevel) => {
@@ -225,6 +228,7 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
     newSlots[index].level = newLevel;
     setBuild({ slots: newSlots });
     setHasUnsavedChanges(true);
+    setCurrentLoadedBuildId(null); // Clear loaded build ID when making changes
   };
 
   // Share build
@@ -297,6 +301,7 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
     if (!confirm('Clear all skills from this build?')) return;
     setBuild({ slots: Array(maxSlots).fill(null).map(() => ({ skill: null, level: 1 })) });
     setHasUnsavedChanges(true);
+    setCurrentLoadedBuildId(null); // Clear loaded build ID when making changes
   };
 
   // Load build from saved builds
@@ -308,6 +313,7 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
     const deserializedBuild = deserializeBuild(savedBuild, skills);
     setBuild({ slots: deserializedBuild.slots });
     setHasUnsavedChanges(false); // Loaded from saved, no unsaved changes
+    setCurrentLoadedBuildId(savedBuild.id); // Track which build is currently loaded
   };
 
   // Save build (modal mode only)
@@ -388,12 +394,27 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
                 onChange={(e) => {
                   setBuildName(e.target.value);
                   setHasUnsavedChanges(true);
+                  setCurrentLoadedBuildId(null); // Clear loaded build ID when making changes
                 }}
                 className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400"
                 placeholder="Enter build name..."
               />
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Saved Builds Panel */}
+      {!isModal && (
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 pt-6 pb-0">
+          <SavedBuildsPanel
+            currentBuild={build}
+            buildName={buildName}
+            maxSlots={maxSlots}
+            onLoadBuild={handleLoadBuild}
+            allowSavingBuilds={allowSavingBuilds}
+            currentLoadedBuildId={currentLoadedBuildId}
+          />
         </div>
       )}
 
@@ -469,6 +490,7 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
                     }
                     setBuild({ slots: newSlots.slice(0, newMax) });
                     setHasUnsavedChanges(true);
+                    setCurrentLoadedBuildId(null); // Clear loaded build ID when making changes
                   }}
                   className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
                 >
@@ -565,15 +587,6 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
             </button>
           </div>
         </div>
-
-        {/* Saved Builds Panel */}
-        <SavedBuildsPanel
-          currentBuild={build}
-          buildName={buildName}
-          maxSlots={maxSlots}
-          onLoadBuild={handleLoadBuild}
-          allowSavingBuilds={allowSavingBuilds}
-        />
 
         {/* Build Info */}
         <div className="bg-blue-50 dark:bg-blue-900/10 rounded-lg p-4 border border-blue-200 dark:border-blue-900">

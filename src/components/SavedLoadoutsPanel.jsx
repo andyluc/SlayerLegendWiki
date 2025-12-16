@@ -16,7 +16,7 @@ import { getCache, setCache, mergeCacheWithGitHub } from '../utils/buildCache';
  * - Delete loadouts
  * - Mobile-friendly UI
  */
-const SavedLoadoutsPanel = ({ currentLoadout, onLoadLoadout }) => {
+const SavedLoadoutsPanel = ({ currentLoadout, onLoadLoadout, currentLoadedLoadoutId = null }) => {
   const { isAuthenticated, user } = useAuthStore();
   const { config } = useWikiConfig();
   const loginFlow = useLoginFlow();
@@ -212,35 +212,55 @@ const SavedLoadoutsPanel = ({ currentLoadout, onLoadLoadout }) => {
       {/* Loadouts List */}
       {!loading && savedLoadouts.length > 0 && (
         <div className="space-y-2">
-          {savedLoadouts.map((loadout) => (
-            <div
-              key={loadout.id}
-              className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500 transition-colors"
-            >
-              <button
-                onClick={() => handleLoadLoadout(loadout)}
-                className="flex-1 text-left min-w-0"
+          {savedLoadouts.map((loadout) => {
+            const isCurrentlyLoaded = currentLoadedLoadoutId === loadout.id;
+            return (
+              <div
+                key={loadout.id}
+                className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                  isCurrentlyLoaded
+                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 dark:border-blue-500'
+                    : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-500'
+                }`}
               >
-                <div className="flex items-center gap-2 mb-1">
-                  <h4 className="font-semibold text-gray-900 dark:text-white truncate">
-                    {loadout.name}
-                  </h4>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                  <Clock className="w-3 h-3" />
-                  <span>{formatDate(loadout.updatedAt)}</span>
-                </div>
-              </button>
+                <button
+                  onClick={() => handleLoadLoadout(loadout)}
+                  className="flex-1 text-left min-w-0"
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <h4 className={`font-semibold truncate ${
+                      isCurrentlyLoaded
+                        ? 'text-blue-900 dark:text-blue-100'
+                        : 'text-gray-900 dark:text-white'
+                    }`}>
+                      {loadout.name}
+                    </h4>
+                    {isCurrentlyLoaded && (
+                      <span className="text-xs font-medium text-blue-600 dark:text-blue-400 flex-shrink-0">
+                        (Loaded)
+                      </span>
+                    )}
+                  </div>
+                  <div className={`flex items-center gap-2 text-xs ${
+                    isCurrentlyLoaded
+                      ? 'text-blue-700 dark:text-blue-300'
+                      : 'text-gray-500 dark:text-gray-400'
+                  }`}>
+                    <Clock className="w-3 h-3" />
+                    <span>{formatDate(loadout.updatedAt)}</span>
+                  </div>
+                </button>
 
-              <button
-                onClick={() => deleteLoadout(loadout.id)}
-                className="flex-shrink-0 p-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                title="Delete loadout"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          ))}
+                <button
+                  onClick={() => deleteLoadout(loadout.id)}
+                  className="flex-shrink-0 p-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                  title="Delete loadout"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
 
