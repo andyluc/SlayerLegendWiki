@@ -3044,7 +3044,7 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-          Soul Weapon Engraving Builder
+          Soul Weapon Engraving
         </h1>
         <p className="text-gray-600 dark:text-gray-400">
           Drag and drop engraving pieces onto the grid to plan your layout

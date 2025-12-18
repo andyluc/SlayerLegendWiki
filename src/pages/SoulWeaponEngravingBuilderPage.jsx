@@ -2,7 +2,7 @@ import React from 'react';
 import SoulWeaponEngravingBuilder from '../components/SoulWeaponEngravingBuilder';
 
 /**
- * Page wrapper for Soul Weapon Engraving Builder
+ * Page wrapper for Soul Weapon Engraving
  */
 const SoulWeaponEngravingBuilderPage = () => {
   return (
