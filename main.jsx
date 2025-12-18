@@ -394,6 +394,7 @@ const BattleLoadoutsPage = React.lazy(() => import('./src/pages/BattleLoadoutsPa
 const SpiritSpriteDemoPage = React.lazy(() => import('./src/pages/SpiritSpriteDemoPage.jsx'));
 const SpiritBuilderPage = React.lazy(() => import('./src/pages/SpiritBuilderPage.jsx'));
 const MySpiritCollectionPage = React.lazy(() => import('./src/pages/MySpiritCollectionPage.jsx'));
+const MyCollectionsPage = React.lazy(() => import('./src/pages/MyCollectionsPage.jsx'));
 const SoulWeaponEngravingBuilderPage = React.lazy(() => import('./src/pages/SoulWeaponEngravingBuilderPage.jsx'));
 
 registerCustomRoutes([
@@ -405,6 +406,11 @@ registerCustomRoutes([
   {
     path: 'spirit-builder',
     component: <SpiritBuilderPage />,
+    suspense: true
+  },
+  {
+    path: 'my-collections',
+    component: <MyCollectionsPage />,
     suspense: true
   },
   {

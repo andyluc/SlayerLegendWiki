@@ -5,7 +5,8 @@
     "requirements": 2000,
     "attack": 6300,
     "disassemblyReward": 1000,
-    "stageRequirement": "Black Forest"
+    "stageRequirement": "Black Forest",
+    "image": "/images/equipment/weapons/sword_201.png"
   },
   {
     "id": 2,
@@ -13,7 +14,8 @@
     "requirements": 9000,
     "attack": 9750,
     "disassemblyReward": 4500,
-    "stageRequirement": "Red Mountain"
+    "stageRequirement": "Red Mountain",
+    "image": "/images/equipment/weapons/sword_202.png"
   },
   {
     "id": 3,
@@ -21,7 +23,8 @@
     "requirements": 28000,
     "attack": 14699,
     "disassemblyReward": 14000,
-    "stageRequirement": "Land of Desire"
+    "stageRequirement": "Land of Desire",
+    "image": "/images/equipment/weapons/sword_203.png"
   },
   {
     "id": 4,
@@ -29,7 +32,8 @@
     "requirements": 75000,
     "attack": 33600,
     "disassemblyReward": 37500,
-    "stageRequirement": "Forgotten Castle"
+    "stageRequirement": "Forgotten Castle",
+    "image": "/images/equipment/weapons/sword_204.png"
   },
   {
     "id": 5,
@@ -37,7 +41,8 @@
     "requirements": 88800,
     "attack": 72000,
     "disassemblyReward": 44400,
-    "stageRequirement": "Frozen Wood"
+    "stageRequirement": "Frozen Wood",
+    "image": "/images/equipment/weapons/sword_205.png"
   },
   {
     "id": 6,
@@ -45,7 +50,8 @@
     "requirements": 109200,
     "attack": 96000,
     "disassemblyReward": 54600,
-    "stageRequirement": "Land of Hate"
+    "stageRequirement": "Land of Hate",
+    "image": "/images/equipment/weapons/sword_206.png"
   },
   {
     "id": 7,
@@ -53,7 +59,8 @@
     "requirements": 375000,
     "attack": 144000,
     "disassemblyReward": 187500,
-    "stageRequirement": "Sand Plain"
+    "stageRequirement": "Sand Plain",
+    "image": "/images/equipment/weapons/sword_207.png"
   },
   {
     "id": 8,
@@ -61,7 +68,8 @@
     "requirements": 450000,
     "attack": 182400,
     "disassemblyReward": 225000,
-    "stageRequirement": "Aslan North Coast"
+    "stageRequirement": "Aslan North Coast",
+    "image": "/images/equipment/weapons/sword_208.png"
   },
   {
     "id": 9,
@@ -69,7 +77,8 @@
     "requirements": 525000,
     "attack": 230400,
     "disassemblyReward": 262500,
-    "stageRequirement": "Unknown Forest"
+    "stageRequirement": "Unknown Forest",
+    "image": "/images/equipment/weapons/sword_209.png"
   },
   {
     "id": 10,
@@ -77,7 +86,8 @@
     "requirements": 1875000,
     "attack": 250560,
     "disassemblyReward": 937500,
-    "stageRequirement": "Canyon of Rage"
+    "stageRequirement": "Canyon of Rage",
+    "image": "/images/equipment/weapons/sword_210.png"
   },
   {
     "id": 11,
@@ -85,7 +95,8 @@
     "requirements": 2250000,
     "attack": 309120,
     "disassemblyReward": 1125000,
-    "stageRequirement": "Wailing Forest"
+    "stageRequirement": "Wailing Forest",
+    "image": "/images/equipment/weapons/sword_211.png"
   },
   {
     "id": 12,
@@ -93,7 +104,8 @@
     "requirements": 2625000,
     "attack": 375000,
     "disassemblyReward": 1312500,
-    "stageRequirement": "Wind Plateau"
+    "stageRequirement": "Wind Plateau",
+    "image": "/images/equipment/weapons/sword_212.png"
   },
   {
     "id": 13,
@@ -101,7 +113,8 @@
     "requirements": 7500000,
     "attack": 440000,
     "disassemblyReward": 3750000,
-    "stageRequirement": "Lava Plateau"
+    "stageRequirement": "Lava Plateau",
+    "image": "/images/equipment/weapons/sword_213.png"
   },
   {
     "id": 14,
@@ -109,7 +122,8 @@
     "requirements": 9000000,
     "attack": 492000,
     "disassemblyReward": 4500000,
-    "stageRequirement": "Red Desert"
+    "stageRequirement": "Red Desert",
+    "image": "/images/equipment/weapons/sword_214.png"
   },
   {
     "id": 15,
@@ -117,7 +131,8 @@
     "requirements": 10500000,
     "attack": 504000,
     "disassemblyReward": 5250000,
-    "stageRequirement": "Plain of the White Night"
+    "stageRequirement": "Plain of the White Night",
+    "image": "/images/equipment/weapons/sword_215.png"
   },
   {
     "id": 16,
@@ -125,7 +140,8 @@
     "requirements": 22500000,
     "attack": 559000,
     "disassemblyReward": 11250000,
-    "stageRequirement": "Frozen Lake"
+    "stageRequirement": "Frozen Lake",
+    "image": "/images/equipment/weapons/sword_216.png"
   },
   {
     "id": 17,
@@ -133,7 +149,8 @@
     "requirements": 27000000,
     "attack": 616000,
     "disassemblyReward": 13500000,
-    "stageRequirement": "Moon Shelter"
+    "stageRequirement": "Moon Shelter",
+    "image": "/images/equipment/weapons/sword_217.png"
   },
   {
     "id": 18,
@@ -141,7 +158,8 @@
     "requirements": 31500000,
     "attack": 675000,
     "disassemblyReward": 15750000,
-    "stageRequirement": "Capricious Hill"
+    "stageRequirement": "Capricious Hill",
+    "image": "/images/equipment/weapons/sword_218.png"
   },
   {
     "id": 19,
@@ -149,7 +167,8 @@
     "requirements": 67500000,
     "attack": 736000,
     "disassemblyReward": 33750000,
-    "stageRequirement": "Empty Forest"
+    "stageRequirement": "Empty Forest",
+    "image": "/images/equipment/weapons/sword_219.png"
   },
   {
     "id": 20,
@@ -157,7 +176,8 @@
     "requirements": 81000000,
     "attack": 799000,
     "disassemblyReward": 40500000,
-    "stageRequirement": "Nephilim Wood"
+    "stageRequirement": "Nephilim Wood",
+    "image": "/images/equipment/weapons/sword_220.png"
   },
   {
     "id": 21,
@@ -165,7 +185,8 @@
     "requirements": 94500000,
     "attack": 864000,
     "disassemblyReward": 47250000,
-    "stageRequirement": "Ancient Altar"
+    "stageRequirement": "Ancient Altar",
+    "image": "/images/equipment/weapons/sword_221.png"
   },
   {
     "id": 22,
@@ -173,7 +194,8 @@
     "requirements": 202500000,
     "attack": 931000,
     "disassemblyReward": 101250000,
-    "stageRequirement": "Ruins of Ancient Kingdom"
+    "stageRequirement": "Ruins of Ancient Kingdom",
+    "image": "/images/equipment/weapons/sword_222.png"
   },
   {
     "id": 23,
@@ -181,7 +203,8 @@
     "requirements": 243000000,
     "attack": 1000000,
     "disassemblyReward": 121500000,
-    "stageRequirement": "Delusion Forest"
+    "stageRequirement": "Delusion Forest",
+    "image": "/images/equipment/weapons/sword_223.png"
   },
   {
     "id": 24,
@@ -189,7 +212,8 @@
     "requirements": 283500000,
     "attack": 1260000,
     "disassemblyReward": 141750000,
-    "stageRequirement": "Fireflies Cave"
+    "stageRequirement": "Fireflies Cave",
+    "image": "/images/equipment/weapons/sword_224.png"
   },
   {
     "id": 25,
@@ -197,7 +221,8 @@
     "requirements": 607500000,
     "attack": 1452000,
     "disassemblyReward": 303750000,
-    "stageRequirement": "Abandoned Pier"
+    "stageRequirement": "Abandoned Pier",
+    "image": "/images/equipment/weapons/sword_225.png"
   },
   {
     "id": 26,
@@ -205,7 +230,8 @@
     "requirements": 729000000,
     "attack": 1669800,
     "disassemblyReward": 364500000,
-    "stageRequirement": "Sea of Stars"
+    "stageRequirement": "Sea of Stars",
+    "image": "/images/equipment/weapons/sword_226.png"
   },
   {
     "id": 27,
@@ -213,7 +239,8 @@
     "requirements": 850500000,
     "attack": 1916640,
     "disassemblyReward": 425250000,
-    "stageRequirement": "Land of the Dead"
+    "stageRequirement": "Land of the Dead",
+    "image": "/images/equipment/weapons/sword_227.png"
   },
   {
     "id": 28,
@@ -221,7 +248,8 @@
     "requirements": 1822500000,
     "attack": 2196150,
     "disassemblyReward": 911250000,
-    "stageRequirement": "Dark Wood"
+    "stageRequirement": "Dark Wood",
+    "image": "/images/equipment/weapons/sword_228.png"
   },
   {
     "id": 29,
@@ -229,7 +257,8 @@
     "requirements": 2187000000,
     "attack": 2512395,
     "disassemblyReward": 1093500000,
-    "stageRequirement": "Ice Desert"
+    "stageRequirement": "Ice Desert",
+    "image": "/images/equipment/weapons/sword_229.png"
   },
   {
     "id": 30,
@@ -237,7 +266,8 @@
     "requirements": 2551500000,
     "attack": 2869928,
     "disassemblyReward": 1275750000,
-    "stageRequirement": "Mysterious Hill"
+    "stageRequirement": "Mysterious Hill",
+    "image": "/images/equipment/weapons/sword_230.png"
   },
   {
     "id": 31,
@@ -245,7 +275,8 @@
     "requirements": 5467500000,
     "attack": 3273844,
     "disassemblyReward": 2733750000,
-    "stageRequirement": "Primeval Forest"
+    "stageRequirement": "Primeval Forest",
+    "image": "/images/equipment/weapons/sword_231.png"
   },
   {
     "id": 32,
@@ -253,7 +284,8 @@
     "requirements": 6561000000,
     "attack": 3729844,
     "disassemblyReward": 3280500000,
-    "stageRequirement": "Upside-Down Forest"
+    "stageRequirement": "Upside-Down Forest",
+    "image": "/images/equipment/weapons/sword_232.png"
   },
   {
     "id": 33,
@@ -261,7 +293,8 @@
     "requirements": 7654500000,
     "attack": 4244305,
     "disassemblyReward": 3827250000,
-    "stageRequirement": "Soul's Playground"
+    "stageRequirement": "Soul's Playground",
+    "image": "/images/equipment/weapons/sword_233.png"
   },
   {
     "id": 34,
@@ -269,7 +302,8 @@
     "requirements": 16402500000,
     "attack": 4824360,
     "disassemblyReward": 8201250000,
-    "stageRequirement": "Lost Forest"
+    "stageRequirement": "Lost Forest",
+    "image": "/images/equipment/weapons/sword_234.png"
   },
   {
     "id": 35,
@@ -277,7 +311,8 @@
     "requirements": 19683000000,
     "attack": 5477984,
     "disassemblyReward": 9841500000,
-    "stageRequirement": "Underground Cave"
+    "stageRequirement": "Underground Cave",
+    "image": "/images/equipment/weapons/sword_235.png"
   },
   {
     "id": 36,
@@ -285,7 +320,8 @@
     "requirements": 22963500000,
     "attack": 6214088,
     "disassemblyReward": 11481750000,
-    "stageRequirement": "Misty Road"
+    "stageRequirement": "Misty Road",
+    "image": "/images/equipment/weapons/sword_236.png"
   },
   {
     "id": 37,
@@ -293,7 +329,8 @@
     "requirements": 49207500000,
     "attack": 7042633,
     "disassemblyReward": 24603750000,
-    "stageRequirement": "Cliff Edge"
+    "stageRequirement": "Cliff Edge",
+    "image": "/images/equipment/weapons/sword_237.png"
   },
   {
     "id": 38,
@@ -301,7 +338,8 @@
     "requirements": 59049000000,
     "attack": 7974746,
     "disassemblyReward": 29524500000,
-    "stageRequirement": "Underwater Cave"
+    "stageRequirement": "Underwater Cave",
+    "image": "/images/equipment/weapons/sword_238.png"
   },
   {
     "id": 39,
@@ -309,7 +347,8 @@
     "requirements": 68890500000,
     "attack": 9022856,
     "disassemblyReward": 34445250000,
-    "stageRequirement": "Dragon Grave"
+    "stageRequirement": "Dragon Grave",
+    "image": "/images/equipment/weapons/sword_239.png"
   },
   {
     "id": 40,
@@ -317,7 +356,8 @@
     "requirements": 147622500000,
     "attack": 10200840,
     "disassemblyReward": 73811250000,
-    "stageRequirement": "Forgotten Abyss"
+    "stageRequirement": "Forgotten Abyss",
+    "image": "/images/equipment/weapons/sword_240.png"
   },
   {
     "id": 41,
@@ -325,7 +365,8 @@
     "requirements": 177147000000,
     "attack": 11524192,
     "disassemblyReward": 88573500000,
-    "stageRequirement": "Sky Island"
+    "stageRequirement": "Sky Island",
+    "image": "/images/equipment/weapons/sword_241.png"
   },
   {
     "id": 42,
@@ -333,7 +374,8 @@
     "requirements": 206671500000,
     "attack": 13010206,
     "disassemblyReward": 103335750000,
-    "stageRequirement": "Ancient Ruins"
+    "stageRequirement": "Ancient Ruins",
+    "image": "/images/equipment/weapons/sword_242.png"
   },
   {
     "id": 43,
@@ -341,7 +383,8 @@
     "requirements": 442867500000,
     "attack": 14678181,
     "disassemblyReward": 221433750000,
-    "stageRequirement": "Giant's Glass"
+    "stageRequirement": "Giant's Glass",
+    "image": "/images/equipment/weapons/sword_243.png"
   },
   {
     "id": 44,
@@ -349,7 +392,8 @@
     "requirements": 531441000000,
     "attack": 16549649,
     "disassemblyReward": 265720500000,
-    "stageRequirement": "Desert Gorge"
+    "stageRequirement": "Desert Gorge",
+    "image": "/images/equipment/weapons/sword_244.png"
   },
   {
     "id": 45,
@@ -357,7 +401,8 @@
     "requirements": 620014500000,
     "attack": 18648629,
     "disassemblyReward": 310007250000,
-    "stageRequirement": "Vortex"
+    "stageRequirement": "Vortex",
+    "image": "/images/equipment/weapons/sword_245.png"
   },
   {
     "id": 46,
@@ -365,7 +410,8 @@
     "requirements": 1328602500000,
     "attack": 21001909,
     "disassemblyReward": 664301250000,
-    "stageRequirement": "Land of Prophecy"
+    "stageRequirement": "Land of Prophecy",
+    "image": "/images/equipment/weapons/sword_246.png"
   },
   {
     "id": 47,
@@ -373,7 +419,8 @@
     "requirements": 1594323000000,
     "attack": 23639358,
     "disassemblyReward": 797161500000,
-    "stageRequirement": "Story of the Stars"
+    "stageRequirement": "Story of the Stars",
+    "image": "/images/equipment/weapons/sword_247.png"
   },
   {
     "id": 48,
@@ -381,7 +428,8 @@
     "requirements": 1860043500000,
     "attack": 24176616,
     "disassemblyReward": 930021750000,
-    "stageRequirement": null
+    "stageRequirement": null,
+    "image": "/images/equipment/weapons/sword_248.png"
   },
   {
     "id": 49,
@@ -389,7 +437,8 @@
     "requirements": 3985807500000,
     "attack": 29093173,
     "disassemblyReward": 1992903750000,
-    "stageRequirement": null
+    "stageRequirement": null,
+    "image": "/images/equipment/weapons/sword_249.png"
   },
   {
     "id": 50,
@@ -397,7 +446,8 @@
     "requirements": 4782969000000,
     "attack": 32400940,
     "disassemblyReward": 2391484500000,
-    "stageRequirement": null
+    "stageRequirement": null,
+    "image": "/images/equipment/weapons/sword_250.png"
   },
   {
     "id": 51,
@@ -405,7 +455,8 @@
     "requirements": 5580130500000,
     "attack": 36068451,
     "disassemblyReward": 2790065250000,
-    "stageRequirement": null
+    "stageRequirement": null,
+    "image": "/images/equipment/weapons/sword_251.png"
   },
   {
     "id": 52,
@@ -413,7 +464,8 @@
     "requirements": 11957422500000,
     "attack": 40133666,
     "disassemblyReward": 5978711250000,
-    "stageRequirement": null
+    "stageRequirement": null,
+    "image": "/images/equipment/weapons/sword_252.png"
   },
   {
     "id": 53,
@@ -421,7 +473,8 @@
     "requirements": 14348907000000,
     "attack": 44638465,
     "disassemblyReward": 7174453500000,
-    "stageRequirement": null
+    "stageRequirement": null,
+    "image": "/images/equipment/weapons/sword_253.png"
   },
   {
     "id": 54,
@@ -429,7 +482,8 @@
     "requirements": 16740391500000,
     "attack": 49629046,
     "disassemblyReward": 8370195750000,
-    "stageRequirement": null
+    "stageRequirement": null,
+    "image": "/images/equipment/weapons/sword_254.png"
   },
   {
     "id": 55,
@@ -437,7 +491,8 @@
     "requirements": 35872267500000,
     "attack": 55156359,
     "disassemblyReward": 17936133750000,
-    "stageRequirement": null
+    "stageRequirement": null,
+    "image": "/images/equipment/weapons/sword_255.png"
   },
   {
     "id": 56,
@@ -445,7 +500,8 @@
     "requirements": 43046721000000,
     "attack": 61276594,
     "disassemblyReward": 21523360500000,
-    "stageRequirement": null
+    "stageRequirement": null,
+    "image": "/images/equipment/weapons/sword_256.png"
   },
   {
     "id": 57,
@@ -453,6 +509,7 @@
     "requirements": 50221174500000,
     "attack": 68051704,
     "disassemblyReward": 25110587250000,
-    "stageRequirement": null
+    "stageRequirement": null,
+    "image": "/images/equipment/weapons/sword_257.png"
   }
 ]
