@@ -6,6 +6,7 @@ import { useLoginFlow } from '../../wiki-framework/src/hooks/useLoginFlow';
 import LoginModal from '../../wiki-framework/src/components/auth/LoginModal';
 import { getUserBuilds } from '../../wiki-framework/src/services/github/skillBuilds';
 import { getCache, setCache, mergeCacheWithGitHub } from '../utils/buildCache';
+import { getSaveDataEndpoint, getDeleteDataEndpoint } from '../utils/apiEndpoints.js';
 
 /**
  * SavedBuildsPanel Component
@@ -95,7 +96,7 @@ const SavedBuildsPanel = ({ currentBuild, buildName, maxSlots, onLoadBuild, allo
         slots: currentBuild.slots,
       };
 
-      const response = await fetch('/.netlify/functions/save-data', {
+      const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -138,7 +139,7 @@ const SavedBuildsPanel = ({ currentBuild, buildName, maxSlots, onLoadBuild, allo
     setError(null);
 
     try {
-      const response = await fetch('/.netlify/functions/delete-data', {
+      const response = await fetch(getDeleteDataEndpoint(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

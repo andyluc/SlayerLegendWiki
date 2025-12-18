@@ -1,0 +1,21 @@
+# Cloudflare Pages Local Development Environment Variables
+# Copy this file to .dev.vars and fill in your actual values
+# .dev.vars is gitignored and will not be committed
+
+# GitHub Bot Token (required for bot operations)
+WIKI_BOT_TOKEN=ghp_your_bot_token_here
+
+# Repository Configuration (required)
+WIKI_REPO_OWNER=your_github_username
+WIKI_REPO_NAME=SlayerLegendWiki
+
+# GitHub OAuth Client ID (required for user authentication)
+VITE_GITHUB_CLIENT_ID=your_github_oauth_client_id
+
+# Optional: Override repository configuration for Vite (if different from above)
+VITE_WIKI_REPO_OWNER=your_github_username
+VITE_WIKI_REPO_NAME=SlayerLegendWiki
+
+# Platform Detection (automatically set, but can override)
+VITE_PLATFORM=cloudflare
+VITE_CF_PAGES=1

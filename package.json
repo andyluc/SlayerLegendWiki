@@ -9,9 +9,12 @@
     "dev:server": "netlify dev",
     "dev:watch": "node scripts/watchConfig.js",
     "dev:vite": "concurrently --kill-others --names \"CONFIG,VITE\" --prefix-colors \"cyan,green\" \"npm:dev:watch\" \"vite\"",
+    "dev:cloudflare": "concurrently --kill-others --names \"CONFIG,BUILD,WRANGLER\" --prefix-colors \"cyan,yellow,magenta\" \"npm:dev:watch\" \"vite build --watch\" \"wrangler pages dev dist --live-reload\"",
     "prebuild": "node scripts/copyConfig.js && node scripts/buildSearchIndex.js",
     "build": "vite build",
+    "build:cloudflare": "VITE_PLATFORM=cloudflare VITE_CF_PAGES=1 npm run build",
     "preview": "vite preview",
+    "preview:cloudflare": "npm run build:cloudflare && wrangler pages dev dist",
     "build:search": "node scripts/buildSearchIndex.js",
     "validate:html": "node wiki-framework/scripts/validateHtml.js"
   },

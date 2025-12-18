@@ -49,3 +49,5 @@ external/backups/excluded-images/
 
 # Local Netlify folder
 .netlify
+
+/.dev.vars

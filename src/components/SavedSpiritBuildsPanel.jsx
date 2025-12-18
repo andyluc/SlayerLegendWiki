@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Trash2, Download, Upload, AlertCircle } from 'lucide-react';
 import { useAuthStore } from '../../wiki-framework/src/store/authStore';
 import { getCache, setCache, clearCache } from '../utils/buildCache';
+import { getLoadDataEndpoint, getDeleteDataEndpoint } from '../utils/apiEndpoints.js';
 
 /**
  * SavedSpiritBuildsPanel Component
@@ -62,7 +63,7 @@ const SavedSpiritBuildsPanel = ({
       }
 
       // Fetch from API
-      const response = await fetch(`/.netlify/functions/load-data?type=spirit-build&userId=${user.id}`, {
+      const response = await fetch(`${getLoadDataEndpoint()}?type=spirit-build&userId=${user.id}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -98,7 +99,7 @@ const SavedSpiritBuildsPanel = ({
     setDeletingId(buildId);
 
     try {
-      const response = await fetch('/.netlify/functions/delete-data', {
+      const response = await fetch(getDeleteDataEndpoint(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

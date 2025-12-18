@@ -6,6 +6,7 @@ import { useLoginFlow } from '../../wiki-framework/src/hooks/useLoginFlow';
 import LoginModal from '../../wiki-framework/src/components/auth/LoginModal';
 import { getUserLoadouts } from '../../wiki-framework/src/services/github/battleLoadouts';
 import { getCache, setCache, mergeCacheWithGitHub } from '../utils/buildCache';
+import { getDeleteDataEndpoint } from '../utils/apiEndpoints.js';
 
 /**
  * SavedLoadoutsPanel Component
@@ -78,7 +79,7 @@ const SavedLoadoutsPanel = ({ currentLoadout, onLoadLoadout, currentLoadedLoadou
     setError(null);
 
     try {
-      const response = await fetch('/.netlify/functions/delete-data', {
+      const response = await fetch(getDeleteDataEndpoint(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

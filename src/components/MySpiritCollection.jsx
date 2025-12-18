@@ -5,6 +5,7 @@ import SpiritSlot from './SpiritSlot';
 import SpiritSelector from './SpiritSelector';
 import { useAuthStore } from '../../wiki-framework/src/store/authStore';
 import { getCache, setCache, clearCache } from '../utils/buildCache';
+import { getSaveDataEndpoint, getLoadDataEndpoint, getDeleteDataEndpoint } from '../utils/apiEndpoints.js';
 
 /**
  * MySpiritCollection Component
@@ -48,7 +49,7 @@ const MySpiritCollection = () => {
       }
 
       // Fetch from API
-      const response = await fetch(`/.netlify/functions/load-data?type=my-spirit&userId=${user.id}`);
+      const response = await fetch(`${getLoadDataEndpoint()}?type=my-spirit&userId=${user.id}`);
       const data = await response.json();
 
       if (data.success) {
@@ -91,7 +92,7 @@ const MySpiritCollection = () => {
         skillEnhancementLevel: editingSpirit.skillEnhancementLevel
       };
 
-      const response = await fetch('/.netlify/functions/save-data', {
+      const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -133,7 +134,7 @@ const MySpiritCollection = () => {
     if (!confirm('Delete this spirit from your collection?')) return;
 
     try {
-      const response = await fetch('/.netlify/functions/delete-data', {
+      const response = await fetch(getDeleteDataEndpoint(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

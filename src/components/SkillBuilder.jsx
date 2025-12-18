@@ -8,6 +8,7 @@ import { useAuthStore } from '../../wiki-framework/src/store/authStore';
 import { setCache } from '../utils/buildCache';
 import { saveBuild as saveSharedBuild, loadBuild as loadSharedBuild, generateShareUrl } from '../../wiki-framework/src/services/github/buildShare';
 import { useDraftStorage } from '../../wiki-framework/src/hooks/useDraftStorage';
+import { getSaveDataEndpoint } from '../utils/apiEndpoints.js';
 
 /**
  * SkillBuilder Component
@@ -528,7 +529,7 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
         slots: build.slots,
       };
 
-      const response = await fetch('/.netlify/functions/save-data', {
+      const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

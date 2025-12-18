@@ -8,6 +8,7 @@ import { createGitHubIssue, searchGitHubIssues, getGitHubIssue, updateGitHubIssu
 import { retryGitHubAPI } from '../../wiki-framework/src/utils/retryWithBackoff';
 import EngravingPiece from './EngravingPiece';
 import CustomDropdown from './CustomDropdown';
+import { getSaveDataEndpoint } from '../utils/apiEndpoints.js';
 
 /**
  * SoulWeaponEngravingBuilder Component
@@ -1214,7 +1215,7 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
 
       // Call save-data function with type 'grid-submission'
       // Authenticated users will have their username attached, otherwise anonymous
-      const response = await fetch('/.netlify/functions/save-data', {
+      const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

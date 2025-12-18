@@ -3,6 +3,7 @@ import { Loader, RefreshCw } from 'lucide-react';
 import SpiritComponent from './SpiritComponent';
 import { useAuthStore } from '../../wiki-framework/src/store/authStore';
 import { getCache, setCache, clearCache } from '../utils/buildCache';
+import { getLoadDataEndpoint } from '../utils/apiEndpoints.js';
 
 /**
  * SavedSpiritsGallery Component
@@ -46,7 +47,7 @@ const SavedSpiritsGallery = ({ onSelectSpirit, excludedSpiritIds = [] }) => {
       }
 
       // Fetch from API
-      const response = await fetch(`/.netlify/functions/load-data?type=my-spirit&userId=${user.id}`);
+      const response = await fetch(`${getLoadDataEndpoint()}?type=my-spirit&userId=${user.id}`);
       const data = await response.json();
 
       if (data.success) {

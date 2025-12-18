@@ -11,6 +11,7 @@ import { useAuthStore } from '../../wiki-framework/src/store/authStore';
 import { setCache } from '../utils/buildCache';
 import { saveBuild, loadBuild, generateShareUrl } from '../../wiki-framework/src/services/github/buildShare';
 import { useDraftStorage } from '../../wiki-framework/src/hooks/useDraftStorage';
+import { getSaveDataEndpoint } from '../utils/apiEndpoints.js';
 
 /**
  * BattleLoadouts Component
@@ -387,7 +388,7 @@ const BattleLoadouts = () => {
         familiar: currentLoadout.familiar,
       };
 
-      const response = await fetch('/.netlify/functions/save-data', {
+      const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
