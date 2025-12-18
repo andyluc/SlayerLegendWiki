@@ -226,9 +226,9 @@
       "activeSlots": [
         { "row": 0, "col": 0 }, { "row": 0, "col": 1 }, { "row": 0, "col": 2 }, { "row": 0, "col": 3 },
         { "row": 1, "col": 0 }, { "row": 1, "col": 1 }, { "row": 1, "col": 2 }, { "row": 1, "col": 3 },
-        { "row": 2, "col": 1 }, { "row": 2, "col": 2 }, { "row": 2, "col": 3 }, { "row": 2, "col": 4 },
-        { "row": 3, "col": 1 }, { "row": 3, "col": 2 }, { "row": 3, "col": 3 }, { "row": 3, "col": 4 },
-        { "row": 4, "col": 4 }
+                                { "row": 2, "col": 1 }, { "row": 2, "col": 2 }, { "row": 2, "col": 3 }, { "row": 2, "col": 4 },
+                                                        { "row": 3, "col": 2 }, { "row": 3, "col": 3 }, { "row": 3, "col": 4 },
+                                                                                                        { "row": 4, "col": 4 }
       ],
       "totalActiveSlots": 17
     },
@@ -278,7 +278,7 @@
         { "row": 0, "col": 0 }, { "row": 0, "col": 1 }, { "row": 0, "col": 2 }, { "row": 0, "col": 3 }, { "row": 0, "col": 4 },
         { "row": 1, "col": 1 }, { "row": 1, "col": 2 }, { "row": 1, "col": 3 }, { "row": 1, "col": 4 },
         { "row": 2, "col": 1 }, { "row": 2, "col": 2 }, { "row": 2, "col": 3 },
-        { "row": 3, "col": 1 }, { "row": 3, "col": 2 }, { "row": 3, "col": 3 },
+        { "row": 3, "col": 1 }, { "row": 3, "col": 2 },
         { "row": 4, "col": 1 }, { "row": 4, "col": 2 }
       ],
       "totalActiveSlots": 17
@@ -292,7 +292,6 @@
         "hp": "97.1%"
       },
       "activeSlots": [
-        { "row": 0, "col": 4 },
         { "row": 1, "col": 1 }, { "row": 1, "col": 2 }, { "row": 1, "col": 3 },
         { "row": 2, "col": 0 }, { "row": 2, "col": 1 }, { "row": 2, "col": 2 }, { "row": 2, "col": 3 },
         { "row": 3, "col": 0 }, { "row": 3, "col": 1 }, { "row": 3, "col": 2 }, { "row": 3, "col": 3 }, { "row": 3, "col": 4 },
@@ -310,7 +309,7 @@
       },
       "activeSlots": [
         { "row": 0, "col": 0 }, { "row": 0, "col": 1 }, { "row": 0, "col": 2 },
-        { "row": 1, "col": 0 }, { "row": 1, "col": 1 }, { "row": 1, "col": 2 }, { "row": 1, "col": 4 },
+        { "row": 1, "col": 0 }, { "row": 1, "col": 1 }, { "row": 1, "col": 2 }, { "row": 1, "col": 3 }, { "row": 1, "col": 4 },
         { "row": 2, "col": 0 }, { "row": 2, "col": 1 }, { "row": 2, "col": 2 }, { "row": 2, "col": 3 }, { "row": 2, "col": 4 },
         { "row": 3, "col": 3 }, { "row": 3, "col": 4 },
         { "row": 4, "col": 4 }
@@ -326,7 +325,7 @@
         "hp": "112.3%"
       },
       "activeSlots": [
-        { "row": 0, "col": 1 }, { "row": 0, "col": 4 },
+        { "row": 0, "col": 1 },
         { "row": 1, "col": 1 }, { "row": 1, "col": 2 }, { "row": 1, "col": 3 }, { "row": 1, "col": 4 },
         { "row": 2, "col": 1 }, { "row": 2, "col": 2 }, { "row": 2, "col": 3 }, { "row": 2, "col": 4 },
         { "row": 3, "col": 1 }, { "row": 3, "col": 2 }, { "row": 3, "col": 3 }, { "row": 3, "col": 4 },
@@ -360,11 +359,11 @@
         "hp": "122.3%"
       },
       "activeSlots": [
-        { "row": 0, "col": 3 }, { "row": 0, "col": 4 },
-        { "row": 1, "col": 3 }, { "row": 1, "col": 4 },
-        { "row": 2, "col": 0 }, { "row": 2, "col": 1 }, { "row": 2, "col": 2 }, { "row": 2, "col": 3 }, { "row": 2, "col": 4 },
-        { "row": 3, "col": 0 }, { "row": 3, "col": 1 }, { "row": 3, "col": 2 }, { "row": 3, "col": 3 },
-        { "row": 4, "col": 0 }, { "row": 4, "col": 1 }, { "row": 4, "col": 2 }, { "row": 4, "col": 3 }
+                                                                                { "row": 0, "col": 3 }, { "row": 0, "col": 4 },
+                                                                                { "row": 1, "col": 3 }, { "row": 1, "col": 4 },
+                                                                                { "row": 2, "col": 3 }, { "row": 2, "col": 4 },
+        { "row": 3, "col": 0 }, { "row": 3, "col": 1 }, { "row": 3, "col": 2 }, { "row": 3, "col": 3 }, { "row": 3, "col": 4 },
+        { "row": 4, "col": 0 }, { "row": 4, "col": 1 }, { "row": 4, "col": 2 }, { "row": 4, "col": 3 }, { "row": 4, "col": 4 }
       ],
       "totalActiveSlots": 17
     },
@@ -377,7 +376,7 @@
         "hp": "131.3%"
       },
       "activeSlots": [
-        { "row": 0, "col": 0 }, { "row": 0, "col": 1 }, { "row": 0, "col": 2 },
+        { "row": 0, "col": 0 }, { "row": 0, "col": 1 },
         { "row": 1, "col": 0 }, { "row": 1, "col": 1 }, { "row": 1, "col": 2 },
         { "row": 2, "col": 0 }, { "row": 2, "col": 1 }, { "row": 2, "col": 2 },
         { "row": 3, "col": 0 }, { "row": 3, "col": 1 }, { "row": 3, "col": 2 }, { "row": 3, "col": 3 },
@@ -394,10 +393,10 @@
         "hp": "140.5%"
       },
       "activeSlots": [
-        { "row": 0, "col": 1 }, { "row": 0, "col": 2 }, { "row": 0, "col": 3 },
+        { "row": 0, "col": 1 }, { "row": 0, "col": 2 }, { "row": 0, "col": 3 }, { "row": 0, "col": 4 },
         { "row": 1, "col": 1 }, { "row": 1, "col": 2 }, { "row": 1, "col": 3 }, { "row": 1, "col": 4 },
-        { "row": 2, "col": 2 }, { "row": 2, "col": 3 }, { "row": 2, "col": 4 },
-        { "row": 3, "col": 0 }, { "row": 3, "col": 2 }, { "row": 3, "col": 3 }, { "row": 3, "col": 4 },
+                                { "row": 2, "col": 2 }, { "row": 2, "col": 3 }, { "row": 2, "col": 4 },
+                                { "row": 3, "col": 2 }, { "row": 3, "col": 3 },
         { "row": 4, "col": 1 }, { "row": 4, "col": 2 }, { "row": 4, "col": 3 }
       ],
       "totalActiveSlots": 17
@@ -479,11 +478,11 @@
         "hp": "165.5%"
       },
       "activeSlots": [
-        { "row": 0, "col": 1 }, { "row": 0, "col": 2 }, { "row": 0, "col": 3 },
+        { "row": 0, "col": 1 },                         { "row": 0, "col": 2 }, { "row": 0, "col": 3 },
         { "row": 1, "col": 0 }, { "row": 1, "col": 1 }, { "row": 1, "col": 2 }, { "row": 1, "col": 3 },
         { "row": 2, "col": 0 }, { "row": 2, "col": 1 }, { "row": 2, "col": 2 }, { "row": 2, "col": 3 },
         { "row": 3, "col": 0 }, { "row": 3, "col": 1 }, { "row": 3, "col": 2 }, { "row": 3, "col": 3 },
-        { "row": 4, "col": 0 }, { "row": 4, "col": 1 }
+                                { "row": 4, "col": 1 }
       ],
       "totalActiveSlots": 17
     },
@@ -506,6 +505,22 @@
     },
     {
       "id": 31,
+      "name": "Ecstasy",
+      "gridType": "5x5",
+      "completionEffect": {
+        "atk": "40.3%",
+        "hp": "169.9%"
+      },
+      "activeSlots": [
+        { "row": 0, "col": 0 }, { "row": 0, "col": 1 }, { "row": 0, "col": 2 }, { "row": 0, "col": 3 }, { "row": 0, "col": 4 },
+        { "row": 1, "col": 0 }, { "row": 1, "col": 1 }, { "row": 1, "col": 2 }, { "row": 1, "col": 3 }, { "row": 1, "col": 4 },
+        { "row": 2, "col": 0 }, { "row": 2, "col": 1 }, { "row": 2, "col": 2 }, { "row": 2, "col": 3 }, { "row": 2, "col": 4 },
+        { "row": 3, "col": 4 }
+      ],
+      "totalActiveSlots": 16
+    },
+    {
+      "id": 32,
       "name": "Honor",
       "gridType": "5x5",
       "completionEffect": {
@@ -522,7 +537,7 @@
       "totalActiveSlots": 16
     },
     {
-      "id": 32,
+      "id": 33,
       "name": "Grand",
       "gridType": "5x5",
       "completionEffect": {
@@ -539,7 +554,7 @@
       "totalActiveSlots": 16
     },
     {
-      "id": 33,
+      "id": 34,
       "name": "Blessing",
       "gridType": "5x5",
       "completionEffect": {
@@ -555,7 +570,7 @@
       "totalActiveSlots": 16
     },
     {
-      "id": 34,
+      "id": 35,
       "name": "Fighting Will",
       "gridType": "5x5",
       "completionEffect": {
@@ -565,14 +580,14 @@
       "activeSlots": [
         { "row": 0, "col": 0 }, { "row": 0, "col": 1 }, { "row": 0, "col": 2 }, { "row": 0, "col": 3 }, { "row": 0, "col": 4 },
         { "row": 1, "col": 1 }, { "row": 1, "col": 2 }, { "row": 1, "col": 3 }, { "row": 1, "col": 4 },
-        { "row": 2, "col": 1 }, { "row": 2, "col": 2 }, { "row": 2, "col": 3 },
-        { "row": 3, "col": 4 },
+        { "row": 2, "col": 1 }, { "row": 2, "col": 2 }, { "row": 2, "col": 3 }, { "row": 2, "col": 4 }, 
+        { "row": 3, "col": 4 }, { "row": 3, "col": 3 },
         { "row": 4, "col": 4 }
       ],
       "totalActiveSlots": 15
     },
     {
-      "id": 35,
+      "id": 36,
       "name": "Transition",
       "gridType": "5x5",
       "completionEffect": {
@@ -589,7 +604,7 @@
       "totalActiveSlots": 16
     },
     {
-      "id": 36,
+      "id": 37,
       "name": "Interest",
       "gridType": "5x5",
       "completionEffect": {
@@ -606,7 +621,7 @@
       "totalActiveSlots": 16
     },
     {
-      "id": 37,
+      "id": 38,
       "name": "Intelligence",
       "gridType": "5x5",
       "completionEffect": {
@@ -616,14 +631,14 @@
       "activeSlots": [
         { "row": 0, "col": 0 }, { "row": 0, "col": 1 }, { "row": 0, "col": 2 }, { "row": 0, "col": 3 }, { "row": 0, "col": 4 },
         { "row": 1, "col": 0 }, { "row": 1, "col": 1 }, { "row": 1, "col": 2 }, { "row": 1, "col": 3 }, { "row": 1, "col": 4 },
-        { "row": 2, "col": 1 }, { "row": 2, "col": 2 }, { "row": 2, "col": 3 },
+        { "row": 2, "col": 1 }, { "row": 2, "col": 2 },
         { "row": 3, "col": 1 }, { "row": 3, "col": 2 },
         { "row": 4, "col": 1 }, { "row": 4, "col": 2 }
       ],
       "totalActiveSlots": 17
     },
     {
-      "id": 38,
+      "id": 39,
       "name": "Greed",
       "gridType": "5x5",
       "completionEffect": {
@@ -632,14 +647,14 @@
       },
       "activeSlots": [
         { "row": 0, "col": 0 }, { "row": 0, "col": 1 }, { "row": 0, "col": 2 }, { "row": 0, "col": 3 }, { "row": 0, "col": 4 },
-        { "row": 1, "col": 0 }, { "row": 1, "col": 2 }, { "row": 1, "col": 3 }, { "row": 1, "col": 4 },
+        { "row": 1, "col": 0 },                         { "row": 1, "col": 2 },                         { "row": 1, "col": 4 },
         { "row": 2, "col": 0 }, { "row": 2, "col": 1 }, { "row": 2, "col": 2 }, { "row": 2, "col": 3 }, { "row": 2, "col": 4 },
-        { "row": 3, "col": 1 }, { "row": 3, "col": 2 }, { "row": 3, "col": 3 }
+                                { "row": 3, "col": 1 }, { "row": 3, "col": 2 }, { "row": 3, "col": 3 }
       ],
       "totalActiveSlots": 17
     },
     {
-      "id": 39,
+      "id": 40,
       "name": "Vow",
       "gridType": "5x5",
       "completionEffect": {
@@ -647,7 +662,7 @@
         "hp": "233.7%"
       },
       "activeSlots": [
-        { "row": 0, "col": 1 }, { "row": 0, "col": 2 }, { "row": 0, "col": 3 },
+        { "row": 0, "col": 1 }, { "row": 0, "col": 2 }, { "row": 0, "col": 3 }, { "row": 0, "col": 4 },
         { "row": 1, "col": 1 }, { "row": 1, "col": 2 }, { "row": 1, "col": 3 }, { "row": 1, "col": 4 },
         { "row": 2, "col": 1 }, { "row": 2, "col": 2 }, { "row": 2, "col": 3 }, { "row": 2, "col": 4 },
         { "row": 3, "col": 1 }, { "row": 3, "col": 2 },
@@ -656,7 +671,7 @@
       "totalActiveSlots": 15
     },
     {
-      "id": 40,
+      "id": 41,
       "name": "Anxiety",
       "gridType": "5x5",
       "completionEffect": {
@@ -673,7 +688,7 @@
       "totalActiveSlots": 16
     },
     {
-      "id": 41,
+      "id": 42,
       "name": "Vigor",
       "gridType": "5x5",
       "completionEffect": {
@@ -685,22 +700,6 @@
         { "row": 1, "col": 0 }, { "row": 1, "col": 1 }, { "row": 1, "col": 2 }, { "row": 1, "col": 3 }, { "row": 1, "col": 4 },
         { "row": 2, "col": 0 }, { "row": 2, "col": 1 }, { "row": 2, "col": 2 }, { "row": 2, "col": 3 }, { "row": 2, "col": 4 },
         { "row": 3, "col": 1 }, { "row": 3, "col": 2 }, { "row": 3, "col": 3 }
-      ],
-      "totalActiveSlots": 16
-    },
-    {
-      "id": 42,
-      "name": "Ecstasy",
-      "gridType": "5x5",
-      "completionEffect": {
-        "atk": "40.3%",
-        "hp": "169.9%"
-      },
-      "activeSlots": [
-        { "row": 0, "col": 0 }, { "row": 0, "col": 1 }, { "row": 0, "col": 2 }, { "row": 0, "col": 3 }, { "row": 0, "col": 4 },
-        { "row": 1, "col": 0 }, { "row": 1, "col": 1 }, { "row": 1, "col": 2 }, { "row": 1, "col": 3 }, { "row": 1, "col": 4 },
-        { "row": 2, "col": 0 }, { "row": 2, "col": 1 }, { "row": 2, "col": 2 }, { "row": 2, "col": 3 }, { "row": 2, "col": 4 },
-        { "row": 3, "col": 4 }
       ],
       "totalActiveSlots": 16
     }
