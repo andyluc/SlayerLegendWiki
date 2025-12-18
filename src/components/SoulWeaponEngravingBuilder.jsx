@@ -1646,6 +1646,10 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
                               draggable={true}
                               onDragStart={(e) => handleDragPlacedPiece(e, cell.piece, filledCell.patternRow, filledCell.patternCol)}
                               onDragEnd={handleDragEnd}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleClickPlacedPiece(cell.piece);
+                              }}
                               className="absolute cursor-grab active:cursor-grabbing hover:opacity-90 transition-opacity"
                               style={{
                                 left: `${16 + filledCell.col * (adjustedCellSize + GAP_SIZE)}px`,
@@ -1657,7 +1661,7 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
                                 alignItems: 'center',
                                 justifyContent: 'center'
                               }}
-                              title="Drag to move"
+                              title="Click to edit, drag to move"
                             >
                               <img
                                 src={imageSrc}
