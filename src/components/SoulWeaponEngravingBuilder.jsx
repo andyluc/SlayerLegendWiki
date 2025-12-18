@@ -7,6 +7,7 @@ import { saveBuild as saveSharedBuild, loadBuild as loadSharedBuild, generateSha
 import { createGitHubIssue, searchGitHubIssues, getGitHubIssue, updateGitHubIssue, getOctokit } from '../../wiki-framework/src/services/github/api';
 import { retryGitHubAPI } from '../../wiki-framework/src/utils/retryWithBackoff';
 import EngravingPiece from './EngravingPiece';
+import CustomDropdown from './CustomDropdown';
 
 /**
  * SoulWeaponEngravingBuilder Component
@@ -373,21 +374,33 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
             // Load the build data
             setBuildName(buildData.data.name || '');
 
-            // Find and set the weapon (prioritize weapons array which has grid data)
+            // Find and set the weapon (merge grid data with base weapon data)
             if (buildData.data.weaponId) {
-              // Try weapons array first (has grid data), fallback to allWeapons (has all weapons)
-              const weapon = weapons.find(w => w.id === buildData.data.weaponId) ||
-                           allWeapons.find(w => w.id === buildData.data.weaponId);
-              if (weapon) {
-                console.log('[SoulWeaponEngravingBuilder] Loaded weapon from shared build:', {
-                  name: weapon.name,
-                  id: weapon.id,
-                  hasActiveSlots: !!(weapon.activeSlots && Array.isArray(weapon.activeSlots)),
-                  activeSlotsCount: weapon.activeSlots?.length,
-                  gridType: weapon.gridType,
-                  source: weapon.activeSlots ? 'weapons array (has grid data)' : 'allWeapons array (no grid data)'
+              const baseWeapon = allWeapons.find(w => w.id === buildData.data.weaponId);
+              const gridWeapon = weapons.find(w => w.id === buildData.data.weaponId);
+
+              if (gridWeapon && baseWeapon) {
+                // Merge grid data with base weapon data
+                const mergedWeapon = {
+                  ...gridWeapon,
+                  image: baseWeapon.image,
+                  attack: baseWeapon.attack,
+                  requirements: baseWeapon.requirements
+                };
+                console.log('[SoulWeaponEngravingBuilder] Loaded weapon from shared build (with grid data):', {
+                  name: mergedWeapon.name,
+                  id: mergedWeapon.id,
+                  hasImage: !!mergedWeapon.image
                 });
-                setSelectedWeapon(weapon);
+                setSelectedWeapon(mergedWeapon);
+              } else if (baseWeapon) {
+                // No grid data, use base weapon
+                console.log('[SoulWeaponEngravingBuilder] Loaded weapon from shared build (no grid data):', {
+                  name: baseWeapon.name,
+                  id: baseWeapon.id,
+                  hasImage: !!baseWeapon.image
+                });
+                setSelectedWeapon(baseWeapon);
               }
             }
 
@@ -734,9 +747,14 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
         );
 
         if (firstWeaponWithGrid) {
-          // Use the grid data version of this weapon
+          // Use the grid data version of this weapon, merged with base weapon data
           const gridWeapon = weaponsData.weapons.find(gw => gw.name === firstWeaponWithGrid.name);
-          setSelectedWeapon(gridWeapon);
+          setSelectedWeapon({
+            ...gridWeapon,
+            image: firstWeaponWithGrid.image,
+            attack: firstWeaponWithGrid.attack,
+            requirements: firstWeaponWithGrid.requirements
+          });
         } else {
           // No weapons have grid data yet, select first weapon (will show designer)
           setSelectedWeapon(filteredAllWeapons[0]);
@@ -1323,7 +1341,7 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
   };
 
   const handleWeaponChange = (weaponId) => {
-    // First, find the weapon in allWeapons (basic weapon data)
+    // First, find the weapon in allWeapons (basic weapon data with image)
     const baseWeapon = allWeapons.find(w => w.id === parseInt(weaponId));
     if (!baseWeapon) return;
 
@@ -1331,8 +1349,13 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
     const gridWeapon = weapons.find(w => w.name === baseWeapon.name);
 
     if (gridWeapon) {
-      // Use the version with grid data
-      setSelectedWeapon(gridWeapon);
+      // Merge grid data with base weapon data (to get image field)
+      setSelectedWeapon({
+        ...gridWeapon,
+        image: baseWeapon.image,
+        attack: baseWeapon.attack,
+        requirements: baseWeapon.requirements
+      });
     } else {
       // No grid data - use base weapon (will show grid designer)
       setSelectedWeapon(baseWeapon);
@@ -2725,13 +2748,19 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
     // Filter weapons from allWeapons (which has correct IDs) up to highestUnlockedWeapon
     const unlockedAllWeapons = allWeapons.filter(w => w.id <= highestUnlockedWeapon);
 
-    // Merge weapon data: use allWeapons for ID, merge with official grid data if available
+    // Merge weapon data: use allWeapons for ID and image, merge with official grid data if available
     // This ensures we test ALL weapons, including those with only community submissions
     const unlockedWeapons = unlockedAllWeapons.map(aw => {
       const officialData = weapons.find(w => w.name === aw.name);
       if (officialData) {
-        // Weapon has official grid data - merge it with ID from allWeapons
-        return { ...officialData, id: aw.id };
+        // Weapon has official grid data - merge it with data from allWeapons (image, attack, etc.)
+        return {
+          ...officialData,
+          id: aw.id,
+          image: aw.image,
+          attack: aw.attack,
+          requirements: aw.requirements
+        };
       } else {
         // Weapon has no official data - will check for community submissions later
         return aw;
@@ -3034,9 +3063,20 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
         const data = JSON.parse(event.target?.result);
 
         if (data.weaponId) {
-          const weapon = weapons.find(w => w.id === data.weaponId);
-          if (weapon) {
-            setSelectedWeapon(weapon);
+          const baseWeapon = allWeapons.find(w => w.id === data.weaponId);
+          const gridWeapon = weapons.find(w => w.id === data.weaponId);
+
+          if (gridWeapon && baseWeapon) {
+            // Merge grid data with base weapon data
+            setSelectedWeapon({
+              ...gridWeapon,
+              image: baseWeapon.image,
+              attack: baseWeapon.attack,
+              requirements: baseWeapon.requirements
+            });
+          } else if (baseWeapon) {
+            // No grid data, use base weapon
+            setSelectedWeapon(baseWeapon);
           }
         }
 
@@ -3282,35 +3322,47 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Soul Weapon
             </label>
-            <select
-              value={selectedWeapon?.id || ''}
-              onChange={(e) => handleWeaponChange(e.target.value)}
-              className="w-full px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              {allWeapons.filter(w => w.id <= highestUnlockedWeapon).map(weapon => {
+            <CustomDropdown
+              value={selectedWeapon?.id}
+              selectedOptionOverride={selectedWeapon ? (() => {
+                const gridData = weapons.find(gw => gw.name === selectedWeapon.name);
+                let description = '';
+                if (gridData) {
+                  description = `${gridData.gridType} Grid • ATK +${gridData.completionEffect.atk}% HP +${gridData.completionEffect.hp}%`;
+                } else if (weaponsWithSubmissions.has(selectedWeapon.name)) {
+                  description = 'Community Entry (Unverified)';
+                } else {
+                  description = 'Designer Mode (No Grid Data)';
+                }
+                return {
+                  value: selectedWeapon.id,
+                  label: selectedWeapon.name,
+                  image: selectedWeapon.image,
+                  description: description
+                };
+              })() : null}
+              onChange={(value) => handleWeaponChange(value)}
+              placeholder="Select a Soul Weapon"
+              options={allWeapons.filter(w => w.id <= highestUnlockedWeapon).map(weapon => {
                 // Check if this weapon has grid data
                 const gridData = weapons.find(gw => gw.name === weapon.name);
+                let description = '';
                 if (gridData) {
-                  return (
-                    <option key={weapon.id} value={weapon.id}>
-                      {weapon.name} ({gridData.gridType}) - ATK +{gridData.completionEffect.atk}, HP +{gridData.completionEffect.hp}
-                    </option>
-                  );
+                  description = `${gridData.gridType} Grid • ATK +${gridData.completionEffect.atk}% HP +${gridData.completionEffect.hp}%`;
                 } else if (weaponsWithSubmissions.has(weapon.name)) {
-                  return (
-                    <option key={weapon.id} value={weapon.id}>
-                      {weapon.name} (Community Entry - Unverified)
-                    </option>
-                  );
+                  description = 'Community Entry (Unverified)';
                 } else {
-                  return (
-                    <option key={weapon.id} value={weapon.id}>
-                      {weapon.name} (No Grid Data - Designer Mode)
-                    </option>
-                  );
+                  description = 'Designer Mode (No Grid Data)';
                 }
+
+                return {
+                  value: weapon.id,
+                  label: weapon.name,
+                  image: weapon.image,
+                  description: description
+                };
               })}
-            </select>
+            />
           </div>
 
           {/* Highest Unlocked Weapon */}
@@ -3319,10 +3371,19 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
               Highest Unlocked Weapon
             </label>
             <div className="flex items-center gap-2">
-              <select
+              <CustomDropdown
                 value={highestUnlockedWeapon}
-                onChange={(e) => {
-                  const newValue = parseInt(e.target.value, 10);
+                selectedOptionOverride={(() => {
+                  const weapon = allWeapons.find(w => w.id === highestUnlockedWeapon);
+                  return weapon ? {
+                    value: weapon.id,
+                    label: weapon.name,
+                    image: weapon.image,
+                    description: `${weapon.attack?.toLocaleString() || 'N/A'} ATK`
+                  } : null;
+                })()}
+                onChange={(value) => {
+                  const newValue = parseInt(value, 10);
                   setHighestUnlockedWeapon(newValue);
                   // If current weapon is now locked, switch to highest unlocked
                   if (selectedWeapon && selectedWeapon.id > newValue) {
@@ -3332,24 +3393,27 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
                     }
                   }
                 }}
-                className="flex-1 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                {allWeapons.map(weapon => (
-                  <option key={weapon.id} value={weapon.id}>
-                    {weapon.name}
-                  </option>
-                ))}
-              </select>
+                placeholder="Select Highest Unlocked"
+                className="flex-1"
+                options={allWeapons.map(weapon => ({
+                  value: weapon.id,
+                  label: weapon.name,
+                  image: weapon.image,
+                  description: `${weapon.attack?.toLocaleString() || 'N/A'} ATK`
+                }))}
+              />
               <button
                 onClick={() => setHighestUnlockedWeapon(57)}
-                className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium transition-colors whitespace-nowrap"
+                className="px-3 py-3 md:py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-lg text-sm md:text-sm font-medium transition-colors whitespace-nowrap shadow-sm touch-manipulation min-h-[44px]"
                 title="Unlock all weapons"
               >
                 All
               </button>
             </div>
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Filters weapon list and Best Weapon search
+            <p className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+              <span className="font-medium">{allWeapons.filter(w => w.id <= highestUnlockedWeapon).length} of {allWeapons.length} weapons unlocked</span>
+              <span className="mx-1">•</span>
+              <span>Filters weapon list and Best Weapon search</span>
             </p>
           </div>
         </div>
@@ -3738,6 +3802,28 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
                 }
               }}
             >
+              {/* Background Weapon Image */}
+              {selectedWeapon?.image && (
+                <div
+                  className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                  style={{
+                    opacity: 0.2,
+                    zIndex: 5
+                  }}
+                >
+                  <img
+                    src={selectedWeapon.image}
+                    alt=""
+                    className="w-full h-full object-contain p-4"
+                    style={{
+                      filter: 'drop-shadow(0 0 20px rgba(255, 255, 255, 0.3))',
+                      pointerEvents: 'none',
+                      userSelect: 'none'
+                    }}
+                  />
+                </div>
+              )}
+
               {/* Grid Cells */}
               {gridState.map((row, rowIndex) => {
                 return row.map((cell, colIndex) => {
@@ -3768,6 +3854,7 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
                       style={{
                         width: `${adjustedCellSize}px`,
                         height: `${adjustedCellSize}px`,
+                        zIndex: 1,
                         backgroundColor: previewCell
                           ? previewCell.valid
                             ? 'rgba(34, 197, 94, 0.4)' // Green if valid
@@ -4095,7 +4182,7 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
                           onDragEnd={handleDragEnd}
                           onTouchStart={handleTouchStartPlacedPiece}
                           onClick={handleClickPlacedPiece}
-                          zIndexBase={4}
+                          zIndexBase={10}
                         />
                       );
                     }
