@@ -28,7 +28,23 @@ export async function onRequest(context) {
 
   try {
     // Parse request body
-    const { action, params } = await request.json();
+    const body = await request.json();
+    const { action, params } = body;
+
+    // Debug logging
+    console.log('[github-bot] Received request:', { action, hasParams: !!params });
+
+    // Validate params exists
+    if (!params) {
+      console.error('[github-bot] params is missing from request body');
+      return new Response(
+        JSON.stringify({ error: 'Missing params in request body' }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        }
+      );
+    }
 
     // Validate action
     const validation = validateBotAction(action);
