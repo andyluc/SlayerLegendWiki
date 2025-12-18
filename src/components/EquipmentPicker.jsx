@@ -50,7 +50,7 @@ const EquipmentPicker = ({ isOpen, onClose, onSelect, renderPreview = null }) =>
     const loadEquipment = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/data/equipment.json');
+        const response = await fetch('/data/soul-weapons.json');
         if (!response.ok) {
           throw new Error('Failed to load equipment');
         }

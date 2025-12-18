@@ -51,10 +51,29 @@ Functions in this directory:
 |----------|---------|----------------------|
 | `access-token.js` | GitHub OAuth token proxy (CORS) | - |
 | `device-code.js` | GitHub Device Flow proxy (CORS) | - |
-| `save-data.js` | Save skill builds, loadouts, spirits | `WIKI_BOT_TOKEN`, `WIKI_REPO_OWNER`, `WIKI_REPO_NAME` |
+| `save-data.js` | Save skill builds, loadouts, spirits, **grid submissions** | `WIKI_BOT_TOKEN`, `WIKI_REPO_OWNER`, `WIKI_REPO_NAME` |
 | `load-data.js` | Load saved user data | `WIKI_BOT_TOKEN`, `WIKI_REPO_OWNER`, `WIKI_REPO_NAME` |
 | `delete-data.js` | Delete saved user data | `WIKI_BOT_TOKEN`, `WIKI_REPO_OWNER`, `WIKI_REPO_NAME` |
 | `github-bot.js` | **Consolidated bot operations** | `WIKI_BOT_TOKEN` |
+
+### save-data.js
+
+Universal data saving function that handles multiple types:
+- `skill-build` - Skill builder configurations
+- `battle-loadout` - Battle loadout configurations
+- `my-spirit` - Spirit collection data
+- `spirit-build` - Spirit builder configurations
+- **`grid-submission`** - Soul weapon engraving grid submissions (weapon-centric)
+
+**Grid Submissions:**
+- Supports anonymous submissions (username optional)
+- **Stores each submission as a separate comment** (not in issue body)
+- First comment on issue is the primary/active layout
+- Multiple users can submit for the same weapon (each as new comment)
+- `replace: true` updates first comment (replaces primary layout)
+- `replace: false` creates new comment (adds alternative submission)
+- Uses `weapon:${weaponName}` labels for organization
+- Avoids issue body character limits (60k+ chars)
 
 ### github-bot.js (Consolidated Function)
 

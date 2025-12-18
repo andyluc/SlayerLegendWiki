@@ -1,18 +1,177 @@
 /**
  * Netlify Function: Save Data (Universal)
- * Handles saving skill builds, battle loadouts, and spirit collection
+ * Handles saving skill builds, battle loadouts, spirit collection, and grid submissions
  *
  * POST /.netlify/functions/save-data
  * Body: {
- *   type: 'skill-build' | 'battle-loadout' | 'my-spirit' | 'spirit-build',
+ *   type: 'skill-build' | 'battle-loadout' | 'my-spirit' | 'spirit-build' | 'grid-submission',
  *   username: string,
  *   userId: number,
  *   data: object,
- *   spiritId?: string (for my-spirit updates)
+ *   spiritId?: string (for my-spirit updates),
+ *   replace?: boolean (for grid-submission replace mode)
  * }
  */
 
 import { Octokit } from '@octokit/rest';
+
+/**
+ * Handle grid submission (weapon-centric)
+ * Grid submissions are stored as comments (one per submission)
+ * The first comment is the primary/active layout
+ */
+async function handleGridSubmission(octokit, owner, repo, config, data, username, replace) {
+  try {
+    // Add metadata to submission
+    const fullSubmission = {
+      ...data,
+      submittedBy: username || 'Anonymous',
+      submittedAt: new Date().toISOString(),
+    };
+
+    // Search for existing grid submissions issue with this weapon label
+    // Only search for OPEN issues - closed issues are considered deleted
+    const weaponLabel = `weapon:${data.weaponName}`;
+    const { data: issues } = await octokit.rest.issues.listForRepo({
+      owner,
+      repo,
+      labels: config.label,
+      state: 'open', // IMPORTANT: Only open issues, closed = deleted
+      per_page: 10,
+    });
+
+    // Find issue with matching weapon label
+    let existingIssue = issues.find(issue =>
+      issue.labels.some(label =>
+        (typeof label === 'string' && label === weaponLabel) ||
+        (typeof label === 'object' && label.name === weaponLabel)
+      )
+    );
+
+    // Format submission as comment with JSON code block
+    const submissionComment = `Submitted by **${username || 'Anonymous'}** on ${fullSubmission.submittedAt}\n\n` +
+      `\`\`\`json\n${JSON.stringify(fullSubmission, null, 2)}\n\`\`\``;
+
+    if (existingIssue) {
+      // Issue exists for this weapon
+      if (replace) {
+        // Get all comments on the issue
+        const { data: comments } = await octokit.rest.issues.listComments({
+          owner,
+          repo,
+          issue_number: existingIssue.number,
+          per_page: 100,
+        });
+
+        if (comments.length > 0) {
+          // Update the first comment (primary layout)
+          await octokit.rest.issues.updateComment({
+            owner,
+            repo,
+            comment_id: comments[0].id,
+            body: submissionComment,
+          });
+
+          console.log(`[save-data] Replaced first comment on issue #${existingIssue.number} for ${data.weaponName}`);
+
+          return {
+            statusCode: 200,
+            body: JSON.stringify({
+              success: true,
+              action: 'replaced',
+              issueNumber: existingIssue.number,
+              issueUrl: existingIssue.html_url,
+            }),
+          };
+        } else {
+          // No comments yet, create the first one
+          await octokit.rest.issues.createComment({
+            owner,
+            repo,
+            issue_number: existingIssue.number,
+            body: submissionComment,
+          });
+
+          console.log(`[save-data] Created first comment on issue #${existingIssue.number} for ${data.weaponName}`);
+
+          return {
+            statusCode: 200,
+            body: JSON.stringify({
+              success: true,
+              action: 'replaced',
+              issueNumber: existingIssue.number,
+              issueUrl: existingIssue.html_url,
+            }),
+          };
+        }
+      } else {
+        // Append as new comment
+        await octokit.rest.issues.createComment({
+          owner,
+          repo,
+          issue_number: existingIssue.number,
+          body: submissionComment,
+        });
+
+        console.log(`[save-data] Added new comment to issue #${existingIssue.number} for ${data.weaponName}`);
+
+        return {
+          statusCode: 200,
+          body: JSON.stringify({
+            success: true,
+            action: 'added',
+            issueNumber: existingIssue.number,
+            issueUrl: existingIssue.html_url,
+          }),
+        };
+      }
+    } else {
+      // Create new issue for this weapon
+      const issueBody = `This issue tracks community-submitted engraving grid layouts for **${data.weaponName}**.\n\n` +
+        `The first comment is used as the primary layout in the builder.\n\n` +
+        `Each comment represents a different submission.`;
+
+      const labels = [config.label, weaponLabel];
+
+      const { data: newIssue } = await octokit.rest.issues.create({
+        owner,
+        repo,
+        title: `${config.titlePrefix} ${data.weaponName}`,
+        body: issueBody,
+        labels,
+      });
+
+      // Create the first comment with the submission
+      await octokit.rest.issues.createComment({
+        owner,
+        repo,
+        issue_number: newIssue.number,
+        body: submissionComment,
+      });
+
+      console.log(`[save-data] Created new issue #${newIssue.number} with first comment for ${data.weaponName}`);
+
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          success: true,
+          action: 'created',
+          issueNumber: newIssue.number,
+          issueUrl: newIssue.html_url,
+        }),
+      };
+    }
+  } catch (error) {
+    console.error('[save-data] Grid submission error:', error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        error: error.message || 'Failed to submit grid layout',
+        details: error.response?.data || null,
+      }),
+    };
+  }
+}
 
 export async function handler(event) {
   // Only allow POST
@@ -25,18 +184,27 @@ export async function handler(event) {
 
   try {
     // Parse request body
-    const { type, username, userId, data, spiritId } = JSON.parse(event.body);
+    const { type, username, userId, data, spiritId, replace = false } = JSON.parse(event.body);
 
     // Validate required fields
-    if (!type || !username || !userId || !data) {
+    // Grid submissions allow anonymous users (username/userId optional)
+    if (!type || !data) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ error: 'Missing required fields: type, username, userId, data' }),
+        body: JSON.stringify({ error: 'Missing required fields: type, data' }),
+      };
+    }
+
+    // For user-centric types (not grid-submission), require username and userId
+    if (type !== 'grid-submission' && (!username || !userId)) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: 'Missing required fields: username, userId' }),
       };
     }
 
     // Validate type
-    const validTypes = ['skill-build', 'battle-loadout', 'my-spirit', 'spirit-build'];
+    const validTypes = ['skill-build', 'battle-loadout', 'my-spirit', 'spirit-build', 'grid-submission'];
     if (!validTypes.includes(type)) {
       return {
         statusCode: 400,
@@ -100,11 +268,27 @@ export async function handler(event) {
         itemName: 'build',
         itemsName: 'builds',
       },
+      'grid-submission': {
+        label: 'engraving-grid-submissions',
+        titlePrefix: '[Engraving Grid Submissions]',
+        maxItems: null, // No limit for grid submissions
+        itemName: 'submission',
+        itemsName: 'submissions',
+        weaponCentric: true, // Flag for weapon-centric vs user-centric
+      },
     };
     const config = configs[type];
 
     // Validate data structure
-    if (type !== 'my-spirit' && !data.name) {
+    if (type === 'grid-submission') {
+      // Grid submission validation
+      if (!data.weaponId || !data.weaponName || !data.gridType || !data.completionEffect || !data.activeSlots) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: 'Grid submission must have weaponId, weaponName, gridType, completionEffect, and activeSlots' }),
+        };
+      }
+    } else if (type !== 'my-spirit' && !data.name) {
       return {
         statusCode: 400,
         body: JSON.stringify({ error: `${config.itemName} must have a name` }),
@@ -125,7 +309,12 @@ export async function handler(event) {
       };
     }
 
-    // Get existing items
+    // Handle grid submissions differently (weapon-centric vs user-centric)
+    if (type === 'grid-submission') {
+      return await handleGridSubmission(octokit, owner, repo, config, data, username, replace);
+    }
+
+    // Get existing items (for user-centric types)
     const { data: issues } = await octokit.rest.issues.listForRepo({
       owner,
       repo,

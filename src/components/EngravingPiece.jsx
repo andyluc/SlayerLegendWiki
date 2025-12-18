@@ -204,9 +204,11 @@ const EngravingPiece = ({
               src={imageSrc}
               alt="gem"
               draggable={false}
-              className="w-full h-full object-contain"
+              className="object-contain"
               style={{
-                pointerEvents: 'none'
+                pointerEvents: 'none',
+                width: '80%',
+                height: '80%'
               }}
               onError={(e) => {
                 e.target.style.display = 'none';

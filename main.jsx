@@ -184,7 +184,7 @@ dataRegistry.register('skills', {
 // ===== EQUIPMENT & ITEMS =====
 
 dataRegistry.register('equipment', {
-  file: '/data/equipment.json',
+  file: '/data/soul-weapons.json',
   label: 'Soul Weapons',
   idField: 'id',
   display: {
@@ -346,6 +346,44 @@ dataRegistry.register('drop-tables', {
   description: 'Loot drop tables for stages and dungeons',
   type: 'object'
 });
+
+// Register build types for build sharing system
+import { registerBuildTypes } from './wiki-framework/src/utils/buildTypeRegistry.js';
+
+registerBuildTypes({
+  'skill-build': '/skill-builder',
+  'spirit-build': '/spirit-builder',
+  'battle-loadout': '/battle-loadouts',
+  'soul-weapon-engraving': '/soul-weapon-engraving',
+});
+
+// Register data files for Data Browser (Ctrl+Shift+B)
+import { registerDataFiles } from './wiki-framework/src/utils/dataBrowserRegistry.js';
+
+registerDataFiles([
+  'companions.json',
+  'soul-weapons.json',
+  'soul-weapon-grids.json',
+  'soul-weapon-engravings.json',
+  'skills.json',
+  'promotions.json',
+  'relics.json',
+  'quests.json',
+  'classes.json',
+  'drop-tables.json',
+  'formulas.json',
+  'adventures.json',
+  'appearance-clothing.json',
+  'campaigns.json',
+  'companion-characters.json',
+  'equipment-drops.json',
+  'stages.json',
+  'spirit-characters.json',
+  'spirit-upgrades.json',
+  'familiars.json',
+  'image-index.json',
+  'image-search-index.json',
+]);
 
 // Register game-specific custom routes with lazy loading for better startup performance
 import { registerCustomRoutes } from './wiki-framework/src/utils/routeRegistry.js';

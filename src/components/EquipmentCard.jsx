@@ -4,7 +4,7 @@ import { getRarityBackgroundColor } from '../../wiki-framework/src/utils/rarityC
 /**
  * EquipmentCard Component
  *
- * Displays detailed information about equipment items (weapons) from equipment.json
+ * Displays detailed information about equipment items (weapons) from soul-weapons.json
  *
  * Usage:
  * 1. By Name: <EquipmentCard name="Innocence" />
@@ -34,11 +34,11 @@ const EquipmentCard = ({ name, id, equipment, mode = 'detailed' }) => {
       return;
     }
 
-    // Otherwise, load from equipment.json
+    // Otherwise, load from soul-weapons.json
     const loadEquipment = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/data/equipment.json');
+        const response = await fetch('/data/soul-weapons.json');
 
         if (!response.ok) {
           throw new Error('Failed to load equipment data');
