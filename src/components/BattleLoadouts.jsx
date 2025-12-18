@@ -11,6 +11,7 @@ import { encodeLoadout, decodeLoadout } from '../../wiki-framework/src/utils/bat
 import { useAuthStore } from '../../wiki-framework/src/store/authStore';
 import { setCache } from '../utils/buildCache';
 import { saveBuild, loadBuild, generateShareUrl } from '../../wiki-framework/src/services/github/buildShare';
+import { useDraftStorage } from '../../wiki-framework/src/hooks/useDraftStorage';
 
 /**
  * BattleLoadouts Component
@@ -48,6 +49,14 @@ const BattleLoadouts = () => {
   const [draggedSpiritSlotIndex, setDraggedSpiritSlotIndex] = useState(null);
   const [sharing, setSharing] = useState(false);
   const [shareError, setShareError] = useState(null);
+
+  // Draft storage hook for auto-save/restore
+  const { loadDraft, clearDraft } = useDraftStorage(
+    'battleLoadouts',
+    user,
+    false, // Never in modal mode for BattleLoadouts
+    { loadoutName, currentLoadout }
+  );
 
   // Load skills data
   useEffect(() => {
@@ -118,7 +127,22 @@ const BattleLoadouts = () => {
         console.error('[BattleLoadouts] Failed to load loadout from URL:', error);
       }
     }
-  }, [skills]);
+    // Load from localStorage if no URL params
+    else {
+      const draft = loadDraft();
+      if (draft) {
+        setLoadoutName(draft.loadoutName || '');
+
+        // Deserialize loadout to ensure skill objects are current
+        const deserializedLoadout = {
+          ...draft.currentLoadout,
+          skillBuild: draft.currentLoadout.skillBuild ? deserializeSkillBuild(draft.currentLoadout.skillBuild, skills) : null
+        };
+        setCurrentLoadout(deserializedLoadout);
+        setHasUnsavedChanges(true);
+      }
+    }
+  }, [skills, loadDraft]);
 
   // Check if there are actual meaningful changes
   const hasActualChanges = hasUnsavedChanges && (
@@ -441,6 +465,9 @@ const BattleLoadouts = () => {
       setSaveSuccess(true);
       setHasUnsavedChanges(false); // Successfully saved, clear unsaved changes flag
 
+      // Clear localStorage draft after successful save
+      clearDraft();
+
       // Hide success message after 2 seconds
       setTimeout(() => setSaveSuccess(false), 2000);
 
@@ -611,6 +638,7 @@ const BattleLoadouts = () => {
     setCurrentLoadout(createEmptyLoadout(loadoutName));
     setHasUnsavedChanges(true);
     setCurrentLoadedLoadoutId(null); // Clear loaded loadout ID when making changes
+    clearDraft(); // Clear localStorage draft
   };
 
   if (loading) {

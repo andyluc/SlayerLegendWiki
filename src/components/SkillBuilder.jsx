@@ -8,6 +8,7 @@ import { encodeBuild, decodeBuild } from '../../wiki-framework/src/components/wi
 import { useAuthStore } from '../../wiki-framework/src/store/authStore';
 import { setCache } from '../utils/buildCache';
 import { saveBuild as saveSharedBuild, loadBuild as loadSharedBuild, generateShareUrl } from '../../wiki-framework/src/services/github/buildShare';
+import { useDraftStorage } from '../../wiki-framework/src/hooks/useDraftStorage';
 
 /**
  * SkillBuilder Component
@@ -47,6 +48,14 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
   const [saveError, setSaveError] = useState(null);
   const [sharing, setSharing] = useState(false);
   const [shareError, setShareError] = useState(null);
+
+  // Draft storage hook for auto-save/restore
+  const { loadDraft, clearDraft } = useDraftStorage(
+    'skillBuilder',
+    user,
+    isModal,
+    { buildName, maxSlots, autoMaxLevel, build }
+  );
 
   // Load skills data
   useEffect(() => {
@@ -113,7 +122,21 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
         console.error('Failed to load build from URL:', error);
       }
     }
-  }, [skills, isModal]); // Trigger when skills load
+    // Load from localStorage if no URL params
+    else {
+      const draft = loadDraft();
+      if (draft) {
+        setBuildName(draft.buildName || '');
+        setMaxSlots(draft.maxSlots || 10);
+        setAutoMaxLevel(draft.autoMaxLevel || false);
+
+        // Deserialize build to ensure skill objects are current
+        const deserializedBuild = deserializeBuild(draft.build, skills);
+        setBuild(deserializedBuild);
+        setHasUnsavedChanges(true);
+      }
+    }
+  }, [skills, isModal, loadDraft]); // Trigger when skills load
 
   // Load initial build in modal mode
   useEffect(() => {
@@ -507,6 +530,7 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
     setBuildName('');
     setHasUnsavedChanges(false); // No content after clearing
     setCurrentLoadedBuildId(null); // No loaded build after clearing
+    clearDraft(); // Clear localStorage draft
   };
 
   // Load build from saved builds
@@ -576,6 +600,9 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
 
       // Cache the updated builds
       setCache('skill-builds', user.id, sortedBuilds);
+
+      // Clear localStorage draft after successful save
+      clearDraft();
 
       // Hide success message after 2 seconds
       setTimeout(() => setSaveSuccess(false), 2000);

@@ -9,6 +9,7 @@ import { encodeBuild, decodeBuild } from '../../wiki-framework/src/components/wi
 import { useAuthStore } from '../../wiki-framework/src/store/authStore';
 import { setCache } from '../utils/buildCache';
 import { saveBuild as saveSharedBuild, loadBuild as loadSharedBuild, generateShareUrl } from '../../wiki-framework/src/services/github/buildShare';
+import { useDraftStorage } from '../../wiki-framework/src/hooks/useDraftStorage';
 
 /**
  * SpiritBuilder Component
@@ -53,6 +54,14 @@ const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave
   const [saveError, setSaveError] = useState(null);
   const [sharing, setSharing] = useState(false);
   const [shareError, setShareError] = useState(null);
+
+  // Draft storage hook for auto-save/restore
+  const { loadDraft, clearDraft } = useDraftStorage(
+    'spiritBuilder',
+    user,
+    isModal,
+    { buildName, build }
+  );
 
   // Load spirits data
   useEffect(() => {
@@ -117,7 +126,19 @@ const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave
         console.error('Failed to load build from URL:', error);
       }
     }
-  }, [spirits, isModal]);
+    // Load from localStorage if no URL params
+    else {
+      const draft = loadDraft();
+      if (draft) {
+        setBuildName(draft.buildName || '');
+
+        // Deserialize build to ensure spirit objects are current
+        const deserializedBuild = deserializeBuild(draft.build, spirits);
+        setBuild(deserializedBuild);
+        setHasUnsavedChanges(true);
+      }
+    }
+  }, [spirits, isModal, loadDraft]);
 
   // Load initial build in modal mode
   useEffect(() => {
@@ -624,6 +645,7 @@ const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave
     setBuildName('');
     setHasUnsavedChanges(false);
     setCurrentLoadedBuildId(null);
+    clearDraft(); // Clear localStorage draft
   };
 
   // Load build from saved builds
@@ -688,6 +710,9 @@ const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave
 
       // Cache the updated builds
       setCache('spirit-builds', user.id, sortedBuilds);
+
+      // Clear localStorage draft after successful save
+      clearDraft();
 
       setTimeout(() => setSaveSuccess(false), 2000);
     } catch (err) {
