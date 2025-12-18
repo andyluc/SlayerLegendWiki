@@ -77,6 +77,11 @@ const SpiritSlot = ({
   // Cap effective evolution at 7 (max evolution level)
   const cappedEvolutionLevel = Math.min(effectiveEvolutionLevel, 7);
 
+  // Calculate awakening stars (0-5)
+  // Stars represent progress to next evolution level
+  // Every 6 awakening levels = +1 evolution, so stars = awakeningLevel % 6
+  const awakeningStars = awakeningLevel > 0 ? awakeningLevel % 6 : 0;
+
   // Awakening and Skill Enhancement are disabled below Evolution Level 4
   const isAwakeningEnabled = evolutionLevel >= 4;
   const isSkillEnhancementEnabled = evolutionLevel >= 4;
@@ -241,9 +246,26 @@ const SpiritSlot = ({
                   size="100%"
                   showInfo={false}
                   displayLevel={readOnly && configAsPopup ? level : null}
-                  displayAwakeningLevel={readOnly && configAsPopup ? awakeningLevel : null}
+                  displayAwakeningLevel={null}
                   displaySkillEnhancement={readOnly && configAsPopup ? skillEnhancementLevel : null}
                 />
+
+                {/* Awakening Stars - Directly Under Sprite */}
+                {awakeningStars > 0 && (
+                  <div
+                    className="flex items-center justify-center gap-0.5 cursor-help absolute bottom-0.5 left-1/2 -translate-x-1/2 z-20"
+                    title={`Awakening Level: ${awakeningLevel} total (${awakeningStars}/6 progress to next evolution)`}
+                  >
+                    {Array.from({ length: 5 }).map((_, index) => (
+                      <img
+                        key={index}
+                        src="/images/other/Star_1.png"
+                        alt="star"
+                        className={`w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 ${index < awakeningStars ? 'opacity-100' : 'opacity-20'}`}
+                      />
+                    ))}
+                  </div>
+                )}
 
                 {/* Element Icon Overlay */}
                 <img

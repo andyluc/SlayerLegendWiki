@@ -5,6 +5,7 @@ import { useDraftStorage } from '../../wiki-framework/src/hooks/useDraftStorage'
 import { encodeBuild, decodeBuild } from '../../wiki-framework/src/components/wiki/BuildEncoder';
 import { saveBuild as saveSharedBuild, loadBuild as loadSharedBuild, generateShareUrl } from '../../wiki-framework/src/services/github/buildShare';
 import { createGitHubIssue, searchGitHubIssues, getGitHubIssue, updateGitHubIssue, getOctokit } from '../../wiki-framework/src/services/github/api';
+import { retryGitHubAPI } from '../../wiki-framework/src/utils/retryWithBackoff';
 import EngravingPiece from './EngravingPiece';
 
 /**
@@ -190,9 +191,70 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
   const [selectedSubmissionIndex, setSelectedSubmissionIndex] = useState(0); // Which submission to show (0 = first)
   const [weaponsWithSubmissions, setWeaponsWithSubmissions] = useState(new Set()); // Set of weapon names that have community submissions
   const [currentSubmissionMeta, setCurrentSubmissionMeta] = useState(null); // Metadata for currently loaded submission
+  const [loadingSharedBuild, setLoadingSharedBuild] = useState(false); // True while loading a shared build (prevents grid initialization)
 
-  // Submission cache (in-memory cache to avoid repeated API calls)
-  const [submissionsCache, setSubmissionsCache] = useState({}); // Key: weaponName, Value: { submissions, timestamp }
+  // Submission cache constants
+  const SUBMISSION_CACHE_KEY = 'soulWeaponEngraving_submissionsCache';
+  const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
+  // Helper functions for localStorage-based submission cache
+  const getSubmissionCache = () => {
+    try {
+      const cached = localStorage.getItem(SUBMISSION_CACHE_KEY);
+      if (!cached) return {};
+      return JSON.parse(cached);
+    } catch (error) {
+      console.error('[Cache] Failed to read submission cache:', error);
+      return {};
+    }
+  };
+
+  const setSubmissionCache = (weaponName, submissions) => {
+    try {
+      const cache = getSubmissionCache();
+      cache[weaponName] = {
+        submissions,
+        timestamp: Date.now()
+      };
+      localStorage.setItem(SUBMISSION_CACHE_KEY, JSON.stringify(cache));
+      console.log(`[Cache] Cached ${submissions.length} submission(s) for ${weaponName}`);
+    } catch (error) {
+      console.error('[Cache] Failed to write submission cache:', error);
+    }
+  };
+
+  const invalidateSubmissionCache = (weaponName) => {
+    try {
+      const cache = getSubmissionCache();
+      delete cache[weaponName];
+      localStorage.setItem(SUBMISSION_CACHE_KEY, JSON.stringify(cache));
+      console.log(`[Cache] Invalidated cache for ${weaponName}`);
+    } catch (error) {
+      console.error('[Cache] Failed to invalidate cache:', error);
+    }
+  };
+
+  const cleanExpiredCache = () => {
+    try {
+      const cache = getSubmissionCache();
+      const now = Date.now();
+      let cleaned = false;
+
+      Object.keys(cache).forEach(weaponName => {
+        if (now - cache[weaponName].timestamp > CACHE_TTL) {
+          delete cache[weaponName];
+          cleaned = true;
+        }
+      });
+
+      if (cleaned) {
+        localStorage.setItem(SUBMISSION_CACHE_KEY, JSON.stringify(cache));
+        console.log('[Cache] Cleaned expired cache entries');
+      }
+    } catch (error) {
+      console.error('[Cache] Failed to clean expired cache:', error);
+    }
+  };
 
   // Draft storage hook
   const { loadDraft, clearDraft } = useDraftStorage(
@@ -207,6 +269,11 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
     loadData();
   }, []);
 
+  // Clean expired cache on mount
+  useEffect(() => {
+    cleanExpiredCache();
+  }, []);
+
   // Load shared build from URL
   useEffect(() => {
     if (weapons.length === 0 || engravings.length === 0 || allWeapons.length === 0) return; // Wait for data to load
@@ -218,6 +285,7 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
       const loadFromSharedUrl = async () => {
         try {
           setLoading(true);
+          setLoadingSharedBuild(true); // Prevent grid initialization
           console.log('[SoulWeaponEngravingBuilder] Loading shared build:', shareChecksum);
 
           if (!wikiConfig) {
@@ -234,11 +302,20 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
             // Load the build data
             setBuildName(buildData.data.name || '');
 
-            // Find and set the weapon
+            // Find and set the weapon (prioritize weapons array which has grid data)
             if (buildData.data.weaponId) {
-              const weapon = allWeapons.find(w => w.id === buildData.data.weaponId) ||
-                           weapons.find(w => w.id === buildData.data.weaponId);
+              // Try weapons array first (has grid data), fallback to allWeapons (has all weapons)
+              const weapon = weapons.find(w => w.id === buildData.data.weaponId) ||
+                           allWeapons.find(w => w.id === buildData.data.weaponId);
               if (weapon) {
+                console.log('[SoulWeaponEngravingBuilder] Loaded weapon from shared build:', {
+                  name: weapon.name,
+                  id: weapon.id,
+                  hasActiveSlots: !!(weapon.activeSlots && Array.isArray(weapon.activeSlots)),
+                  activeSlotsCount: weapon.activeSlots?.length,
+                  gridType: weapon.gridType,
+                  source: weapon.activeSlots ? 'weapons array (has grid data)' : 'allWeapons array (no grid data)'
+                });
                 setSelectedWeapon(weapon);
               }
             }
@@ -251,6 +328,10 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
               setInventory(buildData.data.inventory);
             }
 
+            // Force normal mode (not designer mode) when loading shared builds
+            setIsGridDesigner(false);
+            setForceDesignMode(false);
+
             setHasUnsavedChanges(true);
             console.log('[SoulWeaponEngravingBuilder] ✓ Shared build loaded successfully');
           } else {
@@ -262,6 +343,7 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
           alert(`Failed to load shared build: ${error.message}`);
         } finally {
           setLoading(false);
+          setLoadingSharedBuild(false); // Allow grid initialization again
         }
       };
       loadFromSharedUrl();
@@ -298,26 +380,44 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
     }
   }, [engravings]);
 
-  // Initialize grid when weapon changes
+  // Initialize grid when weapon changes (skip if loading shared build or grid already populated)
   useEffect(() => {
-    if (selectedWeapon) {
-      initializeGrid();
+    if (selectedWeapon && !loadingSharedBuild) {
+      // Check if grid is already populated (from shared build or draft)
+      // If grid has pieces, don't reinitialize
+      const hasPlacedPieces = gridState.some(row =>
+        row.some(cell => cell.piece !== null && cell.piece !== undefined)
+      );
+
+      if (!hasPlacedPieces || gridState.length === 0) {
+        console.log('[SoulWeaponEngravingBuilder] Initializing grid for weapon change');
+        initializeGrid();
+      } else {
+        console.log('[SoulWeaponEngravingBuilder] Skipping grid initialization - grid already populated');
+      }
     }
-  }, [selectedWeapon]);
+  }, [selectedWeapon, loadingSharedBuild]);
 
   // Handle mode switching when submissions load
   useEffect(() => {
+    // Check if grid is already populated (from shared build or draft)
+    const hasPlacedPieces = gridState.some(row =>
+      row.some(cell => cell.piece !== null && cell.piece !== undefined)
+    );
+
     console.log('[SoulWeaponEngravingBuilder] Mode switching effect triggered:', {
       hasWeapon: !!selectedWeapon,
       hasGridData: weaponHasGridData(),
       hasSubmissionMeta: !!currentSubmissionMeta,
       submissionsCount: existingSubmissions.length,
-      forceDesignMode
+      forceDesignMode,
+      loadingSharedBuild,
+      hasPlacedPieces
     });
 
-    // Skip if no weapon or weapon has official grid data
-    if (!selectedWeapon || weaponHasGridData()) {
-      console.log('[SoulWeaponEngravingBuilder] Skipping mode switch - no weapon or has official grid data');
+    // Skip if loading shared build, no weapon, weapon has official grid data, or grid already populated
+    if (loadingSharedBuild || !selectedWeapon || weaponHasGridData() || hasPlacedPieces) {
+      console.log('[SoulWeaponEngravingBuilder] Skipping mode switch - loading shared build, has official data, or grid already populated');
       return;
     }
 
@@ -341,7 +441,7 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
         initializeDesignerGrid();
       }
     }
-  }, [existingSubmissions, forceDesignMode]);
+  }, [existingSubmissions, forceDesignMode, loadingSharedBuild]);
 
   // Update locked inventory indices when grid changes
   useEffect(() => {
@@ -627,23 +727,27 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
 
       // Search for OPEN issue with this weapon's label - closed issues are considered deleted
       const weaponLabel = `weapon:${weapon.name}`;
-      const { data } = await octokit.rest.search.issuesAndPullRequests({
-        q: `repo:${owner}/${repo} label:engraving-grid-submissions label:"${weaponLabel}" is:open`,
-        per_page: 1,
-      });
+      const { data } = await retryGitHubAPI(
+        async () => await octokit.rest.search.issuesAndPullRequests({
+          q: `repo:${owner}/${repo} label:engraving-grid-submissions label:"${weaponLabel}" is:open`,
+          per_page: 1,
+        })
+      );
 
       const issues = data.items || [];
 
       if (issues.length > 0) {
         const issue = issues[0];
 
-        // Fetch first comment (primary submission) using authenticated Octokit
-        const { data: comments } = await octokit.rest.issues.listComments({
-          owner,
-          repo,
-          issue_number: issue.number,
-          per_page: 1,
-        });
+        // Fetch first comment (primary submission) using authenticated Octokit with retry
+        const { data: comments } = await retryGitHubAPI(
+          async () => await octokit.rest.issues.listComments({
+            owner,
+            repo,
+            issue_number: issue.number,
+            per_page: 1,
+          })
+        );
 
         if (comments.length > 0) {
           // Parse JSON from first comment
@@ -771,13 +875,18 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
     const repo = wikiConfig.wiki.repository.repo;
     const weaponName = selectedWeapon.name;
 
-    // Check cache first (5 minute TTL)
-    const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-    const cached = submissionsCache[weaponName];
-    if (!forceRefresh && cached && (Date.now() - cached.timestamp) < CACHE_TTL) {
-      console.log(`[SoulWeaponEngravingBuilder] Using cached submissions for ${weaponName}`);
-      setExistingSubmissions(cached.submissions);
-      return;
+    // Clean expired cache entries
+    cleanExpiredCache();
+
+    // Check cache first (10 minute TTL)
+    if (!forceRefresh) {
+      const cache = getSubmissionCache();
+      const cached = cache[weaponName];
+      if (cached && (Date.now() - cached.timestamp) < CACHE_TTL) {
+        console.log(`[SoulWeaponEngravingBuilder] Using cached submissions for ${weaponName} (expires in ${Math.round((CACHE_TTL - (Date.now() - cached.timestamp)) / 1000 / 60)} minutes)`);
+        setExistingSubmissions(cached.submissions);
+        return;
+      }
     }
 
     setLoadingSubmissions(true);
@@ -793,17 +902,22 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
       let issues = [];
 
       try {
-        // Search using authenticated Octokit
-        const { data } = await octokit.rest.search.issuesAndPullRequests({
-          q: `repo:${owner}/${repo} label:engraving-grid-submissions label:"${weaponLabel}" is:open`,
-          per_page: 10,
-        });
+        // Search using authenticated Octokit with retry on rate limit
+        const { data } = await retryGitHubAPI(
+          async () => await octokit.rest.search.issuesAndPullRequests({
+            q: `repo:${owner}/${repo} label:engraving-grid-submissions label:"${weaponLabel}" is:open`,
+            per_page: 10,
+          }),
+          (attempt, delay) => {
+            console.log(`[SoulWeaponEngravingBuilder] Search retry ${attempt}/3 - waiting ${Math.round(delay / 1000)}s due to rate limit`);
+          }
+        );
 
         issues = data.items || [];
       } catch (searchError) {
-        console.error('[SoulWeaponEngravingBuilder] Search failed:', searchError);
+        console.error('[SoulWeaponEngravingBuilder] Search failed after retries:', searchError);
         const errorMsg = searchError.status === 403
-          ? 'GitHub API rate limit exceeded. Please try again in a few minutes or sign in for higher rate limits.'
+          ? 'GitHub API rate limit exceeded. Please try again later or sign in for higher rate limits.'
           : `Failed to search for submissions: ${searchError.message}`;
         setSubmissionLoadError(errorMsg);
         setExistingSubmissions([]);
@@ -817,22 +931,27 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
       if (issues.length > 0) {
         const issue = issues[0];
 
-        // Fetch comments on this issue using authenticated Octokit
+        // Fetch comments on this issue using authenticated Octokit with retry
         let comments = [];
 
         try {
-          const { data } = await octokit.rest.issues.listComments({
-            owner,
-            repo,
-            issue_number: issue.number,
-            per_page: 100,
-          });
+          const { data } = await retryGitHubAPI(
+            async () => await octokit.rest.issues.listComments({
+              owner,
+              repo,
+              issue_number: issue.number,
+              per_page: 100,
+            }),
+            (attempt, delay) => {
+              console.log(`[SoulWeaponEngravingBuilder] Comments retry ${attempt}/3 - waiting ${Math.round(delay / 1000)}s due to rate limit`);
+            }
+          );
 
           comments = data;
         } catch (commentsError) {
-          console.error('[SoulWeaponEngravingBuilder] Comments fetch failed:', commentsError);
+          console.error('[SoulWeaponEngravingBuilder] Comments fetch failed after retries:', commentsError);
           const errorMsg = commentsError.status === 403
-            ? 'GitHub API rate limit exceeded. Please try again in a few minutes or sign in for higher rate limits.'
+            ? 'GitHub API rate limit exceeded. Please try again later or sign in for higher rate limits.'
             : `Failed to load submission data: ${commentsError.message}`;
           setSubmissionLoadError(errorMsg);
           setExistingSubmissions([]);
@@ -865,16 +984,10 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
 
       setExistingSubmissions(weaponSubmissions);
 
-      // Cache the submissions
-      setSubmissionsCache(prev => ({
-        ...prev,
-        [weaponName]: {
-          submissions: weaponSubmissions,
-          timestamp: Date.now()
-        }
-      }));
+      // Cache the submissions in localStorage
+      setSubmissionCache(weaponName, weaponSubmissions);
 
-      console.log(`[SoulWeaponEngravingBuilder] Loaded and cached ${weaponSubmissions.length} submission(s) for ${weaponName}`);
+      console.log(`[SoulWeaponEngravingBuilder] Loaded ${weaponSubmissions.length} submission(s) for ${weaponName}`);
 
       // Note: Don't load submissions here - the useEffect hook will handle it
       // based on forceDesignMode state
@@ -1042,11 +1155,7 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
       }
 
       // Invalidate cache and reload submissions
-      setSubmissionsCache(prev => {
-        const updated = { ...prev };
-        delete updated[selectedWeapon.name];
-        return updated;
-      });
+      invalidateSubmissionCache(selectedWeapon.name);
       await loadExistingSubmissions(true); // Force refresh
     } catch (error) {
       console.error('Failed to submit grid layout:', error);
