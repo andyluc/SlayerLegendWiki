@@ -36,6 +36,12 @@
         "path": "/battle-loadouts",
         "icon": "📖",
         "description": "Configure and save complete battle loadouts"
+      },
+      {
+        "title": "Soul Weapon Engravings",
+        "path": "/soul-weapon-engravings",
+        "icon": "🗡️",
+        "description": "Plan and visualize soul weapon engraving layouts"
       }
     ]
   },
@@ -217,6 +223,10 @@
     "calculators": true,
     "progressTracking": true,
     "autoFormatPageTitles": true,
+    "developmentBanner": {
+      "enabled": true,
+      "expiryMinutes": 60
+    },
     "customHomePage": {
       "enabled": false,
       "path": "home.md"
