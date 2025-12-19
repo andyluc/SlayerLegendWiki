@@ -1348,7 +1348,7 @@ async function handleCreateAnonymousPR(octokit, event, {
 
     // 6. Create branch
     const timestamp = Date.now();
-    const branchName = `anonymous-edit/${section}/${pageId}/${timestamp}`;
+    const branchName = `anon-edit/${section}/${pageId}/${timestamp}`;
 
     // Get main branch SHA
     const { data: mainBranch } = await octokit.rest.repos.getBranch({

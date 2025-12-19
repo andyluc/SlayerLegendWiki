@@ -27,8 +27,8 @@ jobs:
           REPO="${{ github.repository }}"
           echo "🔍 Searching for anonymous-edit branches in $REPO..."
 
-          # Get all branches starting with anonymous-edit/
-          BRANCHES=$(gh api repos/$REPO/branches --paginate --jq '.[] | select(.name | startswith("anonymous-edit/")) | .name')
+          # Get all branches starting with anon-edit/
+          BRANCHES=$(gh api repos/$REPO/branches --paginate --jq '.[] | select(.name | startswith("anon-edit/")) | .name')
 
           if [ -z "$BRANCHES" ]; then
             echo "✅ No anonymous-edit branches found. Nothing to clean up."
