@@ -1273,6 +1273,11 @@ async function handleCreateAnonymousPR(octokit, context, env, {
 
     // 7. Commit file
     const filePath = `public/content/${section}/${pageId}.md`;
+
+    // Hash email BEFORE masking for tracking purposes
+    const emailHash = await hashIP(email);
+
+    // Then mask email for display
     const maskedEmail = maskEmail(email);
     const commitMessage = `Update ${pageTitle}
 
@@ -1342,7 +1347,7 @@ ${reason ? `**Reason:** ${reason}` : ''}
       base: 'main',
     });
 
-    // 9. Add labels (including display name for easy identification)
+    // 9. Add labels (including display name and email hash for easy identification)
     await octokit.rest.issues.addLabels({
       owner,
       repo,
@@ -1352,6 +1357,7 @@ ${reason ? `**Reason:** ${reason}` : ''}
         'needs-review',
         section,
         `name:${displayName}`, // Store display name as label for easy access
+        `email:${emailHash.substring(0, 16)}`, // Store email hash (truncated) for tracking
       ],
     });
 

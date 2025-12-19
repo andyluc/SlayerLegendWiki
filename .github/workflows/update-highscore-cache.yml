@@ -48,16 +48,53 @@ jobs:
             const CACHE_ISSUE_TITLE = '[Cache] Contributor Highscore';
             const BOT_USERNAME = process.env.WIKI_BOT_USERNAME || 'slayer-wiki-bot';
 
-            // Read wiki config to get the configured branch
+            // Read wiki config to get the configured branch and release date
             let configuredBranch = 'main'; // default
+            let releaseDate = null; // null = no filtering
             try {
               const configPath = path.join(process.env.GITHUB_WORKSPACE, 'wiki-config.json');
               const configContent = fs.readFileSync(configPath, 'utf8');
               const config = JSON.parse(configContent);
               configuredBranch = config?.wiki?.repository?.branch || 'main';
+
+              // Read release date from config
+              const releaseDateStr = config?.wiki?.repository?.releaseDate;
+              if (releaseDateStr && releaseDateStr.trim() !== '') {
+                releaseDate = new Date(releaseDateStr);
+                if (isNaN(releaseDate.getTime())) {
+                  console.warn('⚠️ Invalid releaseDate in wiki-config.json:', releaseDateStr);
+                  releaseDate = null;
+                } else {
+                  console.log(`📅 Release date configured: ${releaseDate.toISOString()}`);
+                  console.log(`   Only activity after this date will be counted`);
+                }
+              }
+
               console.log(`📋 Using configured branch from wiki-config.json: ${configuredBranch}`);
             } catch (error) {
               console.warn('⚠️ Failed to read wiki-config.json, using default branch: main');
+            }
+
+            /**
+             * Filter commits by release date
+             * @param {Array} commits - Array of commits to filter
+             * @returns {Array} Filtered commits after release date
+             */
+            function filterByReleaseDate(commits) {
+              if (!releaseDate) return commits;
+
+              const beforeCount = commits.length;
+              const filtered = commits.filter(commit => {
+                const commitDate = new Date(commit.commit.author.date);
+                return commitDate >= releaseDate;
+              });
+
+              const filteredCount = beforeCount - filtered.length;
+              if (filteredCount > 0) {
+                console.log(`   📅 Filtered out ${filteredCount} commit(s) before release date`);
+              }
+
+              return filtered;
             }
 
             console.log('🔍 Fetching contributor statistics for all time periods...');
@@ -175,10 +212,13 @@ jobs:
 
                 if (commits.length === 0) break;
 
-                console.log(`   Page ${page}: Processing ${commits.length} commits...`);
+                // Filter by release date
+                const filteredCommits = filterByReleaseDate(commits);
+
+                console.log(`   Page ${page}: Processing ${filteredCommits.length} commits...`);
 
                 // Fetch detailed commit data to get additions/deletions
-                for (const commit of commits) {
+                for (const commit of filteredCommits) {
                   const author = commit.author || commit.commit.author;
                   const userId = author?.id;
                   const login = author?.login;
@@ -302,13 +342,17 @@ jobs:
 
               console.log(`✅ Found ${commits.length} commits in date range`);
 
+              // Filter by release date
+              const filteredCommits = filterByReleaseDate(commits);
+              console.log(`   After release date filter: ${filteredCommits.length} commits`);
+
               // Aggregate commits by author (use user ID as key for permanent identification)
               const contributorMap = new Map();
               const anonymousMap = new Map(); // Anonymous contributors keyed by hashed email
 
               // Fetch detailed commit data to get additions/deletions
-              console.log(`   Fetching detailed stats for ${commits.length} commits...`);
-              for (const commit of commits) {
+              console.log(`   Fetching detailed stats for ${filteredCommits.length} commits...`);
+              for (const commit of filteredCommits) {
                 const author = commit.author || commit.commit.author;
                 const login = author?.login;
                 const userId = author?.id;
