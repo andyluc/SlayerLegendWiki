@@ -9,6 +9,9 @@ on:
 jobs:
   cleanup:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required to delete branches
+      pull-requests: read # Required to check for open PRs
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
