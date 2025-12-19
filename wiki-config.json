@@ -284,6 +284,15 @@
         },
         "labels": ["anonymous-edit", "needs-review"]
       },
+      "contentModeration": {
+        "enabled": true,
+        "checkAnonymousEdits": true,
+        "checkAuthenticatedEdits": false,
+        "checkDisplayName": true,
+        "checkEditSummary": true,
+        "checkPageContent": true,
+        "maxContentLength": 5000
+      },
       "permissions": {
         "requireAuth": false,
         "fallbackToFork": true,

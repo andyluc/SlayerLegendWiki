@@ -12,10 +12,9 @@
  */
 
 import { Octokit } from '@octokit/rest';
-import sgMail from '@sendgrid/mail';
-import jwt from 'jsonwebtoken';
-import crypto from 'crypto';
 import * as LeoProfanity from 'leo-profanity';
+import { sendEmail } from './_lib/sendgrid.js';
+import * as jwt from './_lib/jwt.js';
 
 /**
  * Check text for profanity using OpenAI Moderation API (primary) with leo-profanity fallback
@@ -28,7 +27,7 @@ async function checkProfanity(text) {
   // Try OpenAI Moderation API first (if configured)
   if (openaiApiKey) {
     try {
-      console.log('[Profanity] Checking with OpenAI Moderation API...');
+      console.log('[Profanity] Checking with OpenAI Moderation API for text:', text);
       const response = await fetch(
         'https://api.openai.com/v1/moderations',
         {
@@ -70,10 +69,12 @@ async function checkProfanity(text) {
     } catch (error) {
       console.warn('[Profanity] OpenAI API error:', error.message, 'falling back to leo-profanity');
     }
+  } else {
+    console.log('[Profanity] OPENAI_API_KEY not configured, using leo-profanity fallback');
   }
 
   // Fallback to leo-profanity package
-  console.log('[Profanity] Using leo-profanity package...');
+  console.log('[Profanity] Using leo-profanity package for text:', text);
   const containsProfanity = LeoProfanity.check(text);
   console.log('[Profanity] leo-profanity result:', containsProfanity);
   return { containsProfanity, method: 'leo-profanity' };
@@ -572,8 +573,12 @@ async function handleUpdateAdminIssue(octokit, { owner, repo, issueNumber, body,
 /**
  * Helper: Hash IP address for privacy
  */
-function hashIP(ip) {
-  return crypto.createHash('sha256').update(ip).digest('hex');
+async function hashIP(ip) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(ip);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 /**
@@ -599,34 +604,34 @@ function generateVerificationCode() {
 /**
  * Helper: Create verification token (JWT)
  */
-function createVerificationToken(email) {
+async function createVerificationToken(email) {
   const secret = process.env.EMAIL_VERIFICATION_SECRET;
   if (!secret) {
     throw new Error('EMAIL_VERIFICATION_SECRET not configured');
   }
 
-  return jwt.sign(
+  return await jwt.sign(
     {
       email,
       timestamp: Date.now(),
       type: 'email-verification'
     },
     secret,
-    { expiresIn: '24h' }
+    86400 // 24 hours in seconds
   );
 }
 
 /**
  * Helper: Verify verification token
  */
-function verifyVerificationToken(token) {
+async function verifyVerificationToken(token) {
   const secret = process.env.EMAIL_VERIFICATION_SECRET;
   if (!secret) {
     throw new Error('EMAIL_VERIFICATION_SECRET not configured');
   }
 
   try {
-    const decoded = jwt.verify(token, secret);
+    const decoded = await jwt.verify(token, secret);
     return decoded;
   } catch (error) {
     console.error('[github-bot] Token verification failed:', error.message);
@@ -672,7 +677,7 @@ async function handleSendVerificationEmail(octokit, { owner, repo, email }) {
     const timestamp = Date.now();
 
     // Hash email for privacy
-    const emailHash = hashIP(email);
+    const emailHash = await hashIP(email);
 
     // Store code in GitHub Issue (private, closed, locked)
     const issueTitle = `[Email Verification] ${emailHash}`;
@@ -707,20 +712,18 @@ async function handleSendVerificationEmail(octokit, { owner, repo, email }) {
     });
 
     // Send email with SendGrid
-    sgMail.setApiKey(sendGridKey);
-
-    const msg = {
+    const emailResult = await sendEmail({
+      apiKey: sendGridKey,
       to: email,
-      from: {
-        email: fromEmail,
-        name: 'Slayer Legend Wiki'
-      },
+      from: fromEmail,
       subject: 'Verify your email - Slayer Legend Wiki',
       text: generateVerificationEmailText(code),
       html: generateVerificationEmail(code),
-    };
+    });
 
-    await sgMail.send(msg);
+    if (!emailResult.success) {
+      throw new Error(emailResult.error || 'Failed to send email');
+    }
 
     console.log(`[github-bot] Verification email sent to ${email}`);
 
@@ -757,7 +760,7 @@ async function handleVerifyEmail(octokit, { owner, repo, email, code }) {
 
   try {
     // Hash email
-    const emailHash = hashIP(email);
+    const emailHash = await hashIP(email);
     const issueTitle = `[Email Verification] ${emailHash}`;
 
     console.log('[github-bot] Looking for issue:', issueTitle);
@@ -810,7 +813,7 @@ async function handleVerifyEmail(octokit, { owner, repo, email, code }) {
     }
 
     // Generate verification token
-    const token = createVerificationToken(email);
+    const token = await createVerificationToken(email);
 
     console.log(`[github-bot] Email verified: ${email}`);
 
@@ -840,7 +843,7 @@ const rateLimitStore = new Map();
  */
 async function handleCheckRateLimit(event, { maxEdits = 5, windowMinutes = 60 }) {
   const clientIP = getClientIP(event);
-  const ipHash = hashIP(clientIP);
+  const ipHash = await hashIP(clientIP);
 
   const windowMs = windowMinutes * 60 * 1000;
   const now = Date.now();
@@ -878,9 +881,9 @@ async function handleCheckRateLimit(event, { maxEdits = 5, windowMinutes = 60 })
 /**
  * Record a submission for rate limiting
  */
-function recordSubmission(event) {
+async function recordSubmission(event) {
   const clientIP = getClientIP(event);
-  const ipHash = hashIP(clientIP);
+  const ipHash = await hashIP(clientIP);
 
   let submissions = rateLimitStore.get(ipHash) || [];
   submissions.push(Date.now());
@@ -940,9 +943,11 @@ async function handleCreateAnonymousPR(octokit, event, {
     };
   }
 
+  console.log('[github-bot] Starting anonymous PR creation for:', { email, displayName, section, pageId });
+
   try {
     // 1. Verify email verification token
-    const decoded = verifyVerificationToken(verificationToken);
+    const decoded = await verifyVerificationToken(verificationToken);
     if (!decoded || decoded.email !== email) {
       return {
         statusCode: 403,
@@ -979,7 +984,10 @@ async function handleCreateAnonymousPR(octokit, event, {
     }
 
     // 5. Check display name for profanity
+    console.log('[github-bot] Checking display name for profanity:', displayName);
     const profanityCheck = await checkProfanity(displayName);
+    console.log('[github-bot] Profanity check result:', profanityCheck);
+
     if (profanityCheck.containsProfanity) {
       console.log(`[github-bot] Display name rejected due to profanity (method: ${profanityCheck.method}):`, displayName);
       return {
@@ -989,6 +997,46 @@ async function handleCreateAnonymousPR(octokit, event, {
         }),
       };
     }
+
+    console.log('[github-bot] Display name passed profanity check');
+
+    // 5b. Check reason for profanity (if provided)
+    if (reason && reason.length > 0) {
+      console.log('[github-bot] Checking reason for profanity:', reason);
+      const reasonProfanityCheck = await checkProfanity(reason);
+      console.log('[github-bot] Reason profanity check result:', reasonProfanityCheck);
+
+      if (reasonProfanityCheck.containsProfanity) {
+        console.log(`[github-bot] Reason rejected due to profanity (method: ${reasonProfanityCheck.method}):`, reason);
+        return {
+          statusCode: 400,
+          body: JSON.stringify({
+            error: 'Edit reason contains inappropriate language. Please provide a respectful explanation.'
+          }),
+        };
+      }
+
+      console.log('[github-bot] Reason passed profanity check');
+    }
+
+    // 5c. Check page content for profanity
+    console.log('[github-bot] Checking page content for profanity (length:', content.length, ')');
+    // Only check first 5000 chars to avoid overwhelming the API
+    const contentSample = content.substring(0, 5000);
+    const contentProfanityCheck = await checkProfanity(contentSample);
+    console.log('[github-bot] Content profanity check result:', contentProfanityCheck);
+
+    if (contentProfanityCheck.containsProfanity) {
+      console.log(`[github-bot] Content rejected due to profanity (method: ${contentProfanityCheck.method})`);
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          error: 'Page content contains inappropriate language. Please remove offensive content and try again.'
+        }),
+      };
+    }
+
+    console.log('[github-bot] Content passed profanity check');
 
     // 6. Create branch
     const timestamp = Date.now();
@@ -1082,7 +1130,7 @@ ${reason ? `**Reason:** ${reason}` : ''}
     });
 
     // 10. Record submission for rate limiting
-    recordSubmission(event);
+    await recordSubmission(event);
 
     console.log(`[github-bot] Anonymous PR created: #${pr.number} by ${displayName} (${email})`);
 

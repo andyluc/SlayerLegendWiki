@@ -12,10 +12,10 @@
  */
 
 import { Octokit } from '@octokit/rest';
-import sgMail from '@sendgrid/mail';
-import jwt from 'jsonwebtoken';
 import * as LeoProfanity from 'leo-profanity';
 import { generateVerificationEmail, generateVerificationEmailText } from './emailTemplates/verificationEmail.js';
+import { sendEmail } from './_lib/sendgrid.js';
+import * as jwt from './_lib/jwt.js';
 
 /**
  * Check text for profanity using OpenAI Moderation API (primary) with leo-profanity fallback
@@ -27,7 +27,7 @@ async function checkProfanity(text, apiKey) {
   // Try OpenAI Moderation API first (if configured)
   if (apiKey) {
     try {
-      console.log('[Profanity] Checking with OpenAI Moderation API...');
+      console.log('[Profanity] Checking with OpenAI Moderation API for text:', text);
       const response = await fetch(
         'https://api.openai.com/v1/moderations',
         {
@@ -69,10 +69,12 @@ async function checkProfanity(text, apiKey) {
     } catch (error) {
       console.warn('[Profanity] OpenAI API error:', error.message, 'falling back to leo-profanity');
     }
+  } else {
+    console.log('[Profanity] OPENAI_API_KEY not configured, using leo-profanity fallback');
   }
 
   // Fallback to leo-profanity package
-  console.log('[Profanity] Using leo-profanity package...');
+  console.log('[Profanity] Using leo-profanity package for text:', text);
   const containsProfanity = LeoProfanity.check(text);
   console.log('[Profanity] leo-profanity result:', containsProfanity);
   return { containsProfanity, method: 'leo-profanity' };
@@ -537,24 +539,24 @@ function generateVerificationCode() {
 /**
  * Helper: Create verification token (JWT)
  */
-function createVerificationToken(email, secret) {
-  return jwt.sign(
+async function createVerificationToken(email, secret) {
+  return await jwt.sign(
     {
       email,
       timestamp: Date.now(),
       type: 'email-verification'
     },
     secret,
-    { expiresIn: '24h' }
+    86400 // 24 hours in seconds
   );
 }
 
 /**
  * Helper: Verify verification token
  */
-function verifyVerificationToken(token, secret) {
+async function verifyVerificationToken(token, secret) {
   try {
-    const decoded = jwt.verify(token, secret);
+    const decoded = await jwt.verify(token, secret);
     return decoded;
   } catch (error) {
     console.error('[github-bot] Token verification failed:', error.message);
@@ -633,20 +635,18 @@ async function handleSendVerificationEmail(octokit, env, { owner, repo, email })
     });
 
     // Send email with SendGrid
-    sgMail.setApiKey(sendGridKey);
-
-    const msg = {
+    const emailResult = await sendEmail({
+      apiKey: sendGridKey,
       to: email,
-      from: {
-        email: fromEmail,
-        name: 'Slayer Legend Wiki'
-      },
+      from: fromEmail,
       subject: 'Verify your email - Slayer Legend Wiki',
       text: generateVerificationEmailText(code),
       html: generateVerificationEmail(code),
-    };
+    });
 
-    await sgMail.send(msg);
+    if (!emailResult.success) {
+      throw new Error(emailResult.error || 'Failed to send email');
+    }
 
     console.log(`[github-bot] Verification email sent to ${email}`);
 
@@ -732,7 +732,7 @@ async function handleVerifyEmail(octokit, { owner, repo, email, code }) {
     if (!secret) {
       throw new Error('EMAIL_VERIFICATION_SECRET not configured');
     }
-    const token = createVerificationToken(email, secret);
+    const token = await createVerificationToken(email, secret);
 
     console.log(`[github-bot] Email verified: ${email}`);
 
@@ -854,13 +854,15 @@ async function handleCreateAnonymousPR(octokit, context, env, {
     };
   }
 
+  console.log('[github-bot] Starting anonymous PR creation for:', { email, displayName, section, pageId });
+
   try {
     // 1. Verify email verification token
     const secret = env.EMAIL_VERIFICATION_SECRET;
     if (!secret) {
       throw new Error('EMAIL_VERIFICATION_SECRET not configured');
     }
-    const decoded = verifyVerificationToken(verificationToken, secret);
+    const decoded = await verifyVerificationToken(verificationToken, secret);
     if (!decoded || decoded.email !== email) {
       return {
         statusCode: 403,
@@ -901,7 +903,10 @@ async function handleCreateAnonymousPR(octokit, context, env, {
     }
 
     // 5. Check display name for profanity
+    console.log('[github-bot] Checking display name for profanity:', displayName);
     const profanityCheck = await checkProfanity(displayName, env.OPENAI_API_KEY);
+    console.log('[github-bot] Profanity check result:', profanityCheck);
+
     if (profanityCheck.containsProfanity) {
       console.log(`[github-bot] Display name rejected due to profanity (method: ${profanityCheck.method}):`, displayName);
       return {
@@ -911,6 +916,46 @@ async function handleCreateAnonymousPR(octokit, context, env, {
         }
       };
     }
+
+    console.log('[github-bot] Display name passed profanity check');
+
+    // 5b. Check reason for profanity (if provided)
+    if (reason && reason.length > 0) {
+      console.log('[github-bot] Checking reason for profanity:', reason);
+      const reasonProfanityCheck = await checkProfanity(reason, env.OPENAI_API_KEY);
+      console.log('[github-bot] Reason profanity check result:', reasonProfanityCheck);
+
+      if (reasonProfanityCheck.containsProfanity) {
+        console.log(`[github-bot] Reason rejected due to profanity (method: ${reasonProfanityCheck.method}):`, reason);
+        return {
+          statusCode: 400,
+          body: {
+            error: 'Edit reason contains inappropriate language. Please provide a respectful explanation.'
+          }
+        };
+      }
+
+      console.log('[github-bot] Reason passed profanity check');
+    }
+
+    // 5c. Check page content for profanity
+    console.log('[github-bot] Checking page content for profanity (length:', content.length, ')');
+    // Only check first 5000 chars to avoid overwhelming the API
+    const contentSample = content.substring(0, 5000);
+    const contentProfanityCheck = await checkProfanity(contentSample, env.OPENAI_API_KEY);
+    console.log('[github-bot] Content profanity check result:', contentProfanityCheck);
+
+    if (contentProfanityCheck.containsProfanity) {
+      console.log(`[github-bot] Content rejected due to profanity (method: ${contentProfanityCheck.method})`);
+      return {
+        statusCode: 400,
+        body: {
+          error: 'Page content contains inappropriate language. Please remove offensive content and try again.'
+        }
+      };
+    }
+
+    console.log('[github-bot] Content passed profanity check');
 
     // 6. Create branch
     const timestamp = Date.now();
