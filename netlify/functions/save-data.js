@@ -53,6 +53,16 @@ async function handleGridSubmission(octokit, owner, repo, config, data, username
       `\`\`\`json\n${JSON.stringify(fullSubmission, null, 2)}\n\`\`\``;
 
     if (existingIssue) {
+      // Security: Verify issue was created by bot account
+      const botUsername = process.env.WIKI_BOT_USERNAME;
+      if (existingIssue.user.login !== botUsername) {
+        console.warn(`[save-data] Security: Grid issue #${existingIssue.number} created by ${existingIssue.user.login}, expected ${botUsername}`);
+        return {
+          statusCode: 403,
+          body: JSON.stringify({ error: 'Invalid data source' }),
+        };
+      }
+
       // Issue exists for this weapon
       if (replace) {
         // Get all comments on the issue
@@ -64,11 +74,23 @@ async function handleGridSubmission(octokit, owner, repo, config, data, username
         });
 
         if (comments.length > 0) {
-          // Update the first comment (primary layout)
+          // Security: Filter to only bot-created comments
+          const botUsername = process.env.WIKI_BOT_USERNAME;
+          const botComments = comments.filter(c => c.user.login === botUsername);
+
+          if (botComments.length === 0) {
+            console.warn(`[save-data] Security: No bot comments found on grid issue #${existingIssue.number}`);
+            return {
+              statusCode: 403,
+              body: JSON.stringify({ error: 'Invalid grid data' }),
+            };
+          }
+
+          // Update the first bot comment (primary layout)
           await octokit.rest.issues.updateComment({
             owner,
             repo,
-            comment_id: comments[0].id,
+            comment_id: botComments[0].id,
             body: submissionComment,
           });
 
@@ -336,6 +358,16 @@ export async function handler(event) {
     // Parse existing items
     let items = [];
     if (existingIssue) {
+      // Security: Verify issue was created by bot account
+      const botUsername = process.env.WIKI_BOT_USERNAME;
+      if (existingIssue.user.login !== botUsername) {
+        console.warn(`[save-data] Security: Issue #${existingIssue.number} created by ${existingIssue.user.login}, expected ${botUsername}`);
+        return {
+          statusCode: 403,
+          body: JSON.stringify({ error: 'Invalid data source' }),
+        };
+      }
+
       try {
         items = JSON.parse(existingIssue.body || '[]');
         if (!Array.isArray(items)) items = [];

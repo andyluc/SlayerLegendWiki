@@ -125,6 +125,18 @@ export async function onRequest(context) {
     // Parse existing items
     let items = [];
     if (existingIssue) {
+      // Security: Verify issue was created by bot account
+      const botUsername = env.WIKI_BOT_USERNAME;
+      if (existingIssue.user.login !== botUsername) {
+        console.warn(`[load-data] Security: Issue #${existingIssue.number} created by ${existingIssue.user.login}, expected ${botUsername}`);
+        return new Response(
+          JSON.stringify({ error: 'Invalid data source' }),
+          {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' }
+          }
+        );
+      }
       try {
         items = JSON.parse(existingIssue.body || '[]');
         if (!Array.isArray(items)) items = [];

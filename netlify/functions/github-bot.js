@@ -15,6 +15,82 @@ import { Octokit } from '@octokit/rest';
 import * as LeoProfanity from 'leo-profanity';
 import { sendEmail } from './_lib/sendgrid.js';
 import * as jwt from './_lib/jwt.js';
+import { webcrypto } from 'crypto';
+
+/**
+ * Encrypt data using AES-GCM
+ * @param {string} data - Data to encrypt
+ * @param {string} secret - Encryption secret
+ * @returns {Promise<string>} Base64-encoded encrypted data with IV prepended
+ */
+async function encryptData(data, secret) {
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(secret.padEnd(32, '0').substring(0, 32)); // Ensure 32 bytes for AES-256
+
+  // Import key
+  const key = await webcrypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: 'AES-GCM' },
+    false,
+    ['encrypt']
+  );
+
+  // Generate random IV
+  const iv = webcrypto.getRandomValues(new Uint8Array(12));
+
+  // Encrypt
+  const encrypted = await webcrypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    encoder.encode(data)
+  );
+
+  // Combine IV + encrypted data
+  const combined = new Uint8Array(iv.length + encrypted.byteLength);
+  combined.set(iv, 0);
+  combined.set(new Uint8Array(encrypted), iv.length);
+
+  // Return as base64
+  return Buffer.from(combined).toString('base64');
+}
+
+/**
+ * Decrypt data using AES-GCM
+ * @param {string} encryptedData - Base64-encoded encrypted data with IV prepended
+ * @param {string} secret - Encryption secret
+ * @returns {Promise<string>} Decrypted data
+ */
+async function decryptData(encryptedData, secret) {
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+  const keyData = encoder.encode(secret.padEnd(32, '0').substring(0, 32)); // Ensure 32 bytes for AES-256
+
+  // Import key
+  const key = await webcrypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: 'AES-GCM' },
+    false,
+    ['decrypt']
+  );
+
+  // Decode base64
+  const combined = Buffer.from(encryptedData, 'base64');
+
+  // Extract IV and encrypted data
+  const iv = combined.slice(0, 12);
+  const encrypted = combined.slice(12);
+
+  // Decrypt
+  const decrypted = await webcrypto.subtle.decrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    encrypted
+  );
+
+  return decoder.decode(decrypted);
+}
 
 /**
  * Check text for profanity using OpenAI Moderation API (primary) with leo-profanity fallback
@@ -337,11 +413,15 @@ async function handleListIssues(octokit, { owner, repo, labels, state = 'open', 
     per_page,
   });
 
-  console.log(`[github-bot] Listed ${issues.length} issues with labels: ${labels}`);
+  // Security: Filter to only bot-created issues
+  const botUsername = process.env.WIKI_BOT_USERNAME;
+  const botIssues = issues.filter(issue => issue.user.login === botUsername);
+
+  console.log(`[github-bot] Listed ${botIssues.length}/${issues.length} bot-created issues with labels: ${labels}`);
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ issues }),
+    body: JSON.stringify({ issues: botIssues }),
   };
 }
 
@@ -679,44 +759,118 @@ async function handleSendVerificationEmail(octokit, { owner, repo, email }) {
     // Hash email for privacy
     const emailHash = await hashIP(email);
 
-    // Store code in GitHub Issue (private, closed, locked)
-    const issueTitle = `[Email Verification] ${emailHash}`;
-    const issueBody = JSON.stringify({
-      code,
-      timestamp,
-      expiresAt: timestamp + 10 * 60 * 1000, // 10 minutes
-    });
-
-    const { data: issue } = await octokit.rest.issues.create({
+    // Get or create the single [Email Verification] issue
+    const issueTitle = '[Email Verification]';
+    const { data: issues } = await octokit.rest.issues.listForRepo({
       owner,
       repo,
-      title: issueTitle,
-      body: issueBody,
-      labels: ['email-verification'],
+      labels: 'email-verification',
+      state: 'open',
+      per_page: 10,
     });
 
-    // Close the issue immediately
+    let verificationIssue = issues.find(issue => issue.title === issueTitle);
+
+    if (!verificationIssue) {
+      // Create the issue if it doesn't exist
+      console.log('[github-bot] Creating email verification issue...');
+      const initialBody = `# Email Verification Codes
+
+This issue stores email verification codes as comments. Each comment is automatically purged after expiration.
+
+## Index
+\`\`\`json
+{}
+\`\`\`
+
+⚠️ **This issue is managed by the wiki bot.**
+
+🤖 *Automated verification system*`;
+
+      const { data: newIssue } = await octokit.rest.issues.create({
+        owner,
+        repo,
+        title: issueTitle,
+        body: initialBody,
+        labels: ['email-verification', 'automated'],
+      });
+
+      // Lock the issue to prevent unwanted comments
+      try {
+        await octokit.rest.issues.lock({
+          owner,
+          repo,
+          issue_number: newIssue.number,
+          lock_reason: 'off-topic',
+        });
+      } catch (lockError) {
+        console.warn('[github-bot] Failed to lock verification issue:', lockError.message);
+      }
+
+      verificationIssue = newIssue;
+    }
+
+    // Parse the index map from issue body
+    let indexMap = {};
+    try {
+      const match = verificationIssue.body.match(/```json\n([\s\S]*?)\n```/);
+      if (match) {
+        indexMap = JSON.parse(match[1]);
+      }
+    } catch (parseError) {
+      console.warn('[github-bot] Failed to parse index map, using empty map:', parseError.message);
+    }
+
+    // Encrypt verification code before storing
+    const secret = process.env.EMAIL_VERIFICATION_SECRET;
+    if (!secret) {
+      throw new Error('EMAIL_VERIFICATION_SECRET not configured');
+    }
+    const encryptedCode = await encryptData(code, secret);
+
+    // Store encrypted code as a comment
+    const commentBody = JSON.stringify({
+      emailHash,
+      code: encryptedCode, // Store encrypted code
+      timestamp,
+      expiresAt: timestamp + 10 * 60 * 1000, // 10 minutes
+    }, null, 2);
+
+    const { data: comment } = await octokit.rest.issues.createComment({
+      owner,
+      repo,
+      issue_number: verificationIssue.number,
+      body: commentBody,
+    });
+
+    // Update the index map with emailHash -> commentId
+    indexMap[emailHash] = comment.id;
+
+    // Update issue body with new index
+    const updatedBody = verificationIssue.body.replace(
+      /```json\n[\s\S]*?\n```/,
+      `\`\`\`json\n${JSON.stringify(indexMap, null, 2)}\n\`\`\``
+    );
+
     await octokit.rest.issues.update({
       owner,
       repo,
-      issue_number: issue.number,
-      state: 'closed',
+      issue_number: verificationIssue.number,
+      body: updatedBody,
     });
 
-    // Lock the issue
-    await octokit.rest.issues.lock({
-      owner,
-      repo,
-      issue_number: issue.number,
-      lock_reason: 'off-topic',
-    });
+    console.log(`[github-bot] Created verification comment and updated index for emailHash: ${emailHash.substring(0, 8)}...`);
 
     // Send email with SendGrid
+    // Add [TEST] prefix in development mode
+    const isDev = process.env.NODE_ENV === 'development';
+    const subjectPrefix = isDev ? '[TEST] ' : '';
+
     const emailResult = await sendEmail({
       apiKey: sendGridKey,
       to: email,
       from: fromEmail,
-      subject: 'Verify your email - Slayer Legend Wiki',
+      subject: `${subjectPrefix}Verify your email - Slayer Legend Wiki`,
       text: generateVerificationEmailText(code),
       html: generateVerificationEmail(code),
     });
@@ -731,7 +885,6 @@ async function handleSendVerificationEmail(octokit, { owner, repo, email }) {
       statusCode: 200,
       body: JSON.stringify({
         message: 'Verification code sent',
-        issueNumber: issue.number,
       }),
     };
   } catch (error) {
@@ -761,20 +914,20 @@ async function handleVerifyEmail(octokit, { owner, repo, email, code }) {
   try {
     // Hash email
     const emailHash = await hashIP(email);
-    const issueTitle = `[Email Verification] ${emailHash}`;
 
+    // Find the single [Email Verification] issue
+    const issueTitle = '[Email Verification]';
     console.log('[github-bot] Looking for issue:', issueTitle);
 
-    // Find the verification issue
     const { data: issues } = await octokit.rest.issues.listForRepo({
       owner,
       repo,
       labels: 'email-verification',
-      state: 'closed',
-      per_page: 100,
+      state: 'open',
+      per_page: 10,
     });
 
-    console.log('[github-bot] Found', issues.length, 'closed issues with email-verification label');
+    console.log('[github-bot] Found', issues.length, 'open issues with email-verification label');
 
     const verificationIssue = issues.find(issue => issue.title === issueTitle);
 
@@ -785,31 +938,159 @@ async function handleVerifyEmail(octokit, { owner, repo, email, code }) {
       };
     }
 
-    // Parse issue body
+    // Security: Verify issue was created by bot account
+    const botUsername = process.env.WIKI_BOT_USERNAME;
+    if (verificationIssue.user.login !== botUsername) {
+      console.warn(`[github-bot] Security: Verification issue created by ${verificationIssue.user.login}, expected ${botUsername}`);
+      return {
+        statusCode: 403,
+        body: JSON.stringify({ error: 'Invalid verification issue' }),
+      };
+    }
+
+    // Parse the index map from issue body for O(1) lookup
+    let indexMap = {};
+    try {
+      const match = verificationIssue.body.match(/```json\n([\s\S]*?)\n```/);
+      if (match) {
+        indexMap = JSON.parse(match[1]);
+      }
+    } catch (parseError) {
+      console.warn('[github-bot] Failed to parse index map:', parseError.message);
+    }
+
+    // Use index map for O(1) lookup
+    const commentId = indexMap[emailHash];
+    if (!commentId) {
+      console.log('[github-bot] No matching comment found in index for email hash');
+      return {
+        statusCode: 404,
+        body: JSON.stringify({ error: 'Verification code not found or expired' }),
+      };
+    }
+
+    // Fetch the specific comment directly
+    let matchingComment;
     let storedData;
     try {
-      storedData = JSON.parse(verificationIssue.body);
-    } catch (parseError) {
+      console.log('[github-bot] Fetching comment by ID:', commentId);
+      const { data: comment } = await octokit.rest.issues.getComment({
+        owner,
+        repo,
+        comment_id: commentId,
+      });
+
+      // Security: Verify comment was created by bot
+      if (comment.user.login !== botUsername) {
+        console.warn(`[github-bot] Security: Comment #${commentId} created by ${comment.user.login}, expected ${botUsername}`);
+        return {
+          statusCode: 403,
+          body: JSON.stringify({ error: 'Invalid verification comment' }),
+        };
+      }
+
+      matchingComment = comment;
+      storedData = JSON.parse(comment.body);
+      console.log('[github-bot] Found matching comment for email hash');
+    } catch (error) {
+      console.warn('[github-bot] Failed to fetch verification comment:', error.message);
       return {
-        statusCode: 500,
-        body: JSON.stringify({ error: 'Invalid verification data' }),
+        statusCode: 404,
+        body: JSON.stringify({ error: 'Verification code not found or expired' }),
       };
     }
 
     // Check expiration
     if (Date.now() > storedData.expiresAt) {
+      console.log('[github-bot] Verification code expired, deleting comment');
+      // Delete expired comment and update index
+      try {
+        await octokit.rest.issues.deleteComment({
+          owner,
+          repo,
+          comment_id: matchingComment.id,
+        });
+
+        // Remove from index map
+        delete indexMap[emailHash];
+
+        // Update issue body with new index
+        const updatedBody = verificationIssue.body.replace(
+          /```json\n[\s\S]*?\n```/,
+          `\`\`\`json\n${JSON.stringify(indexMap, null, 2)}\n\`\`\``
+        );
+
+        await octokit.rest.issues.update({
+          owner,
+          repo,
+          issue_number: verificationIssue.number,
+          body: updatedBody,
+        });
+
+        console.log(`[github-bot] Deleted expired verification comment for emailHash: ${emailHash.substring(0, 8)}...`);
+      } catch (deleteError) {
+        console.warn('[github-bot] Failed to delete expired comment or update index:', deleteError.message);
+      }
+
       return {
         statusCode: 403,
         body: JSON.stringify({ error: 'Verification code expired' }),
       };
     }
 
-    // Verify code
-    if (storedData.code !== code) {
+    // Decrypt and verify code
+    const secret = process.env.EMAIL_VERIFICATION_SECRET;
+    if (!secret) {
+      throw new Error('EMAIL_VERIFICATION_SECRET not configured');
+    }
+
+    let decryptedCode;
+    try {
+      decryptedCode = await decryptData(storedData.code, secret);
+    } catch (decryptError) {
+      console.error('[github-bot] Failed to decrypt verification code:', decryptError.message);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: 'Verification failed' }),
+      };
+    }
+
+    if (decryptedCode !== code) {
+      console.log('[github-bot] Invalid verification code');
       return {
         statusCode: 403,
         body: JSON.stringify({ error: 'Invalid verification code' }),
       };
+    }
+
+    // Delete the comment after successful verification and update index
+    console.log('[github-bot] Verification successful, deleting comment');
+    try {
+      await octokit.rest.issues.deleteComment({
+        owner,
+        repo,
+        comment_id: matchingComment.id,
+      });
+
+      // Remove from index map
+      delete indexMap[emailHash];
+
+      // Update issue body with new index
+      const updatedBody = verificationIssue.body.replace(
+        /```json\n[\s\S]*?\n```/,
+        `\`\`\`json\n${JSON.stringify(indexMap, null, 2)}\n\`\`\``
+      );
+
+      await octokit.rest.issues.update({
+        owner,
+        repo,
+        issue_number: verificationIssue.number,
+        body: updatedBody,
+      });
+
+      console.log(`[github-bot] Deleted verified comment and updated index for emailHash: ${emailHash.substring(0, 8)}...`);
+    } catch (deleteError) {
+      console.warn('[github-bot] Failed to delete verified comment or update index:', deleteError.message);
     }
 
     // Generate verification token

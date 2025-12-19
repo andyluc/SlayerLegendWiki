@@ -26,13 +26,14 @@ export default function AnonymousEditForm({
   pageId,
   pageTitle,
   content,
+  editSummary,
   onSuccess,
   onCancel,
   config,
 }) {
   const [email, setEmail] = useState('');
   const [displayName, setDisplayName] = useState('');
-  const [reason, setReason] = useState('');
+  const [reason, setReason] = useState(editSummary || ''); // Initialize with editSummary if provided
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const [emailError, setEmailError] = useState('');

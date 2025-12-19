@@ -120,6 +120,16 @@ export async function handler(event) {
       };
     }
 
+    // Security: Verify issue was created by bot account
+    const botUsername = process.env.WIKI_BOT_USERNAME;
+    if (existingIssue.user.login !== botUsername) {
+      console.warn(`[delete-data] Security: Issue #${existingIssue.number} created by ${existingIssue.user.login}, expected ${botUsername}`);
+      return {
+        statusCode: 403,
+        body: JSON.stringify({ error: 'Invalid data source' }),
+      };
+    }
+
     // Parse existing items
     let items = [];
     try {

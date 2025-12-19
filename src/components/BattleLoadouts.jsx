@@ -49,6 +49,7 @@ const BattleLoadouts = () => {
   const [draggedSpiritSlotIndex, setDraggedSpiritSlotIndex] = useState(null);
   const [sharing, setSharing] = useState(false);
   const [shareError, setShareError] = useState(null);
+  const [savedLoadouts, setSavedLoadouts] = useState([]);
 
   // Draft storage hook for auto-save/restore
   const { loadDraft, clearDraft } = useDraftStorage(
@@ -200,43 +201,98 @@ const BattleLoadouts = () => {
     };
   };
 
+  /**
+   * Check if current loadout matches a saved loadout
+   */
+  const loadoutsMatch = (savedLoadout) => {
+    if (!savedLoadout) return false;
+    if (savedLoadout.name !== loadoutName) return false;
+
+    // Compare skill build
+    const currentSkillBuild = serializeSkillBuild(currentLoadout.skillBuild);
+    const savedSkillBuild = serializeSkillBuild(savedLoadout.skillBuild);
+    if (JSON.stringify(currentSkillBuild) !== JSON.stringify(savedSkillBuild)) return false;
+
+    // Compare spirit build (basic comparison)
+    if (JSON.stringify(currentLoadout.spiritBuild) !== JSON.stringify(savedLoadout.spiritBuild)) return false;
+
+    // Compare other properties
+    if (JSON.stringify(currentLoadout.spirit) !== JSON.stringify(savedLoadout.spirit)) return false;
+    if (JSON.stringify(currentLoadout.skillStone) !== JSON.stringify(savedLoadout.skillStone)) return false;
+    if (JSON.stringify(currentLoadout.promotionAbility) !== JSON.stringify(savedLoadout.promotionAbility)) return false;
+    if (JSON.stringify(currentLoadout.familiar) !== JSON.stringify(savedLoadout.familiar)) return false;
+
+    return true;
+  };
+
   // Update loadout name in current loadout
   useEffect(() => {
     setCurrentLoadout(prev => ({ ...prev, name: loadoutName }));
-    setHasUnsavedChanges(true);
-    setCurrentLoadedLoadoutId(null); // Clear loaded loadout ID when making changes
   }, [loadoutName]);
+
+  /**
+   * Check if current loadout matches any saved loadout and update highlighting
+   */
+  useEffect(() => {
+    // Check if there's any content
+    const hasContent = loadoutName.trim() !== '' ||
+      currentLoadout.skillBuild !== null ||
+      currentLoadout.spiritBuild !== null ||
+      currentLoadout.spirit !== null ||
+      currentLoadout.skillStone !== null ||
+      currentLoadout.promotionAbility !== null ||
+      currentLoadout.familiar !== null;
+
+    if (!isAuthenticated || savedLoadouts.length === 0) {
+      if (currentLoadedLoadoutId !== null) {
+        setCurrentLoadedLoadoutId(null);
+      }
+      // If not authenticated or no saved loadouts, only update unsaved changes if no content
+      if (!hasContent && hasUnsavedChanges) {
+        setHasUnsavedChanges(false);
+      } else if (hasContent && !hasUnsavedChanges) {
+        setHasUnsavedChanges(true);
+      }
+      return;
+    }
+
+    // Find matching loadout
+    const matchingLoadout = savedLoadouts.find(savedLoadout => loadoutsMatch(savedLoadout));
+
+    if (matchingLoadout) {
+      setCurrentLoadedLoadoutId(matchingLoadout.id);
+      // Don't automatically clear hasUnsavedChanges when matching
+    } else {
+      setCurrentLoadedLoadoutId(null);
+      // Mark as having changes if there's content and no match
+      if (hasContent && !hasUnsavedChanges) {
+        setHasUnsavedChanges(true);
+      }
+    }
+  }, [loadoutName, currentLoadout, savedLoadouts, isAuthenticated, currentLoadedLoadoutId, hasUnsavedChanges]);
 
   // Handle skill builder save
   const handleSkillBuildSave = (build) => {
     setCurrentLoadout(prev => ({ ...prev, skillBuild: build }));
     setShowSkillBuilder(false);
-    setHasUnsavedChanges(true);
-    setCurrentLoadedLoadoutId(null); // Clear loaded loadout ID when making changes
   };
 
   // Clear skill build
   const handleClearSkillBuild = () => {
     if (!confirm('Remove skill build from this loadout?')) return;
     setCurrentLoadout(prev => ({ ...prev, skillBuild: null }));
-    setHasUnsavedChanges(true);
-    setCurrentLoadedLoadoutId(null); // Clear loaded loadout ID when making changes
   };
 
   // Handle spirit builder save
   const handleSpiritBuildSave = (build) => {
     setCurrentLoadout(prev => ({ ...prev, spiritBuild: build }));
     setShowSpiritBuilder(false);
-    setHasUnsavedChanges(true);
-    setCurrentLoadedLoadoutId(null); // Clear loaded loadout ID when making changes
   };
 
   // Clear spirit build
   const handleClearSpiritBuild = () => {
     if (!confirm('Remove spirit build from this loadout?')) return;
     setCurrentLoadout(prev => ({ ...prev, spiritBuild: null }));
-    setHasUnsavedChanges(true);
-    setCurrentLoadedLoadoutId(null); // Clear loaded loadout ID when making changes
   };
 
   // Remove individual spirit from slot
@@ -261,8 +317,6 @@ const BattleLoadouts = () => {
         }
       };
     });
-    setHasUnsavedChanges(true);
-    setCurrentLoadedLoadoutId(null); // Clear loaded loadout ID when making changes
   };
 
   // Drag and drop handlers for skills
@@ -302,8 +356,6 @@ const BattleLoadouts = () => {
       }
     }));
     setDraggedSkillSlotIndex(null);
-    setHasUnsavedChanges(true);
-    setCurrentLoadedLoadoutId(null);
   };
 
   // Drag and drop handlers for spirits
@@ -343,8 +395,6 @@ const BattleLoadouts = () => {
       }
     }));
     setDraggedSpiritSlotIndex(null);
-    setHasUnsavedChanges(true);
-    setCurrentLoadedLoadoutId(null);
   };
 
   // Load saved loadout
@@ -580,8 +630,6 @@ const BattleLoadouts = () => {
   const handleClearLoadout = () => {
     if (!confirm('Clear current loadout? This cannot be undone.')) return;
     setCurrentLoadout(createEmptyLoadout(loadoutName));
-    setHasUnsavedChanges(true);
-    setCurrentLoadedLoadoutId(null); // Clear loaded loadout ID when making changes
     clearDraft(); // Clear localStorage draft
   };
 
@@ -617,6 +665,7 @@ const BattleLoadouts = () => {
           currentLoadout={currentLoadout}
           onLoadLoadout={handleLoadLoadout}
           currentLoadedLoadoutId={currentLoadedLoadoutId}
+          onLoadoutsChange={setSavedLoadouts}
         />
 
         {/* Loadout Name Panel */}

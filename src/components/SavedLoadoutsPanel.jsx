@@ -17,7 +17,7 @@ import { getDeleteDataEndpoint } from '../utils/apiEndpoints.js';
  * - Delete loadouts
  * - Mobile-friendly UI
  */
-const SavedLoadoutsPanel = ({ currentLoadout, onLoadLoadout, currentLoadedLoadoutId = null }) => {
+const SavedLoadoutsPanel = ({ currentLoadout, onLoadLoadout, currentLoadedLoadoutId = null, onLoadoutsChange }) => {
   const { isAuthenticated, user } = useAuthStore();
   const { config } = useWikiConfig();
   const loginFlow = useLoginFlow();
@@ -32,6 +32,13 @@ const SavedLoadoutsPanel = ({ currentLoadout, onLoadLoadout, currentLoadedLoadou
       loadLoadouts();
     }
   }, [isAuthenticated, user]);
+
+  // Notify parent when savedLoadouts change
+  useEffect(() => {
+    if (onLoadoutsChange) {
+      onLoadoutsChange(savedLoadouts);
+    }
+  }, [savedLoadouts, onLoadoutsChange]);
 
   const loadLoadouts = async () => {
     if (!user || !config) return;
