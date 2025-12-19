@@ -93,6 +93,33 @@ async function decryptData(encryptedData, secret) {
 }
 
 /**
+ * Mask email address for privacy
+ * Shows only first and last character of username, masks middle with asterisks
+ * Adds random 1-2 extra asterisks to prevent length-based matching
+ * Example: demo0@gmail.com -> d****0@gmail.com or d*****0@gmail.com
+ * @param {string} email - Email address to mask
+ * @returns {string} Masked email address
+ */
+function maskEmail(email) {
+  const [username, domain] = email.split('@');
+
+  if (username.length <= 2) {
+    // For very short usernames, mask all but first character
+    const randomExtra = Math.floor(Math.random() * 2) + 1; // 1-2 extra asterisks
+    return `${username[0]}${'*'.repeat(3 + randomExtra)}@${domain}`;
+  }
+
+  // Show first and last character, mask the middle
+  const firstChar = username[0];
+  const lastChar = username[username.length - 1];
+  const baseMaskLength = Math.min(username.length - 2, 3); // Base 3 asterisks
+  const randomExtra = Math.floor(Math.random() * 2) + 1; // Add 1-2 random asterisks
+  const mask = '*'.repeat(baseMaskLength + randomExtra);
+
+  return `${firstChar}${mask}${lastChar}@${domain}`;
+}
+
+/**
  * Check text for profanity using OpenAI Moderation API (primary) with leo-profanity fallback
  * @param {string} text - Text to check
  * @returns {Promise<{containsProfanity: boolean, method: string, categories?: object}>}
@@ -1339,10 +1366,11 @@ async function handleCreateAnonymousPR(octokit, event, {
 
     // 7. Commit file
     const filePath = `public/content/${section}/${pageId}.md`;
+    const maskedEmail = maskEmail(email);
     const commitMessage = `Update ${pageTitle}
 
 Anonymous contribution by: ${displayName}
-Email: ${email} (verified ✓)
+Email: ${maskedEmail} (verified ✓)
 ${reason ? `Reason: ${reason}` : ''}
 
 Submitted: ${new Date(timestamp).toISOString()}
@@ -1382,7 +1410,7 @@ Co-Authored-By: Wiki Bot <bot@slayerlegend.wiki>`;
     const prBody = `## Anonymous Edit Submission
 
 **Submitted by:** ${displayName}
-**Email:** ${email} (verified ✓)
+**Email:** ${maskedEmail} (verified ✓)
 ${reason ? `**Reason:** ${reason}` : ''}
 **Timestamp:** ${new Date(timestamp).toISOString()}
 **reCAPTCHA Score:** ${captchaResult.score.toFixed(2)}
@@ -1402,12 +1430,17 @@ ${reason ? `**Reason:** ${reason}` : ''}
       base: 'main',
     });
 
-    // 9. Add labels
+    // 9. Add labels (including display name for easy identification)
     await octokit.rest.issues.addLabels({
       owner,
       repo,
       issue_number: pr.number,
-      labels: ['anonymous-edit', 'needs-review', section],
+      labels: [
+        'anonymous-edit',
+        'needs-review',
+        section,
+        `name:${displayName}`, // Store display name as label for easy access
+      ],
     });
 
     // 10. Record submission for rate limiting

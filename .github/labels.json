@@ -101,9 +101,14 @@
       "color": "d73a4a"
     },
     {
-      "name": "anonymous",
-      "description": "Anonymous contribution (no user attribution)",
+      "name": "anonymous-edit",
+      "description": "Anonymous wiki edit request with verified email",
       "color": "6f42c1"
+    },
+    {
+      "name": "needs-review",
+      "description": "Pull request awaiting review and approval",
+      "color": "fbca04"
     },
     {
       "name": "documentation",
@@ -135,5 +140,11 @@
       "dev": "0075ca",
       "staging": "fbca04"
     }
+  },
+  "nameLabelPattern": {
+    "prefix": "name:",
+    "description": "Display name of anonymous contributor (e.g., name:John Doe)",
+    "defaultColor": "d4c5f9",
+    "usage": "Automatically added to anonymous-edit PRs to store the contributor's display name for easy identification and attribution"
   }
 }
