@@ -6,6 +6,7 @@ tags:
 category: Characters
 date: 2025-12-13T00:00:00.000Z
 order: 0
+id: awakening
 ---
 # awakening
 Comprehensive guide coming soon
@@ -14,3 +15,5 @@ Comprehensive guide coming soon
 ASDADS adsa sdasd asd ads LOLOOL
 
 sdfsdfsdfsdfsdf
+
+asdasdasdasd
