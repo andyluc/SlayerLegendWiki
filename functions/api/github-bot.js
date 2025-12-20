@@ -16,8 +16,8 @@ import * as LeoProfanity from 'leo-profanity';
 import { generateVerificationEmail, generateVerificationEmailText } from './emailTemplates/verificationEmail.js';
 import { sendEmail } from './_lib/sendgrid.js';
 import * as jwt from './_lib/jwt.js';
-import StorageFactory from '../../../wiki-framework/src/services/storage/StorageFactory.js';
-import wikiConfig from '../../../wiki-config.json' assert { type: 'json' };
+import StorageFactory from './_lib/StorageFactory.js';
+import { getWikiConfig } from './_lib/config.js';
 
 /**
  * Encrypt data using AES-GCM
@@ -863,6 +863,7 @@ async function handleSendVerificationEmail(octokit, env, { owner, repo, email })
       throw new Error('WIKI_BOT_TOKEN not configured');
     }
 
+    const wikiConfig = getWikiConfig(env);
     const storageConfig = wikiConfig.storage || {
       backend: 'github',
       version: 'v1',
@@ -933,6 +934,7 @@ async function handleVerifyEmail(octokit, env, { owner, repo, email, code }) {
     const emailHash = await hashIP(email);
 
     // Get storage configuration
+    const wikiConfig = getWikiConfig(env);
     const storageConfig = wikiConfig.storage || {
       backend: 'github',
       version: 'v1',

@@ -12,7 +12,7 @@
  * }
  */
 
-import StorageFactory from '../../../wiki-framework/src/services/storage/StorageFactory.js';
+import StorageFactory from './_lib/StorageFactory.js';
 import {
   DATA_TYPE_CONFIGS,
   createErrorResponse,
@@ -23,7 +23,7 @@ import {
   validateUserId,
   validateItemId,
 } from './_lib/validation.js';
-import wikiConfig from '../../../wiki-config.json' assert { type: 'json' };
+import { getWikiConfig } from './_lib/config.js';
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -138,6 +138,7 @@ export async function onRequest(context) {
     }
 
     // Create storage adapter
+    const wikiConfig = getWikiConfig(env);
     const storageConfig = wikiConfig.storage || {
       backend: 'github',
       version: 'v1',
