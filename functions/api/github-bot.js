@@ -11,13 +11,21 @@
  * }
  */
 
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
 import { Octokit } from '@octokit/rest';
 import * as LeoProfanity from 'leo-profanity';
 import { generateVerificationEmail, generateVerificationEmailText } from './emailTemplates/verificationEmail.js';
 import { sendEmail } from './_lib/sendgrid.js';
 import * as jwt from './_lib/jwt.js';
 import StorageFactory from '../../../wiki-framework/src/services/storage/StorageFactory.js';
-import wikiConfig from '../../../wiki-config.json' with { type: 'json' };
+
+// Load config file
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const wikiConfig = JSON.parse(readFileSync(join(__dirname, '../../../wiki-config.json'), 'utf-8'));
 
 /**
  * Encrypt data using AES-GCM

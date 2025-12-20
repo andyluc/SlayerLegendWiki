@@ -8,13 +8,21 @@
  *   userId: number
  */
 
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
 import StorageFactory from '../../../wiki-framework/src/services/storage/StorageFactory.js';
 import {
   DATA_TYPE_CONFIGS,
   createErrorResponse,
   createSuccessResponse,
 } from './_lib/utils.js';
-import wikiConfig from '../../../wiki-config.json' with { type: 'json' };
+
+// Load config file
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const wikiConfig = JSON.parse(readFileSync(join(__dirname, '../../../wiki-config.json'), 'utf-8'));
 
 export async function onRequest(context) {
   const { request, env } = context;
