@@ -36,7 +36,8 @@
       "Bash(Select-String -Pattern \"SoulWeaponEngravingBuilder|gridType|Grid type|submitGridLayout|loadSubmissionIntoDesigner\" -Context 2,2)",
       "Bash(git checkout:*)",
       "WebSearch",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(node -e:*)"
     ]
   }
 }

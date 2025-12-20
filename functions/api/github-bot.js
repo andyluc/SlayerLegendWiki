@@ -17,6 +17,7 @@ import StorageFactory from 'github-wiki-framework/src/services/storage/StorageFa
 import { generateVerificationEmail, generateVerificationEmailText } from './emailTemplates/verificationEmail.js';
 import { sendEmail } from './_lib/sendgrid.js';
 import * as jwt from './_lib/jwt.js';
+import { createUserIdLabel, createNameLabel, createEmailLabel } from '../../wiki-framework/src/utils/githubLabelUtils.js';
 
 /**
  * Get storage configuration from environment
@@ -731,7 +732,7 @@ async function handleSaveUserSnapshot(octokit, { owner, repo, username, snapshot
   // Prepare issue data
   const issueTitle = `[User Snapshot] ${username}`;
   const issueBody = JSON.stringify(snapshotData, null, 2);
-  const userIdLabel = snapshotData.userId ? `user-id:${snapshotData.userId}` : null;
+  const userIdLabel = snapshotData.userId ? createUserIdLabel(snapshotData.userId) : null;
 
   try {
     let issue;
@@ -906,6 +907,26 @@ async function handleSendVerificationEmail(octokit, env, { owner, repo, email })
   }
 
   try {
+    // Encrypt verification code before storing
+    const secret = env.EMAIL_VERIFICATION_SECRET;
+    if (!secret) {
+      console.error('[github-bot] EMAIL_VERIFICATION_SECRET not configured');
+      return {
+        statusCode: 503,
+        body: { error: 'Email verification service not configured' }
+      };
+    }
+
+    // Get bot token
+    const botToken = env.WIKI_BOT_TOKEN;
+    if (!botToken) {
+      console.error('[github-bot] WIKI_BOT_TOKEN not configured');
+      return {
+        statusCode: 503,
+        body: { error: 'Bot service not configured' }
+      };
+    }
+
     // Generate verification code
     const code = generateVerificationCode();
     const timestamp = Date.now();
@@ -914,43 +935,52 @@ async function handleSendVerificationEmail(octokit, env, { owner, repo, email })
     // Hash email for privacy
     const emailHash = await hashIP(email);
 
-    // Encrypt verification code before storing
-    const secret = env.EMAIL_VERIFICATION_SECRET;
-    if (!secret) {
-      throw new Error('EMAIL_VERIFICATION_SECRET not configured');
-    }
+    // Encrypt code
     const encryptedCode = await encryptData(code, secret);
 
-    // Get bot token
-    const botToken = env.WIKI_BOT_TOKEN;
-    if (!botToken) {
-      throw new Error('WIKI_BOT_TOKEN not configured');
-    }
-
     // Store verification code
-    await storeVerificationCode(env, botToken, owner, repo, emailHash, encryptedCode, expiresAt);
-
-    console.log(`[github-bot] Stored verification code for emailHash: ${emailHash.substring(0, 8)}...`);
+    try {
+      await storeVerificationCode(env, botToken, owner, repo, emailHash, encryptedCode, expiresAt);
+      console.log(`[github-bot] Stored verification code for emailHash: ${emailHash.substring(0, 8)}...`);
+    } catch (storageError) {
+      console.error('[github-bot] Failed to store verification code:', storageError);
+      return {
+        statusCode: 500,
+        body: { error: 'Failed to store verification code' }
+      };
+    }
 
     // Send email with SendGrid
     // Add [TEST] prefix in development mode
     const isDev = env.NODE_ENV === 'development';
     const subjectPrefix = isDev ? '[TEST] ' : '';
 
-    const emailResult = await sendEmail({
-      apiKey: sendGridKey,
-      to: email,
-      from: fromEmail,
-      subject: `${subjectPrefix}Verify your email - Slayer Legend Wiki`,
-      text: generateVerificationEmailText(code),
-      html: generateVerificationEmail(code),
-    });
+    try {
+      const emailResult = await sendEmail({
+        apiKey: sendGridKey,
+        to: email,
+        from: fromEmail,
+        subject: `${subjectPrefix}Verify your email - Slayer Legend Wiki`,
+        text: generateVerificationEmailText(code),
+        html: generateVerificationEmail(code),
+      });
 
-    if (!emailResult.success) {
-      throw new Error(emailResult.error || 'Failed to send email');
+      if (!emailResult.success) {
+        console.error('[github-bot] SendGrid error:', emailResult.error);
+        return {
+          statusCode: 500,
+          body: { error: `Email delivery failed: ${emailResult.error}` }
+        };
+      }
+
+      console.log(`[github-bot] Verification email sent to ${email}`);
+    } catch (emailError) {
+      console.error('[github-bot] Failed to send email:', emailError);
+      return {
+        statusCode: 500,
+        body: { error: 'Failed to send email' }
+      };
     }
-
-    console.log(`[github-bot] Verification email sent to ${email}`);
 
     return {
       statusCode: 200,
@@ -959,10 +989,10 @@ async function handleSendVerificationEmail(octokit, env, { owner, repo, email })
       }
     };
   } catch (error) {
-    console.error('[github-bot] Failed to send verification email:', error);
+    console.error('[github-bot] Unexpected error in send verification email:', error);
     return {
       statusCode: 500,
-      body: { error: 'Failed to send verification email' }
+      body: { error: `Failed to send verification email: ${error.message}` }
     };
   }
 }
@@ -1354,8 +1384,8 @@ ${reason ? `**Reason:** ${reason}` : ''}
         'anonymous-edit',
         'needs-review',
         section,
-        `name:${displayName}`, // Store display name as label for easy access
-        `email:${emailHash.substring(0, 16)}`, // Store email hash (truncated) for tracking
+        createNameLabel(displayName), // Store display name as label for easy access
+        createEmailLabel(emailHash, 16), // Store email hash (truncated) for tracking
       ],
     });
 

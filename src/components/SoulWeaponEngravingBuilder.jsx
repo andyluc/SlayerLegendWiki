@@ -7,6 +7,7 @@ import { saveBuild as saveSharedBuild, loadBuild as loadSharedBuild, generateSha
 import { createGitHubIssue, searchGitHubIssues, getGitHubIssue, updateGitHubIssue, getOctokit } from '../../wiki-framework/src/services/github/api';
 import { retryGitHubAPI } from '../../wiki-framework/src/utils/retryWithBackoff';
 import { persistName, getItem, setItem, cacheName, configName } from '../../wiki-framework/src/utils/storageManager';
+import { createWeaponLabel, createWeaponIdLabel } from '../../wiki-framework/src/utils/githubLabelUtils.js';
 import EngravingPiece from './EngravingPiece';
 import CustomDropdown from './CustomDropdown';
 import ValidatedInput from './ValidatedInput';
@@ -1089,7 +1090,7 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
       const octokit = getOctokit();
 
       // Search for OPEN issue with this weapon's label - closed issues are considered deleted
-      const weaponLabel = `weapon:${weapon.name}`;
+      const weaponLabel = createWeaponLabel(weapon.name);
       const { data } = await retryGitHubAPI(
         async () => await octokit.rest.search.issuesAndPullRequests({
           q: `repo:${owner}/${repo} label:engraving-grid-submissions label:"${weaponLabel}" is:open`,
@@ -1288,7 +1289,7 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
       const octokit = getOctokit();
 
       // Search for OPEN issues only - closed issues are considered deleted
-      const weaponLabel = `weapon-id:${selectedWeapon.id}`;
+      const weaponLabel = createWeaponIdLabel(selectedWeapon.id);
       const searchQuery = `repo:${owner}/${repo} label:engraving-grid-submissions label:"${weaponLabel}" is:open`;
 
       console.log(`[SoulWeaponEngravingBuilder] Searching for grid submissions with query:`, searchQuery);

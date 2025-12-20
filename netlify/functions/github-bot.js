@@ -17,6 +17,7 @@ import { sendEmail } from './_lib/sendgrid.js';
 import * as jwt from './_lib/jwt.js';
 import { webcrypto } from 'crypto';
 import StorageFactory from '../../wiki-framework/src/services/storage/StorageFactory.js';
+import { createUserIdLabel, createNameLabel, createEmailLabel } from '../../wiki-framework/src/utils/githubLabelUtils.js';
 import {
   validateIssueTitle,
   validateIssueBody,
@@ -795,7 +796,7 @@ async function handleSaveUserSnapshot(octokit, { owner, repo, username, snapshot
   // Prepare issue data
   const issueTitle = `[User Snapshot] ${username}`;
   const issueBody = JSON.stringify(snapshotData, null, 2);
-  const userIdLabel = snapshotData.userId ? `user-id:${snapshotData.userId}` : null;
+  const userIdLabel = snapshotData.userId ? createUserIdLabel(snapshotData.userId) : null;
 
   try {
     let issue;
@@ -1515,8 +1516,8 @@ ${reason ? `**Reason:** ${reason}` : ''}
         'anonymous-edit',
         'needs-review',
         section,
-        `name:${displayName}`, // Store display name as label for easy access
-        `email:${emailHash.substring(0, 16)}`, // Store email hash (truncated) for tracking
+        createNameLabel(displayName), // Store display name as label for easy access
+        createEmailLabel(emailHash, 16), // Store email hash (truncated) for tracking
       ],
     });
 
