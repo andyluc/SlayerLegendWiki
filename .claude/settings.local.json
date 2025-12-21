@@ -66,7 +66,8 @@
       "Bash(tasklist:*)",
       "Bash(npm run build:cloudflare:*)",
       "Bash(Select-String -Pattern \"Error|FAIL|✓|✅\")",
-      "Bash(Select-Object -First 30)"
+      "Bash(Select-Object -First 30)",
+      "Bash(xargs basename:*)"
     ]
   }
 }
