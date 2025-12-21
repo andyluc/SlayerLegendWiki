@@ -26,7 +26,7 @@ on:
         description: 'Issue labels to exclude (comma-separated)'
         required: false
         type: string
-        default: 'wiki-comments'
+        default: ''
       exclude_pr_authors:
         description: 'PR authors to exclude (comma-separated)'
         required: false

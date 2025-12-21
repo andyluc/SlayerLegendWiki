@@ -13,10 +13,10 @@ on:
         type: boolean
         default: true
       exclude_labels:
-        description: 'Comma-separated labels to exclude (e.g., "wiki-comments,keep")'
+        description: 'Comma-separated labels to exclude (e.g., "keep,important")'
         required: false
         type: string
-        default: 'wiki-comments'
+        default: ''
       older_than_days:
         description: 'Only delete issues closed more than X days ago (0 = all)'
         required: false
