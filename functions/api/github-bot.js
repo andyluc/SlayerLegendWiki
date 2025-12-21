@@ -18,6 +18,19 @@ import { generateVerificationEmail, generateVerificationEmailText } from './emai
 import { sendEmail } from './_lib/sendgrid.js';
 import * as jwt from './_lib/jwt.js';
 import { createUserIdLabel, createNameLabel, createEmailLabel } from '../../wiki-framework/src/utils/githubLabelUtils.js';
+import {
+  validateIssueTitle,
+  validateIssueBody,
+  validateLabels,
+  validateEmail,
+  validateDisplayName,
+  validateEditReason,
+  validatePageContent,
+  validatePageTitle,
+  validatePageId,
+  validateSectionName,
+  validateUsername,
+} from './_lib/validation.js';
 
 /**
  * Get storage configuration from environment
@@ -379,6 +392,15 @@ async function handleCreateComment(octokit, { owner, repo, issueNumber, body }) 
     };
   }
 
+  // Validate body
+  const bodyResult = validateIssueBody(body, 'Comment body');
+  if (!bodyResult.valid) {
+    return {
+      statusCode: 400,
+      body: { error: bodyResult.error }
+    };
+  }
+
   const { data: comment } = await octokit.rest.issues.createComment({
     owner,
     repo,
@@ -409,6 +431,15 @@ async function handleUpdateIssue(octokit, { owner, repo, issueNumber, body }) {
     return {
       statusCode: 400,
       body: { error: 'Missing required fields: issueNumber, body' }
+    };
+  }
+
+  // Validate body
+  const bodyResult = validateIssueBody(body, 'Issue body');
+  if (!bodyResult.valid) {
+    return {
+      statusCode: 400,
+      body: { error: bodyResult.error }
     };
   }
 
@@ -503,6 +534,36 @@ async function handleCreateCommentIssue(octokit, { owner, repo, title, body, lab
       body: { error: 'Missing required fields: title, body, labels' }
     };
   }
+
+  // Validate title
+  const titleResult = validateIssueTitle(title);
+  if (!titleResult.valid) {
+    return {
+      statusCode: 400,
+      body: { error: titleResult.error }
+    };
+  }
+
+  // Validate body
+  const bodyResult = validateIssueBody(body, 'Issue body');
+  if (!bodyResult.valid) {
+    return {
+      statusCode: 400,
+      body: { error: bodyResult.error }
+    };
+  }
+
+  // Validate labels
+  const labelsResult = validateLabels(labels);
+  if (!labelsResult.valid) {
+    return {
+      statusCode: 400,
+      body: { error: labelsResult.error }
+    };
+  }
+
+  // TODO: Add ban checking here if requestedBy/requestedByUserId provided
+  // For now, just create the issue
 
   const { data: issue } = await octokit.rest.issues.create({
     owner,
@@ -886,12 +947,12 @@ async function handleSendVerificationEmail(octokit, env, { owner, repo, email })
     };
   }
 
-  // Validate email format
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
+  // Validate email format and length
+  const emailResult = validateEmail(email);
+  if (!emailResult.valid) {
     return {
       statusCode: 400,
-      body: { error: 'Invalid email format' }
+      body: { error: emailResult.error }
     };
   }
 
@@ -1181,6 +1242,67 @@ async function handleCreateAnonymousPR(octokit, context, env, {
   console.log('[github-bot] Starting anonymous PR creation for:', { email, displayName, section, pageId });
 
   try {
+    // Validate all inputs BEFORE any processing
+    const emailResult = validateEmail(email);
+    if (!emailResult.valid) {
+      return {
+        statusCode: 400,
+        body: { error: emailResult.error }
+      };
+    }
+
+    const displayNameResult = validateDisplayName(displayName);
+    if (!displayNameResult.valid) {
+      return {
+        statusCode: 400,
+        body: { error: displayNameResult.error }
+      };
+    }
+
+    const reasonResult = validateEditReason(reason);
+    if (!reasonResult.valid) {
+      return {
+        statusCode: 400,
+        body: { error: reasonResult.error }
+      };
+    }
+
+    const contentResult = validatePageContent(content);
+    if (!contentResult.valid) {
+      return {
+        statusCode: 400,
+        body: { error: contentResult.error }
+      };
+    }
+
+    const titleResult = validatePageTitle(pageTitle);
+    if (!titleResult.valid) {
+      return {
+        statusCode: 400,
+        body: { error: titleResult.error }
+      };
+    }
+
+    const pageIdResult = validatePageId(pageId);
+    if (!pageIdResult.valid) {
+      return {
+        statusCode: 400,
+        body: { error: pageIdResult.error }
+      };
+    }
+
+    const sectionResult = validateSectionName(section);
+    if (!sectionResult.valid) {
+      return {
+        statusCode: 400,
+        body: { error: sectionResult.error }
+      };
+    }
+
+    // Use sanitized values from validation
+    displayName = displayNameResult.sanitized;
+    reason = reasonResult.sanitized;
+
     // 1. Verify email verification token
     const secret = env.EMAIL_VERIFICATION_SECRET;
     if (!secret) {

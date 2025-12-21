@@ -220,11 +220,11 @@ function validatePercentageValue(value, fieldName) {
     };
   }
 
-  // Reasonable range check (0.1% to 100%)
-  if (numValue < 0.1 || numValue > 100) {
+  // Reasonable range check (min 0.1%)
+  if (numValue < 0.1) {
     return {
       valid: false,
-      error: `${fieldName} must be between 0.1% and 100%`,
+      error: `${fieldName} must be at least 0.1%`,
     };
   }
 

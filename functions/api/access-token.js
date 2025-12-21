@@ -10,7 +10,7 @@
  * }
  */
 
-import { pollAccessToken } from '../../netlify/functions/shared/oauth.js';
+import { pollAccessToken } from './_lib/oauth.js';
 
 export async function onRequest(context) {
   const { request } = context;

@@ -1,10 +1,10 @@
 /**
  * Cloudflare Pages Function: Save Data (Universal)
- * Handles saving skill builds, battle loadouts, spirit collection, and grid submissions
+ * Handles saving skill builds, battle loadouts, engraving builds, spirit collection, and grid submissions
  *
  * POST /api/save-data
  * Body: {
- *   type: 'skill-builds' | 'battle-loadouts' | 'my-spirits' | 'spirit-builds' | 'grid-submission',
+ *   type: 'skill-builds' | 'battle-loadouts' | 'my-spirits' | 'spirit-builds' | 'engraving-builds' | 'grid-submission',
  *   username: string,
  *   userId: number,
  *   data: object,
@@ -13,20 +13,20 @@
  * }
  */
 
-import StorageFactory from 'github-wiki-framework/src/services/storage/StorageFactory.js';
+import { createWikiStorage } from './_lib/createWikiStorage.js';
 import {
   DATA_TYPE_CONFIGS,
   VALID_DATA_TYPES,
   createErrorResponse,
   createSuccessResponse,
-} from '../../netlify/functions/shared/utils.js';
+} from './_lib/utils.js';
 import {
   validateUsername,
   validateUserId,
   validateBuildData,
   validateGridSubmission,
   validateRequestBodySize,
-} from '../../netlify/functions/shared/validation.js';
+} from './_lib/validation.js';
 
 /**
  * Get storage configuration from environment
@@ -193,6 +193,16 @@ export async function onRequest(context) {
           }
         );
       }
+
+      if (type === 'engraving-builds' && (!data.weaponId || !data.weaponName || !data.gridState || !data.inventory)) {
+        return new Response(
+          JSON.stringify({ error: 'Engraving build must have weaponId, weaponName, gridState, and inventory' }),
+          {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+          }
+        );
+      }
     }
 
     // Get bot token from environment
@@ -226,7 +236,7 @@ export async function onRequest(context) {
     // Create storage adapter
     const storageConfig = getStorageConfig(env, owner, repo);
 
-    const storage = StorageFactory.create(
+    const storage = createWikiStorage(
       storageConfig,
       { WIKI_BOT_TOKEN: botToken }
     );

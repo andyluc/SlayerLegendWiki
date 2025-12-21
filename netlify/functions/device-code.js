@@ -9,6 +9,8 @@
  * }
  */
 
+import { initiateDeviceFlow } from './shared/oauth.js';
+
 export async function handler(event) {
   // Only allow POST
   if (event.httpMethod !== 'POST') {
@@ -23,36 +25,19 @@ export async function handler(event) {
     // Parse request body
     const { client_id, scope } = JSON.parse(event.body);
 
-    if (!client_id) {
-      return {
-        statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: 'Missing client_id' }),
-      };
-    }
-
-    // Proxy request to GitHub
-    const response = await fetch('https://github.com/login/device/code', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify({
-        client_id,
-        scope: scope || 'public_repo read:user user:email',
-      }),
+    // Initiate device flow
+    const result = await initiateDeviceFlow({
+      client_id,
+      scope
     });
 
-    const data = await response.json();
-
     return {
-      statusCode: response.status,
+      statusCode: result.statusCode,
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify(result.body),
     };
   } catch (error) {
     console.error('[device-code] Error:', error);

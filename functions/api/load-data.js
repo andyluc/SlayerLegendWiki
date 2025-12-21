@@ -1,19 +1,19 @@
 /**
  * Cloudflare Pages Function: Load Data (Universal)
- * Handles loading skill builds, battle loadouts, and spirit collection
+ * Handles loading skill builds, battle loadouts, engraving builds, and spirit collection
  *
  * GET /api/load-data?type=TYPE&userId=USER_ID
  * Query Params:
- *   type: 'skill-builds' | 'battle-loadouts' | 'my-spirits' | 'spirit-builds'
+ *   type: 'skill-builds' | 'battle-loadouts' | 'my-spirits' | 'spirit-builds' | 'engraving-builds'
  *   userId: number
  */
 
-import StorageFactory from 'github-wiki-framework/src/services/storage/StorageFactory.js';
+import { createWikiStorage } from './_lib/createWikiStorage.js';
 import {
   DATA_TYPE_CONFIGS,
   createErrorResponse,
   createSuccessResponse,
-} from '../../netlify/functions/shared/utils.js';
+} from './_lib/utils.js';
 
 /**
  * Get storage configuration from environment
@@ -69,7 +69,7 @@ export async function onRequest(context) {
     }
 
     // Validate type
-    const validTypes = ['skill-builds', 'battle-loadouts', 'my-spirits', 'spirit-builds'];
+    const validTypes = ['skill-builds', 'battle-loadouts', 'my-spirits', 'spirit-builds', 'engraving-builds'];
     if (!validTypes.includes(type)) {
       return new Response(
         JSON.stringify({ error: `Invalid type. Must be one of: ${validTypes.join(', ')}` }),
@@ -114,7 +114,7 @@ export async function onRequest(context) {
     // Create storage adapter
     const storageConfig = getStorageConfig(env, owner, repo);
 
-    const storage = StorageFactory.create(
+    const storage = createWikiStorage(
       storageConfig,
       { WIKI_BOT_TOKEN: botToken }
     );

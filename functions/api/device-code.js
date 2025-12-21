@@ -9,7 +9,7 @@
  * }
  */
 
-import { initiateDeviceFlow } from '../../netlify/functions/shared/oauth.js';
+import { initiateDeviceFlow } from './_lib/oauth.js';
 
 export async function onRequest(context) {
   const { request } = context;

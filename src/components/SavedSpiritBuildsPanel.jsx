@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronDown, ChevronUp, Trash2, Download, Upload, AlertCircle, Tag } from 'lucide-react';
+import { ChevronDown, ChevronUp, Trash2, Upload, AlertCircle, Tag } from 'lucide-react';
 import SpiritSprite from './SpiritSprite';
 import { useAuthStore } from '../../wiki-framework/src/store/authStore';
 import { getCache, setCache, clearCache } from '../utils/buildCache';
@@ -179,20 +179,6 @@ const SavedSpiritBuildsPanel = ({
     }
   };
 
-  // Export build as JSON
-  const handleExportBuild = (build) => {
-    const dataStr = JSON.stringify(build, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${build.name.replace(/\s+/g, '_')}_spirit_build.json`;
-    link.click();
-
-    URL.revokeObjectURL(url);
-  };
-
   // Compact Spirit Preview Component
   const CompactSpiritPreview = ({ slot }) => {
     if (!slot.spirit) return null;
@@ -315,8 +301,9 @@ const SavedSpiritBuildsPanel = ({
           )}
 
           {!loading && savedBuilds.length > 0 && (
-            <div className="space-y-2">
-              {savedBuilds.map(build => {
+            <div className="max-h-[230px] overflow-y-auto pr-2">
+              <div className="space-y-2">
+                {savedBuilds.map(build => {
                 const isCurrentlyLoaded = currentLoadedBuildId === build.id;
                 const spirits = build.slots?.filter(s => s.spirit !== null) || [];
 
@@ -340,7 +327,7 @@ const SavedSpiritBuildsPanel = ({
                           <div className="flex flex-col gap-1 min-w-0 flex-shrink">
                             {/* Name and Loaded Badge */}
                             <div className="flex items-center gap-2 min-w-0">
-                              <div className="font-semibold text-gray-900 dark:text-white truncate max-w-[120px] sm:max-w-none">
+                              <div className="font-semibold text-gray-900 dark:text-white truncate max-w-[80px] sm:max-w-none">
                                 {build.name || 'Unnamed Build'}
                               </div>
                               {isCurrentlyLoaded && (
@@ -374,13 +361,6 @@ const SavedSpiritBuildsPanel = ({
                       {/* Actions */}
                       <div className="flex gap-1 flex-shrink-0">
                         <button
-                          onClick={() => handleExportBuild(build)}
-                          className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded transition-colors"
-                          title="Export as JSON"
-                        >
-                          <Download className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                        </button>
-                        <button
                           onClick={() => handleDeleteBuild(build.id)}
                           disabled={deletingId === build.id}
                           className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded transition-colors disabled:opacity-50"
@@ -397,6 +377,7 @@ const SavedSpiritBuildsPanel = ({
                   </div>
                 );
               })}
+              </div>
             </div>
           )}
         </div>

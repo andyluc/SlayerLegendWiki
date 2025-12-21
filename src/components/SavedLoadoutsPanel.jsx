@@ -234,7 +234,7 @@ const SavedLoadoutsPanel = ({ currentLoadout, onLoadLoadout, currentLoadedLoadou
 
           {/* Loadouts List */}
           {!loading && savedLoadouts.length > 0 && (
-            <div className="max-h-96 overflow-y-auto space-y-2">
+            <div className="max-h-[230px] overflow-y-auto space-y-2 pr-2">
               {savedLoadouts.map((loadout) => {
             const isCurrentlyLoaded = currentLoadedLoadoutId === loadout.id;
             return (

@@ -1,14 +1,14 @@
 /**
  * Netlify Function: Load Data (Universal)
- * Handles loading skill builds, battle loadouts, and spirit collection
+ * Handles loading skill builds, battle loadouts, engraving builds, and spirit collection
  *
  * GET /.netlify/functions/load-data?type=TYPE&userId=USER_ID
  * Query Params:
- *   type: 'skill-builds' | 'battle-loadouts' | 'my-spirits' | 'spirit-builds'
+ *   type: 'skill-builds' | 'battle-loadouts' | 'my-spirits' | 'spirit-builds' | 'engraving-builds'
  *   userId: number
  */
 
-import StorageFactory from 'github-wiki-framework/src/services/storage/StorageFactory.js';
+import { createWikiStorage } from './shared/createWikiStorage.js';
 import {
   DATA_TYPE_CONFIGS,
   createErrorResponse,
@@ -40,7 +40,7 @@ export async function handler(event) {
     }
 
     // Validate type
-    const validTypes = ['skill-builds', 'battle-loadouts', 'my-spirits', 'spirit-builds'];
+    const validTypes = ['skill-builds', 'battle-loadouts', 'my-spirits', 'spirit-builds', 'engraving-builds'];
     if (!validTypes.includes(type)) {
       return createErrorResponse(400, `Invalid type. Must be one of: ${validTypes.join(', ')}`);
     }
@@ -72,7 +72,7 @@ export async function handler(event) {
       github: { owner, repo },
     };
 
-    const storage = StorageFactory.create(
+    const storage = createWikiStorage(
       storageConfig,
       { WIKI_BOT_TOKEN: botToken }
     );

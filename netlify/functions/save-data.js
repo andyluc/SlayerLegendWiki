@@ -1,10 +1,10 @@
 /**
  * Netlify Function: Save Data (Universal)
- * Handles saving skill builds, battle loadouts, spirit collection, and grid submissions
+ * Handles saving skill builds, battle loadouts, engraving builds, spirit collection, and grid submissions
  *
  * POST /.netlify/functions/save-data
  * Body: {
- *   type: 'skill-builds' | 'battle-loadouts' | 'my-spirits' | 'spirit-builds' | 'grid-submission',
+ *   type: 'skill-builds' | 'battle-loadouts' | 'my-spirits' | 'spirit-builds' | 'engraving-builds' | 'grid-submission',
  *   username: string,
  *   userId: number,
  *   data: object,
@@ -13,7 +13,7 @@
  * }
  */
 
-import StorageFactory from 'github-wiki-framework/src/services/storage/StorageFactory.js';
+import { createWikiStorage } from './shared/createWikiStorage.js';
 import {
   DATA_TYPE_CONFIGS,
   VALID_DATA_TYPES,
@@ -108,6 +108,10 @@ export async function handler(event) {
       if (type === 'skill-builds' && (!data.maxSlots || !data.slots)) {
         return createErrorResponse(400, 'Build must have maxSlots and slots');
       }
+
+      if (type === 'engraving-builds' && (!data.weaponId || !data.weaponName || !data.gridState || !data.inventory)) {
+        return createErrorResponse(400, 'Engraving build must have weaponId, weaponName, gridState, and inventory');
+      }
     }
 
     // Get bot token from environment
@@ -134,7 +138,7 @@ export async function handler(event) {
       github: { owner, repo },
     };
 
-    const storage = StorageFactory.create(
+    const storage = createWikiStorage(
       storageConfig,
       { WIKI_BOT_TOKEN: botToken }
     );

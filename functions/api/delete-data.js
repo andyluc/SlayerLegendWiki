@@ -1,28 +1,28 @@
 /**
  * Cloudflare Pages Function: Delete Data (Universal)
- * Handles deleting skill builds, battle loadouts, and spirit collection
+ * Handles deleting skill builds, battle loadouts, engraving builds, and spirit collection
  *
  * POST /api/delete-data
  * Body: {
- *   type: 'skill-builds' | 'battle-loadouts' | 'my-spirits' | 'spirit-builds',
+ *   type: 'skill-builds' | 'battle-loadouts' | 'my-spirits' | 'spirit-builds' | 'engraving-builds',
  *   username: string,
  *   userId: number,
- *   itemId: string (for skill-builds/battle-loadouts/spirit-builds),
+ *   itemId: string (for skill-builds/battle-loadouts/spirit-builds/engraving-builds),
  *   spiritId: string (for my-spirits)
  * }
  */
 
-import StorageFactory from 'github-wiki-framework/src/services/storage/StorageFactory.js';
+import { createWikiStorage } from './_lib/createWikiStorage.js';
 import {
   DATA_TYPE_CONFIGS,
   createErrorResponse,
   createSuccessResponse,
-} from '../../netlify/functions/shared/utils.js';
+} from './_lib/utils.js';
 import {
   validateUsername,
   validateUserId,
   validateItemId,
-} from '../../netlify/functions/shared/validation.js';
+} from './_lib/validation.js';
 
 /**
  * Get storage configuration from environment
@@ -79,7 +79,7 @@ export async function onRequest(context) {
     }
 
     // Validate type
-    const validTypes = ['skill-builds', 'battle-loadouts', 'my-spirits', 'spirit-builds'];
+    const validTypes = ['skill-builds', 'battle-loadouts', 'my-spirits', 'spirit-builds', 'engraving-builds'];
     if (!validTypes.includes(type)) {
       return new Response(
         JSON.stringify({ error: `Invalid type. Must be one of: ${validTypes.join(', ')}` }),
@@ -161,7 +161,7 @@ export async function onRequest(context) {
     // Create storage adapter
     const storageConfig = getStorageConfig(env, owner, repo);
 
-    const storage = StorageFactory.create(
+    const storage = createWikiStorage(
       storageConfig,
       { WIKI_BOT_TOKEN: botToken }
     );

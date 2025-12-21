@@ -272,9 +272,9 @@ The following API calls should NOT use this caching system:
 
 ### localStorage Keys
 
-- `github_cache_users` - User profile cache
-- `github_cache_collaborators` - Collaborators cache
-- `github_cache_repositories` - Repository info cache
+- `cache:github_users` - User profile cache
+- `cache:github_collaborators` - Collaborators cache
+- `cache:github_repositories` - Repository info cache
 
 ### Storage Format
 
@@ -319,7 +319,7 @@ The following API calls should NOT use this caching system:
 The cache logs all operations for debugging:
 
 ```
-[GitHub Cache] Loaded 42 entries from localStorage (github_cache_users)
+[GitHub Cache] Loaded 42 entries from localStorage (cache:github_users)
 [GitHub Cache] Cache hit: BenDol (age: 15 minutes)
 [GitHub Cache] Cached: username2
 [GitHub Cache] Entry expired: olduser (age: 1440 minutes)

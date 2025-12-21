@@ -24,6 +24,14 @@ This is a **parent wiki project** built using the [GitHub Wiki Framework](https:
 - Data files for Data Browser
 - Pickers for page editor
 
+**READ FROM THE LOGS AT ANY TIME:** The logs are located in `wiki-framework/logs/debug.log`
+- These are remote logs for development
+- Check the `public/wiki-config.json` to confirm that `enableRemoteLoggingInDev` is `true`, if so you know you can listen for the logs
+- The hotreload will apply your changes so in the case where there isn't anything required from the developer, start reviewing the logs for what you need
+- The developer will cancel this if they need something else
+- If there is no activity in the logs after 3 minutes, cancel the background task to stop viewing the logs (developer is like AFK)
+- This is CRITICAL for fast development!
+
 See **[Registry Patterns](.claude/registries.md)** for details.
 
 ## Quick Start

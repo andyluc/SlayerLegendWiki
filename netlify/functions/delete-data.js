@@ -1,18 +1,18 @@
 /**
  * Netlify Function: Delete Data (Universal)
- * Handles deleting skill builds, battle loadouts, and spirit collection
+ * Handles deleting skill builds, battle loadouts, engraving builds, and spirit collection
  *
  * POST /.netlify/functions/delete-data
  * Body: {
- *   type: 'skill-builds' | 'battle-loadouts' | 'my-spirits' | 'spirit-builds',
+ *   type: 'skill-builds' | 'battle-loadouts' | 'my-spirits' | 'spirit-builds' | 'engraving-builds',
  *   username: string,
  *   userId: number,
- *   itemId: string (for skill-builds/battle-loadouts/spirit-builds),
+ *   itemId: string (for skill-builds/battle-loadouts/spirit-builds/engraving-builds),
  *   spiritId: string (for my-spirits)
  * }
  */
 
-import StorageFactory from 'github-wiki-framework/src/services/storage/StorageFactory.js';
+import { createWikiStorage } from './shared/createWikiStorage.js';
 import {
   DATA_TYPE_CONFIGS,
   createErrorResponse,
@@ -52,7 +52,7 @@ export async function handler(event) {
     }
 
     // Validate type
-    const validTypes = ['skill-builds', 'battle-loadouts', 'my-spirits', 'spirit-builds'];
+    const validTypes = ['skill-builds', 'battle-loadouts', 'my-spirits', 'spirit-builds', 'engraving-builds'];
     if (!validTypes.includes(type)) {
       return createErrorResponse(400, `Invalid type. Must be one of: ${validTypes.join(', ')}`);
     }
@@ -103,7 +103,7 @@ export async function handler(event) {
       github: { owner, repo },
     };
 
-    const storage = StorageFactory.create(
+    const storage = createWikiStorage(
       storageConfig,
       { WIKI_BOT_TOKEN: botToken }
     );

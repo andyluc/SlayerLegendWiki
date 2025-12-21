@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Share2, Download, Upload, Settings, Trash2, Check, Loader, RefreshCw, RotateCw, Lock, X, CheckCircle, Zap, Edit, Send } from 'lucide-react';
+import { Share2, Download, Upload, Settings, Trash2, Check, Loader, RefreshCw, RotateCw, Lock, X, CheckCircle, CheckCircle2, Zap, Edit, Send, Save } from 'lucide-react';
 import { useAuthStore } from '../../wiki-framework/src/store/authStore';
 import { useDraftStorage } from '../../wiki-framework/src/hooks/useDraftStorage';
 import { encodeBuild, decodeBuild } from '../../wiki-framework/src/components/wiki/BuildEncoder';
@@ -11,8 +11,10 @@ import { createWeaponLabel, createWeaponIdLabel } from '../../wiki-framework/src
 import EngravingPiece from './EngravingPiece';
 import CustomDropdown from './CustomDropdown';
 import ValidatedInput from './ValidatedInput';
+import SavedBuildsPanel from './SavedBuildsPanel';
 import { getSaveDataEndpoint } from '../utils/apiEndpoints.js';
 import { validateBuildName, validateCompletionEffect, STRING_LIMITS } from '../utils/validation';
+import { setCache } from '../utils/buildCache';
 
 /**
  * SoulWeaponEngravingBuilder Component
@@ -141,6 +143,13 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
   const [shareError, setShareError] = useState(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
+  // Saved builds state
+  const [savedBuilds, setSavedBuilds] = useState([]);
+  const [currentLoadedBuildId, setCurrentLoadedBuildId] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState(null);
+
   // Debug mode
   const [debugMode, setDebugMode] = useState(false);
 
@@ -163,6 +172,9 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
 
   // Touch state for mobile drag support
   const [touchDragging, setTouchDragging] = useState(false);
+  const touchDraggingRef = useRef(false); // Immediate drag state without React update delay
+  const draggingPieceRef = useRef(null); // Immediate piece state without React update delay
+  const touchCleanupRef = useRef(null); // Store cleanup function for document touch listeners
   const [touchStartPos, setTouchStartPos] = useState(null);
   const [touchCurrentPos, setTouchCurrentPos] = useState(null); // Current finger position
   const inventoryContainerRef = useRef(null);
@@ -911,6 +923,17 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
     console.log('=========================');
   }, [gridState]);
 
+  // Cleanup document touch listeners on unmount
+  useEffect(() => {
+    return () => {
+      // Clean up any remaining document listeners when component unmounts
+      if (touchCleanupRef.current) {
+        touchCleanupRef.current();
+        touchCleanupRef.current = null;
+      }
+    };
+  }, []);
+
   const loadData = async () => {
     try {
       setLoading(true);
@@ -1151,7 +1174,6 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
     if (!hasGridData) {
       // Reset design mode state when weapon changes
       setForceDesignMode(false);
-      setExistingSubmissions([]);
 
       // Weapon doesn't have grid data - check for submissions
       await loadExistingSubmissions();
@@ -1634,29 +1656,49 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
         alert('Grid layout submitted successfully!');
       }
 
-      console.log('[SoulWeaponEngravingBuilder] Grid submission successful, reloading submissions...');
+      console.log('[SoulWeaponEngravingBuilder] Grid submission successful!');
 
-      // Invalidate cache and reload submissions
-      invalidateSubmissionCache(selectedWeapon.name);
-
-      // Reload all weapons with submissions to update dropdown
-      await loadAllWeaponsWithSubmissions();
-
-      console.log('[SoulWeaponEngravingBuilder] About to call loadExistingSubmissions(true)');
-      const updatedSubmissions = await loadExistingSubmissions(true); // Force refresh and get fresh data
-      console.log('[SoulWeaponEngravingBuilder] loadExistingSubmissions returned:', updatedSubmissions.length, 'submissions');
-
-      // Exit designer mode and load the submitted grid
+      // Exit designer mode immediately
       setIsGridDesigner(false);
       setForceDesignMode(false);
 
-      // Load the first submission (newly submitted one) into normal grid
-      if (updatedSubmissions.length > 0) {
-        console.log('[SoulWeaponEngravingBuilder] Loading first submission into normal grid');
-        loadSubmissionIntoNormalGrid(updatedSubmissions[0]);
-      } else {
-        console.warn('[SoulWeaponEngravingBuilder] No submissions found after reload!');
-      }
+      // Immediately load the submitted grid data (without waiting for GitHub to index)
+      const immediateSubmissionData = {
+        gridType: submission.gridType,
+        activeSlots: submission.activeSlots,
+        totalActiveSlots: submission.totalActiveSlots,
+        completionEffect: submission.completionEffect,
+        submittedBy: isAuthenticated ? user.login : 'Anonymous',
+        submittedAt: new Date().toISOString()
+      };
+      console.log('[SoulWeaponEngravingBuilder] Loading submitted grid immediately:', immediateSubmissionData);
+      loadSubmissionIntoNormalGrid(immediateSubmissionData);
+
+      // Invalidate cache for background refresh
+      invalidateSubmissionCache(selectedWeapon.name);
+
+      // Wait 1.5 seconds, then refresh from GitHub to get the actual stored version
+      setTimeout(async () => {
+        try {
+          console.log('[SoulWeaponEngravingBuilder] Refreshing submission data from GitHub...');
+
+          // Reload all weapons with submissions to update dropdown
+          await loadAllWeaponsWithSubmissions();
+
+          // Force refresh submissions from GitHub
+          const updatedSubmissions = await loadExistingSubmissions(true);
+          console.log('[SoulWeaponEngravingBuilder] Refreshed submissions from GitHub:', updatedSubmissions.length);
+
+          // If we got fresh data, reload it into the grid
+          if (updatedSubmissions.length > 0) {
+            console.log('[SoulWeaponEngravingBuilder] Reloading first submission with fresh data from GitHub');
+            loadSubmissionIntoNormalGrid(updatedSubmissions[0]);
+          }
+        } catch (error) {
+          console.error('[SoulWeaponEngravingBuilder] Failed to refresh from GitHub:', error);
+          // Not fatal - user already has the submitted grid loaded
+        }
+      }, 1500);
     } catch (error) {
       console.error('Failed to submit grid layout:', error);
       alert(`Failed to submit grid layout: ${error.message}`);
@@ -1749,6 +1791,217 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
 
     console.log('Locked inventory indices:', locked, 'Inventory:', inventory.map((p, i) => p ? `${i}: ${p.shapeId}` : `${i}: empty`));
     setLockedInventoryIndices(locked);
+  };
+
+  // ===== SAVED BUILDS FUNCTIONS =====
+
+  /**
+   * Serialize build for storage (reduce size by storing only IDs)
+   */
+  const serializeBuild = (buildToSerialize) => {
+    return {
+      name: buildToSerialize.name || buildName,
+      weaponId: buildToSerialize.weaponId !== undefined ? buildToSerialize.weaponId : selectedWeapon?.id,
+      weaponName: buildToSerialize.weaponName !== undefined ? buildToSerialize.weaponName : selectedWeapon?.name,
+      gridState: buildToSerialize.gridState ? buildToSerialize.gridState.map(row =>
+        row.map(cell => ({
+          active: cell.active,
+          piece: cell.piece ? {
+            shapeId: cell.piece.shapeId !== undefined ? cell.piece.shapeId : cell.piece.shape?.id,
+            rarity: cell.piece.rarity,
+            level: cell.piece.level,
+            rotation: cell.piece.rotation
+          } : null
+        }))
+      ) : gridState.map(row =>
+        row.map(cell => ({
+          active: cell.active,
+          piece: cell.piece ? {
+            shapeId: cell.piece.shapeId !== undefined ? cell.piece.shapeId : cell.piece.shape?.id,
+            rarity: cell.piece.rarity,
+            level: cell.piece.level,
+            rotation: cell.piece.rotation
+          } : null
+        }))
+      ),
+      inventory: buildToSerialize.inventory ? buildToSerialize.inventory.map(piece =>
+        piece ? {
+          shapeId: piece.shapeId !== undefined ? piece.shapeId : piece.shape?.id,
+          rarity: piece.rarity,
+          level: piece.level
+        } : null
+      ) : inventory.map(piece =>
+        piece ? {
+          shapeId: piece.shapeId !== undefined ? piece.shapeId : piece.shape?.id,
+          rarity: piece.rarity,
+          level: piece.level
+        } : null
+      )
+    };
+  };
+
+  /**
+   * Deserialize build after loading (restore full shape objects from IDs)
+   */
+  const deserializeBuild = (serializedBuild) => {
+    return {
+      weaponId: serializedBuild.weaponId,
+      weaponName: serializedBuild.weaponName,
+      gridState: serializedBuild.gridState.map(row =>
+        row.map(cell => ({
+          active: cell.active,
+          piece: cell.piece ? {
+            shape: engravings.find(e => e.id === cell.piece.shapeId),
+            shapeId: cell.piece.shapeId,
+            rarity: cell.piece.rarity,
+            level: cell.piece.level,
+            rotation: cell.piece.rotation
+          } : null
+        }))
+      ),
+      inventory: serializedBuild.inventory.map(piece =>
+        piece ? {
+          shape: engravings.find(e => e.id === piece.shapeId),
+          shapeId: piece.shapeId,
+          rarity: piece.rarity,
+          level: piece.level
+        } : null
+      )
+    };
+  };
+
+  /**
+   * Check if current build matches a saved build
+   */
+  const buildsMatch = (savedBuild) => {
+    if (!savedBuild) return false;
+
+    // Check name and weapon
+    if (savedBuild.name !== buildName) return false;
+    if (savedBuild.weaponId !== selectedWeapon?.id) return false;
+
+    // Serialize both for consistent comparison
+    const currentSerialized = serializeBuild({ name: buildName });
+    const savedSerialized = serializeBuild(savedBuild);
+
+    // Compare grid states
+    if (JSON.stringify(currentSerialized.gridState) !== JSON.stringify(savedSerialized.gridState)) return false;
+    if (JSON.stringify(currentSerialized.inventory) !== JSON.stringify(savedSerialized.inventory)) return false;
+
+    return true;
+  };
+
+  /**
+   * Load a saved build
+   */
+  const handleLoadBuild = (savedBuild) => {
+    // Check if there are actual meaningful changes
+    const hasActualChanges = hasUnsavedChanges && (
+      buildName.trim() !== '' ||
+      gridState.some(row => row.some(cell => cell.piece !== null)) ||
+      inventory.some(piece => piece !== null)
+    );
+
+    // Check for unsaved changes before loading
+    if (hasActualChanges) {
+      const confirmed = window.confirm(
+        'You have unsaved changes. Loading this build will discard your current changes. Continue?'
+      );
+      if (!confirmed) return;
+    }
+
+    // Find the weapon
+    const weapon = allWeapons.find(w => w.id === savedBuild.weaponId);
+    if (!weapon) {
+      alert('Weapon not found for this build');
+      return;
+    }
+
+    // Deserialize build
+    const deserialized = deserializeBuild(savedBuild);
+
+    // Mark this weapon as already initialized BEFORE setting it
+    const weaponKey = `${weapon.id}-${weapon.name}`;
+    hasInitializedGridForWeapon.current = weaponKey;
+
+    // Set build data
+    setBuildName(savedBuild.name);
+    setSelectedWeapon(weapon);
+    setGridState(deserialized.gridState);
+    setInventory(deserialized.inventory);
+    setHasUnsavedChanges(false);
+    setCurrentLoadedBuildId(savedBuild.id);
+
+    // Update locked inventory indices
+    updateLockedInventoryIndices(deserialized.inventory, deserialized.gridState);
+  };
+
+  /**
+   * Save current build to backend
+   */
+  const saveBuild = async () => {
+    if (!user || !isAuthenticated) return;
+
+    setSaving(true);
+    setSaveError(null);
+    setSaveSuccess(false);
+
+    try {
+      // Serialize build to only store IDs
+      const serializedBuild = serializeBuild({ name: buildName });
+      const buildData = {
+        name: serializedBuild.name,
+        weaponId: serializedBuild.weaponId,
+        weaponName: serializedBuild.weaponName,
+        gridState: serializedBuild.gridState,
+        inventory: serializedBuild.inventory
+      };
+
+      const response = await fetch(getSaveDataEndpoint(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'engraving-builds',
+          username: user.login,
+          userId: user.id,
+          data: buildData,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save build');
+      }
+
+      const data = await response.json();
+      const sortedBuilds = data.builds.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      setSavedBuilds(sortedBuilds);
+
+      // Find the saved build ID
+      const savedBuild = sortedBuilds.find(b => b.name === buildName);
+      if (savedBuild) {
+        setCurrentLoadedBuildId(savedBuild.id);
+      }
+
+      setSaveSuccess(true);
+      setHasUnsavedChanges(false);
+
+      // Cache the updated builds
+      setCache('engraving_builds', user.id, sortedBuilds);
+
+      // Clear localStorage draft after successful save
+      clearDraft();
+
+      // Hide success message after 2 seconds
+      setTimeout(() => setSaveSuccess(false), 2000);
+    } catch (err) {
+      console.error('[SoulWeaponEngravingBuilder] Failed to save build:', err);
+      setSaveError(err.message || 'Failed to save build');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleWeaponChange = (weaponId) => {
@@ -1875,10 +2128,32 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
   };
 
   const handleRemoveFromInventory = (slotIndex) => {
+    console.log('❌❌❌ handleRemoveFromInventory called for slot:', slotIndex);
+    console.trace('Stack trace for remove call');
+
     const newInventory = [...inventory];
     newInventory[slotIndex] = null;
     setInventory(newInventory);
     setHasUnsavedChanges(true);
+
+    // Only clear drag state if this piece was being dragged
+    if (draggingIndex === slotIndex) {
+      touchDraggingRef.current = false;
+      draggingPieceRef.current = null;
+      setTouchDragging(false);
+      setDraggingPiece(null);
+      setDraggingIndex(null);
+      setTouchStartPos(null);
+      setTouchCurrentPos(null);
+      setPreviewPosition(null);
+      setDragPreviewCells([]);
+
+      // Clean up document touch listeners if they exist
+      if (touchCleanupRef.current) {
+        touchCleanupRef.current();
+        touchCleanupRef.current = null;
+      }
+    }
   };
 
   // Drag handlers
@@ -1927,7 +2202,11 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
   };
 
   const handleDragEnd = () => {
-    console.log('🔥 Drag ended - cleaning up');
+    console.log('🔥 Drag ended - cleaning up (piece stays in inventory)');
+
+    // IMPORTANT: When drag ends without being dropped on grid, the piece stays in inventory
+    // We only clear visual drag state, we do NOT remove the piece from inventory
+
     // Clear all drag states
     setDraggingPiece(null);
     setDraggingIndex(null);
@@ -2104,9 +2383,11 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
 
     setTouchStartPos({ x: touch.clientX, y: touch.clientY });
     setTouchCurrentPos({ x: touch.clientX, y: touch.clientY });
+    draggingPieceRef.current = piece; // Set ref immediately
     setDraggingPiece(piece);
     setDraggingIndex(index);
     setCurrentDragRotation(0);
+    touchDraggingRef.current = true; // Set ref immediately
     setTouchDragging(true);
 
     // Calculate pattern offset (same as mouse drag)
@@ -2129,8 +2410,8 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
   };
 
   const handleTouchMove = (e) => {
-    if (!touchDragging || !draggingPiece) {
-      console.log('❌ Touch move ignored:', { touchDragging, draggingPiece: !!draggingPiece });
+    if (!touchDraggingRef.current || !draggingPieceRef.current) {
+      console.log('❌ Touch move ignored:', { touchDragging: touchDraggingRef.current, draggingPiece: !!draggingPieceRef.current });
       return;
     }
 
@@ -2152,7 +2433,7 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
       const anchorCol = cell.col - dragPatternOffset.col;
       console.log('📱 Anchor position:', anchorRow, anchorCol);
 
-      const pattern = getRotatedPattern(draggingPiece.shape.pattern, currentDragRotation);
+      const pattern = getRotatedPattern(draggingPieceRef.current.shape.pattern, currentDragRotation);
       const previewCells = [];
 
       for (let pRow = 0; pRow < pattern.length; pRow++) {
@@ -2200,7 +2481,7 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
   };
 
   const handleTouchEnd = (e) => {
-    if (!touchDragging || !draggingPiece) return;
+    if (!touchDraggingRef.current || !draggingPieceRef.current) return;
 
     e.preventDefault();
     e.stopPropagation();
@@ -2219,28 +2500,42 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
       setPlacingInventoryIndex(draggingIndex);
 
       // Calculate initial button position based on CURRENT rotation (will stay fixed during further rotations)
-      const currentPattern = getRotatedPattern(draggingPiece.shape.pattern, currentDragRotation);
+      const currentPattern = getRotatedPattern(draggingPieceRef.current.shape.pattern, currentDragRotation);
       const buttonLeft = GRID_PADDING + anchorCol * (adjustedCellSize + GAP_SIZE);
       const buttonTop = GRID_PADDING + (anchorRow + currentPattern.length) * (adjustedCellSize + GAP_SIZE) + GRID_PADDING;
       setPlacingButtonPosition({ left: buttonLeft, top: buttonTop });
 
-      setPlacingPiece(draggingPiece);
+      setPlacingPiece(draggingPieceRef.current);
       setPlacingPosition({ row: anchorRow, col: anchorCol });
       setPlacingRotation(currentDragRotation);
     } else {
-      console.log('📱 Not over grid, canceling drop');
+      console.log('📱 Not over grid, canceling drop - piece stays in inventory');
+      // IMPORTANT: When dropped outside grid, the piece stays in inventory
+      // We only clear visual drag state, we do NOT remove the piece from inventory
     }
 
-    // Clear drag state
+    // Clear drag state (both refs and React state)
+    touchDraggingRef.current = false; // Clear ref immediately
+    draggingPieceRef.current = null; // Clear ref immediately
+
+    // Clear touch position FIRST to make preview disappear immediately
+    setTouchCurrentPos(null);
+    setTouchDragging(false);
+
+    // Clean up document touch listeners if they exist
+    if (touchCleanupRef.current) {
+      touchCleanupRef.current();
+      touchCleanupRef.current = null;
+    }
+
+    // Clear remaining drag state
     setDraggingPiece(null);
     setDraggingIndex(null);
     setPreviewPosition(null);
     setDragPreviewCells([]);
     setCurrentDragRotation(0);
     setDragPatternOffset({ row: 0, col: 0 });
-    setTouchDragging(false);
     setTouchStartPos(null);
-    setTouchCurrentPos(null);
   };
 
   const handleTouchStartPlacedPiece = (e, piece, clickedPatternRow, clickedPatternCol) => {
@@ -2248,7 +2543,6 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
 
     // CRITICAL: Prevent default to stop scrolling
     e.preventDefault();
-    e.stopPropagation();
 
     const touch = e.touches[0];
     console.log('📱 Touch Start Placed:', touch.clientX, touch.clientY);
@@ -2267,11 +2561,39 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
       level: piece.level
     };
 
+    draggingPieceRef.current = dragPieceData; // Set ref immediately
     setDraggingPiece(dragPieceData);
     setDraggingIndex(piece.inventoryIndex !== undefined ? piece.inventoryIndex : null);
     setCurrentDragRotation(piece.rotation || 0); // Preserve rotation
     setDraggingFromGrid({ anchorRow: piece.anchorRow, anchorCol: piece.anchorCol });
+    touchDraggingRef.current = true; // Set ref immediately
     setTouchDragging(true);
+
+    // Add document-level touch listeners IMMEDIATELY (not via useEffect)
+    // This ensures the first touchmove is captured
+    console.log('📱 Adding document touch listeners immediately');
+
+    const handleDocumentTouchMove = (e) => {
+      if (touchDraggingRef.current && draggingPieceRef.current) {
+        handleTouchMove(e);
+      }
+    };
+
+    const handleDocumentTouchEnd = (e) => {
+      if (touchDraggingRef.current && draggingPieceRef.current) {
+        handleTouchEnd(e);
+      }
+    };
+
+    document.addEventListener('touchmove', handleDocumentTouchMove, { passive: false });
+    document.addEventListener('touchend', handleDocumentTouchEnd, { passive: false });
+
+    // Store cleanup function
+    touchCleanupRef.current = () => {
+      console.log('📱 Cleaning up document touch listeners');
+      document.removeEventListener('touchmove', handleDocumentTouchMove);
+      document.removeEventListener('touchend', handleDocumentTouchEnd);
+    };
 
     console.log('📱 Touch dragging placed piece, draggingFromGrid:', { anchorRow: piece.anchorRow, anchorCol: piece.anchorCol });
   };
@@ -2415,7 +2737,7 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
     setHasUnsavedChanges(true);
   };
 
-  const handleClickPlacedPiece = (piece) => {
+  const handleClickPlacedPiece = (e, piece) => {
     console.log('👆 Clicked placed piece, entering placing mode:', piece);
 
     // Validate piece data
@@ -3816,24 +4138,81 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
         </p>
       </div>
 
-      {/* Build Name */}
+      {/* Saved Builds Panel */}
+      {!isModal && (
+        <SavedBuildsPanel
+          currentBuild={{ gridState, inventory }}
+          buildName={buildName}
+          maxSlots={null}
+          onLoadBuild={handleLoadBuild}
+          allowSavingBuilds={false}
+          currentLoadedBuildId={currentLoadedBuildId}
+          onBuildsChange={setSavedBuilds}
+          defaultExpanded={true}
+          externalBuilds={savedBuilds}
+          buildType="engraving-builds"
+          buildData={{
+            name: buildName,
+            weaponId: selectedWeapon?.id,
+            weaponName: selectedWeapon?.name,
+            gridState: serializeBuild({ name: buildName }).gridState,
+            inventory: serializeBuild({ name: buildName }).inventory
+          }}
+        />
+      )}
+
+      {/* Build Name Panel - Controlled by allowSavingBuilds */}
       {allowSavingBuilds && !isModal && (
-        <div className="bg-white dark:bg-gray-900 rounded-lg p-3 sm:p-4 mb-4 border border-gray-200 dark:border-gray-800 shadow-sm">
-          <ValidatedInput
-            label="Build Name"
-            value={buildName}
-            onChange={(e) => {
-              setBuildName(e.target.value);
-              setHasUnsavedChanges(true);
-            }}
-            validator={validateBuildName}
-            placeholder="Enter build name..."
-            maxLength={STRING_LIMITS.BUILD_NAME_MAX}
-            required={isAuthenticated}
-            showCounter={true}
-            validateOnBlur={false}
-            className="w-full"
-          />
+        <div className="bg-white dark:bg-gray-900 rounded-lg p-4 mb-4 border border-gray-200 dark:border-gray-800 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-start gap-2">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap pt-2">Build Name:</label>
+            <div className="flex-1">
+              <ValidatedInput
+                value={buildName}
+                onChange={(e) => {
+                  setBuildName(e.target.value);
+                  setHasUnsavedChanges(true);
+                }}
+                validator={validateBuildName}
+                placeholder="Enter build name..."
+                maxLength={STRING_LIMITS.BUILD_NAME_MAX}
+                required={isAuthenticated}
+                showCounter={true}
+                validateOnBlur={false}
+                className="w-full"
+              />
+            </div>
+            {isAuthenticated && (
+              <button
+                onClick={saveBuild}
+                disabled={saving || saveSuccess}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
+              >
+                {saving ? (
+                  <>
+                    <Loader className="w-4 h-4 animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : saveSuccess ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Saved!</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    <span>Save Build</span>
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+          {/* Save Error Message */}
+          {saveError && (
+            <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-800 dark:text-red-200">
+              {saveError}
+            </div>
+          )}
         </div>
       )}
 
@@ -4955,7 +5334,7 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
               const isValid = isCurrentPlacementValid();
               return (
                 <div
-                  className="placement-buttons absolute flex gap-2 z-10"
+                  className="placement-buttons absolute flex gap-2 z-[100]"
                   style={{
                     left: `${placingButtonPosition.left}px`,
                     top: `${placingButtonPosition.top}px`,
@@ -5066,12 +5445,38 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
                   onDragStart={(e) => piece && !isLocked && handleDragStart(e, piece, index)}
                   onDragEnd={handleDragEnd}
                   onTouchStart={(e) => {
-                    console.log('📱 onTouchStart event fired on inventory slot', index);
+                    // Don't start drag if touching the remove button or level editor
+                    const target = e.target;
+                    const isButton = target.closest('[data-remove-button]');
+                    const isLevelEditor = target.closest('[data-level-editor]');
+
+                    console.log('📱 onTouchStart event fired on inventory slot', index, {
+                      target: target.tagName,
+                      isButton: !!isButton,
+                      isLevelEditor: !!isLevelEditor
+                    });
+
+                    if (isButton || isLevelEditor) {
+                      console.log('📱 Touch on button/level editor, ignoring and stopping propagation');
+                      e.stopPropagation();
+                      return;
+                    }
                     if (piece && !isLocked) handleTouchStart(e, piece, index);
                   }}
                   onPointerDown={(e) => {
                     // Fallback for DevTools emulation - treat pointer as touch if it's a touch pointer
                     if (e.pointerType === 'touch' && piece && !isLocked) {
+                      // Don't start drag if touching the remove button or level editor
+                      const target = e.target;
+                      const isButton = target.closest('[data-remove-button]');
+                      const isLevelEditor = target.closest('[data-level-editor]');
+
+                      if (isButton || isLevelEditor) {
+                        console.log('📱 onPointerDown: Touch on button/level editor, ignoring');
+                        e.stopPropagation();
+                        return;
+                      }
+
                       console.log('📱 onPointerDown (touch) event fired on inventory slot', index);
                       // Convert pointer event to touch-like event
                       const fakeTouch = {
@@ -5102,9 +5507,8 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
                     borderColor: getRarityColor(piece.rarity),
                     boxShadow: isLocked
                       ? `0 0 8px ${getRarityColor(piece.rarity)}40, inset 0 0 6px ${getRarityColor(piece.rarity)}20`
-                      : `0 0 12px ${getRarityColor(piece.rarity)}80, inset 0 0 8px ${getRarityColor(piece.rarity)}40`,
-                    touchAction: piece && !isLocked ? 'none' : 'auto'
-                  } : { touchAction: 'auto' }}
+                      : `0 0 12px ${getRarityColor(piece.rarity)}80, inset 0 0 8px ${getRarityColor(piece.rarity)}40`
+                  } : {}}
                 >
                   {piece ? (
                     <div className="w-full h-full relative flex items-center justify-center">
@@ -5127,16 +5531,74 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
                         </>
                       ) : (
                         /* Remove button (only for unlocked pieces) */
-                        <button
+                        <div
+                          data-remove-button
+                          className="absolute -top-2 -right-2 w-8 h-8 flex items-start justify-end z-[100]"
+                          onPointerDown={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            // Store initial position to detect if this is a drag or tap
+                            e.currentTarget.dataset.startX = e.clientX;
+                            e.currentTarget.dataset.startY = e.clientY;
+                            console.log('📱 Pointer down on remove button - stopping all events');
+                          }}
+                          onTouchStart={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            // Store initial position to detect if this is a drag or tap
+                            const touch = e.touches[0];
+                            e.currentTarget.dataset.startX = touch.clientX;
+                            e.currentTarget.dataset.startY = touch.clientY;
+                            console.log('📱 Touch start on remove button - stopping all events');
+                          }}
+                          onPointerUp={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+
+                            // Only remove if finger hasn't moved much (not a drag)
+                            const startX = parseFloat(e.currentTarget.dataset.startX || e.clientX);
+                            const startY = parseFloat(e.currentTarget.dataset.startY || e.clientY);
+                            const deltaX = Math.abs(e.clientX - startX);
+                            const deltaY = Math.abs(e.clientY - startY);
+                            const DRAG_THRESHOLD = 10; // pixels
+
+                            if (deltaX > DRAG_THRESHOLD || deltaY > DRAG_THRESHOLD) {
+                              console.log('📱 Remove button: Drag detected, ignoring', { deltaX, deltaY });
+                              return;
+                            }
+
+                            console.log('📱 Remove button pressed, removing piece');
+                            handleRemoveFromInventory(index);
+                          }}
+                          onTouchEnd={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+
+                            // Only remove if finger hasn't moved much (not a drag)
+                            const touch = e.changedTouches[0];
+                            const startX = parseFloat(e.currentTarget.dataset.startX || touch.clientX);
+                            const startY = parseFloat(e.currentTarget.dataset.startY || touch.clientY);
+                            const deltaX = Math.abs(touch.clientX - startX);
+                            const deltaY = Math.abs(touch.clientY - startY);
+                            const DRAG_THRESHOLD = 10; // pixels
+
+                            if (deltaX > DRAG_THRESHOLD || deltaY > DRAG_THRESHOLD) {
+                              console.log('📱 Remove button: Drag detected, ignoring', { deltaX, deltaY });
+                              return;
+                            }
+
+                            console.log('📱 Touch end on remove button, removing piece');
+                            handleRemoveFromInventory(index);
+                          }}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleRemoveFromInventory(index);
                           }}
-                          className="absolute -top-1 -right-1 bg-red-600 hover:bg-red-700 text-white rounded-full p-0.5 z-20 shadow-lg transition-colors"
-                          title="Remove piece"
                         >
-                          <X className="w-3 h-3" />
-                        </button>
+                          <div className="bg-red-600 hover:bg-red-700 active:bg-red-800 text-white rounded-full p-0.5 shadow-lg transition-colors">
+                            <X className="w-3 h-3" />
+                          </div>
+                        </div>
                       )}
 
                       {/* Piece image - no resizing, natural size */}
@@ -5151,10 +5613,10 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
                         }}
                       />
 
-                      {/* Level - Interactive (full width at bottom) */}
+                      {/* Level - Interactive (positioned at bottom edge on mobile, slightly up on desktop) */}
                       <div
                         data-level-editor
-                        className="absolute bottom-0 left-0 w-full text-center bg-black/70 hover:bg-black/90 text-white text-xs px-1.5 py-0.5 rounded-t z-10 cursor-pointer select-none transition-colors"
+                        className="absolute -bottom-2 sm:bottom-1 left-0 right-0 text-center bg-black/70 hover:bg-black/90 text-white text-xs px-1.5 py-0.5 rounded-t z-10 cursor-pointer select-none transition-colors"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleOpenLevelEditor(index, piece.level);
@@ -5174,7 +5636,7 @@ const SoulWeaponEngravingBuilder = ({ isModal = false, initialBuild = null, onSa
                   ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center text-gray-600 dark:text-gray-500">
                       <Lock className="w-6 h-6 mb-1" />
-                      <span className="text-xs text-green-500">Click to add</span>
+                      <span className="text-xs text-green-500 text-center">Click to add</span>
                     </div>
                   )}
                 </div>

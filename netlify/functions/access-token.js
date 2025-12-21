@@ -10,6 +10,8 @@
  * }
  */
 
+import { pollAccessToken } from './shared/oauth.js';
+
 export async function handler(event) {
   // Only allow POST
   if (event.httpMethod !== 'POST') {
@@ -24,37 +26,20 @@ export async function handler(event) {
     // Parse request body
     const { client_id, device_code, grant_type } = JSON.parse(event.body);
 
-    if (!client_id || !device_code) {
-      return {
-        statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: 'Missing client_id or device_code' }),
-      };
-    }
-
-    // Proxy request to GitHub
-    const response = await fetch('https://github.com/login/oauth/access_token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify({
-        client_id,
-        device_code,
-        grant_type: grant_type || 'urn:ietf:params:oauth:grant-type:device_code',
-      }),
+    // Poll for access token
+    const result = await pollAccessToken({
+      client_id,
+      device_code,
+      grant_type
     });
 
-    const data = await response.json();
-
     return {
-      statusCode: response.status,
+      statusCode: result.statusCode,
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify(result.body),
     };
   } catch (error) {
     console.error('[access-token] Error:', error);

@@ -4,21 +4,32 @@ import { useAuthStore } from '../../wiki-framework/src/store/authStore';
 import { useWikiConfig } from '../../wiki-framework/src/hooks/useWikiConfig';
 import { useLoginFlow } from '../../wiki-framework/src/hooks/useLoginFlow';
 import LoginModal from '../../wiki-framework/src/components/auth/LoginModal';
-import { getUserBuilds } from '../../wiki-framework/src/services/github/skillBuilds';
 import { getCache, setCache, mergeCacheWithGitHub } from '../utils/buildCache';
-import { getSaveDataEndpoint, getDeleteDataEndpoint } from '../utils/apiEndpoints.js';
+import { getSaveDataEndpoint, getDeleteDataEndpoint, getLoadDataEndpoint } from '../utils/apiEndpoints.js';
 
 /**
  * SavedBuildsPanel Component
  *
- * Displays and manages user's saved skill builds
+ * Displays and manages user's saved builds (skill builds, engraving builds, etc.)
  * Features:
  * - Load saved builds
  * - Save current build
  * - Delete builds
  * - Mobile-friendly UI
  */
-const SavedBuildsPanel = ({ currentBuild, buildName, maxSlots, onLoadBuild, allowSavingBuilds = true, currentLoadedBuildId = null, onBuildsChange = null, defaultExpanded = true, externalBuilds = null }) => {
+const SavedBuildsPanel = ({
+  currentBuild,
+  buildName,
+  maxSlots,
+  onLoadBuild,
+  allowSavingBuilds = true,
+  currentLoadedBuildId = null,
+  onBuildsChange = null,
+  defaultExpanded = true,
+  externalBuilds = null,
+  buildType = 'skill-builds', // Type of build: 'skill-builds', 'engraving-builds', etc.
+  buildData = null // Additional build data to save (for builders that need more than slots/maxSlots)
+}) => {
   const { isAuthenticated, user } = useAuthStore();
   const { config } = useWikiConfig();
   const loginFlow = useLoginFlow();
@@ -28,9 +39,17 @@ const SavedBuildsPanel = ({ currentBuild, buildName, maxSlots, onLoadBuild, allo
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState(null);
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const [weapons, setWeapons] = useState([]);
 
   // Use external builds if provided (controlled mode), otherwise use internal state
   const savedBuilds = externalBuilds !== null ? externalBuilds : internalSavedBuilds;
+
+  // Load weapons data for engraving builds
+  useEffect(() => {
+    if (buildType === 'engraving-builds') {
+      loadWeapons();
+    }
+  }, [buildType]);
 
   // Load saved builds on mount
   useEffect(() => {
@@ -39,6 +58,16 @@ const SavedBuildsPanel = ({ currentBuild, buildName, maxSlots, onLoadBuild, allo
     }
   }, [isAuthenticated, user]);
 
+  const loadWeapons = async () => {
+    try {
+      const response = await fetch('/data/soul-weapons.json');
+      const data = await response.json();
+      setWeapons(data || []);
+    } catch (err) {
+      console.error('[SavedBuildsPanel] Failed to load weapons:', err);
+    }
+  };
+
   const loadBuilds = async () => {
     if (!user || !config) return;
 
@@ -46,16 +75,19 @@ const SavedBuildsPanel = ({ currentBuild, buildName, maxSlots, onLoadBuild, allo
     setError(null);
 
     try {
-      // Get cached builds
-      const cachedBuilds = getCache('skill_builds', user.id);
+      // Convert buildType to cache key (e.g., 'skill-builds' -> 'skill_builds')
+      const cacheKey = buildType.replace(/-/g, '_');
 
-      // Fetch from GitHub
-      const githubBuilds = await getUserBuilds(
-        config.wiki.repository.owner,
-        config.wiki.repository.repo,
-        user.login,
-        user.id
-      );
+      // Get cached builds
+      const cachedBuilds = getCache(cacheKey, user.id);
+
+      // Fetch from GitHub via load-data endpoint
+      const response = await fetch(`${getLoadDataEndpoint()}?type=${buildType}&userId=${user.id}`);
+      if (!response.ok) {
+        throw new Error('Failed to load builds from server');
+      }
+      const data = await response.json();
+      const githubBuilds = data.builds || [];
 
       // Merge cached data with GitHub data, prioritizing cache for recent updates
       const mergedBuilds = mergeCacheWithGitHub(cachedBuilds, githubBuilds);
@@ -69,7 +101,7 @@ const SavedBuildsPanel = ({ currentBuild, buildName, maxSlots, onLoadBuild, allo
       }
 
       // Update cache with merged results
-      setCache('skill_builds', user.id, mergedBuilds);
+      setCache(cacheKey, user.id, mergedBuilds);
     } catch (err) {
       console.error('[SavedBuilds] Failed to load builds:', err);
       setError('Failed to load saved builds');
@@ -86,7 +118,11 @@ const SavedBuildsPanel = ({ currentBuild, buildName, maxSlots, onLoadBuild, allo
     setSaveSuccess(false);
 
     try {
-      const buildData = {
+      // Convert buildType to cache key (e.g., 'skill-builds' -> 'skill_builds')
+      const cacheKey = buildType.replace(/-/g, '_');
+
+      // Use buildData if provided, otherwise use default structure
+      const dataToSave = buildData || {
         name: buildName,
         maxSlots,
         slots: currentBuild.slots,
@@ -98,10 +134,10 @@ const SavedBuildsPanel = ({ currentBuild, buildName, maxSlots, onLoadBuild, allo
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          type: 'skill-builds',
+          type: buildType,
           username: user.login,
           userId: user.id,
-          data: buildData,
+          data: dataToSave,
         }),
       });
 
@@ -122,7 +158,7 @@ const SavedBuildsPanel = ({ currentBuild, buildName, maxSlots, onLoadBuild, allo
       }
 
       // Cache the updated builds
-      setCache('skill_builds', user.id, sortedBuilds);
+      setCache(cacheKey, user.id, sortedBuilds);
 
       // Hide success message after 2 seconds
       setTimeout(() => setSaveSuccess(false), 2000);
@@ -141,13 +177,16 @@ const SavedBuildsPanel = ({ currentBuild, buildName, maxSlots, onLoadBuild, allo
     setError(null);
 
     try {
+      // Convert buildType to cache key (e.g., 'skill-builds' -> 'skill_builds')
+      const cacheKey = buildType.replace(/-/g, '_');
+
       const response = await fetch(getDeleteDataEndpoint(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          type: 'skill-builds',
+          type: buildType,
           username: user.login,
           userId: user.id,
           itemId: buildId,
@@ -170,7 +209,7 @@ const SavedBuildsPanel = ({ currentBuild, buildName, maxSlots, onLoadBuild, allo
       }
 
       // Update cache after deletion
-      setCache('skill_builds', user.id, sortedBuilds);
+      setCache(cacheKey, user.id, sortedBuilds);
     } catch (err) {
       console.error('[SavedBuilds] Failed to delete build:', err);
       setError(err.message || 'Failed to delete build');
@@ -192,11 +231,30 @@ const SavedBuildsPanel = ({ currentBuild, buildName, maxSlots, onLoadBuild, allo
     return date.toLocaleDateString();
   };
 
-  const handleLoadBuild = (build) => {
-    // Check if there are any skills in the current build
-    const hasSkills = currentBuild?.slots?.some(slot => slot?.skill || slot?.skillId);
+  const getWeaponImage = (weaponId) => {
+    const weapon = weapons.find(w => w.id === weaponId);
+    return weapon?.image || null;
+  };
 
-    if (hasSkills) {
+  const handleLoadBuild = (build) => {
+    // Check if there are any meaningful changes in the current build
+    let hasContent = false;
+
+    if (buildType === 'skill-builds') {
+      hasContent = currentBuild?.slots?.some(slot => slot?.skill || slot?.skillId);
+    } else if (buildType === 'engraving-builds') {
+      // Check if there are pieces in grid or inventory
+      const hasPiecesInGrid = currentBuild?.gridState?.some(row =>
+        row?.some(cell => cell?.piece !== null)
+      );
+      const hasPiecesInInventory = currentBuild?.inventory?.some(piece => piece !== null);
+      hasContent = hasPiecesInGrid || hasPiecesInInventory;
+    } else {
+      // Generic check for other build types
+      hasContent = true; // Always confirm for unknown types
+    }
+
+    if (hasContent) {
       const confirmed = window.confirm(
         `Loading "${build.name}" will replace your current build. Continue?`
       );
@@ -327,7 +385,7 @@ const SavedBuildsPanel = ({ currentBuild, buildName, maxSlots, onLoadBuild, allo
 
           {/* Builds List */}
           {!loading && savedBuilds.length > 0 && (
-            <div className="max-h-96 overflow-y-auto space-y-2">
+            <div className="max-h-[230px] overflow-y-auto space-y-2 pr-2">
               {savedBuilds.map((build) => {
                 const isCurrentlyLoaded = currentLoadedBuildId === build.id;
                 return (
@@ -356,13 +414,16 @@ const SavedBuildsPanel = ({ currentBuild, buildName, maxSlots, onLoadBuild, allo
                             (Loaded)
                           </span>
                         )}
-                        <span className={`text-xs flex-shrink-0 ${
-                          isCurrentlyLoaded
-                            ? 'text-blue-600 dark:text-blue-400'
-                            : 'text-gray-500 dark:text-gray-400'
-                        }`}>
-                          {build.maxSlots} slots
-                        </span>
+                        {/* Show maxSlots only for skill builds */}
+                        {buildType === 'skill-builds' && build.maxSlots && (
+                          <span className={`text-xs flex-shrink-0 ${
+                            isCurrentlyLoaded
+                              ? 'text-blue-600 dark:text-blue-400'
+                              : 'text-gray-500 dark:text-gray-400'
+                          }`}>
+                            {build.maxSlots} slots
+                          </span>
+                        )}
                       </div>
                       <div className={`flex items-center gap-2 text-xs ${
                         isCurrentlyLoaded
@@ -372,9 +433,27 @@ const SavedBuildsPanel = ({ currentBuild, buildName, maxSlots, onLoadBuild, allo
                         <Clock className="w-3 h-3" />
                         <span>{formatDate(build.updatedAt)}</span>
                         <span>•</span>
-                        <span>{build.slots.filter(s => s.skill).length} skills</span>
+                        {/* Show different details based on build type */}
+                        {buildType === 'skill-builds' && build.slots && (
+                          <span>{build.slots.filter(s => s.skill || s.skillId).length} skills</span>
+                        )}
+                        {buildType === 'engraving-builds' && build.weaponName && (
+                          <span>{build.weaponName}</span>
+                        )}
                       </div>
                     </button>
+
+                    {/* Weapon Image for engraving builds */}
+                    {buildType === 'engraving-builds' && build.weaponId && getWeaponImage(build.weaponId) && (
+                      <div className="flex-shrink-0">
+                        <img
+                          src={getWeaponImage(build.weaponId)}
+                          alt={build.weaponName || 'Weapon'}
+                          className="w-10 h-10 object-contain"
+                          title={build.weaponName}
+                        />
+                      </div>
+                    )}
 
                   <button
                     onClick={() => deleteBuild(build.id)}
