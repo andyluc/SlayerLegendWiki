@@ -161,7 +161,7 @@ jobs:
 
               // Fetch all PRs by this user
               console.log('🔍 Fetching pull requests...');
-              const allPRs = [];
+              let allPRs = [];
               let page = 1;
               let hasMore = true;
 
