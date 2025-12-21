@@ -7,6 +7,7 @@ import LoginModal from '../../wiki-framework/src/components/auth/LoginModal';
 import { getUserLoadouts } from '../../wiki-framework/src/services/github/battleLoadouts';
 import { getCache, setCache, mergeCacheWithGitHub } from '../utils/buildCache';
 import { getDeleteDataEndpoint } from '../utils/apiEndpoints.js';
+import { getSkillGradeColor, getEquipmentRarityColor } from '../../wiki-framework/src/utils/rarityColors';
 
 /**
  * SavedLoadoutsPanel Component
@@ -25,9 +26,17 @@ const SavedLoadoutsPanel = ({ currentLoadout, onLoadLoadout, currentLoadedLoadou
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isExpanded, setIsExpanded] = useState(true);
+  const [skills, setSkills] = useState([]);
+  const [spirits, setSpirits] = useState([]);
 
   // Use external loadouts if provided (controlled mode), otherwise use internal state
   const savedLoadouts = externalLoadouts !== null ? externalLoadouts : internalSavedLoadouts;
+
+  // Load skills and spirits data
+  useEffect(() => {
+    loadSkills();
+    loadSpirits();
+  }, []);
 
   // Load saved loadouts on mount
   useEffect(() => {
@@ -35,6 +44,31 @@ const SavedLoadoutsPanel = ({ currentLoadout, onLoadLoadout, currentLoadedLoadou
       loadLoadouts();
     }
   }, [isAuthenticated, user]);
+
+  const loadSkills = async () => {
+    try {
+      const response = await fetch('/data/skills.json');
+      const data = await response.json();
+      // Ensure we have an array
+      setSkills(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('[SavedLoadoutsPanel] Failed to load skills:', err);
+      setSkills([]);
+    }
+  };
+
+  const loadSpirits = async () => {
+    try {
+      const response = await fetch('/data/spirit-characters.json');
+      const data = await response.json();
+      // Spirits are nested under 'spirits' property
+      const spiritsArray = data.spirits || [];
+      setSpirits(Array.isArray(spiritsArray) ? spiritsArray : []);
+    } catch (err) {
+      console.error('[SavedLoadoutsPanel] Failed to load spirits:', err);
+      setSpirits([]);
+    }
+  };
 
   const loadLoadouts = async () => {
     if (!user || !config) return;
@@ -131,6 +165,50 @@ const SavedLoadoutsPanel = ({ currentLoadout, onLoadLoadout, currentLoadedLoadou
     if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays < 7) return `${diffDays}d ago`;
     return date.toLocaleDateString();
+  };
+
+  const getLoadoutSkills = (loadout) => {
+    if (!loadout.skillBuild?.slots) return [];
+    if (!Array.isArray(skills) || skills.length === 0) return [];
+
+    // Get skill objects from the skill build slots
+    const loadoutSkills = loadout.skillBuild.slots
+      .filter(slot => slot.skill || slot.skillId)
+      .map(slot => {
+        // Handle both full skill object and skillId reference
+        if (slot.skill) {
+          return slot.skill;
+        } else if (slot.skillId) {
+          const skill = skills.find(s => s.id === slot.skillId);
+          return skill;
+        }
+        return null;
+      })
+      .filter(skill => skill !== null);
+
+    return loadoutSkills;
+  };
+
+  const getLoadoutSpirits = (loadout) => {
+    if (!loadout.spiritBuild?.slots) return [];
+    if (!Array.isArray(spirits) || spirits.length === 0) return [];
+
+    // Get spirit objects from the spirit build slots
+    const loadoutSpirits = loadout.spiritBuild.slots
+      .filter(slot => slot.spirit || slot.spiritId)
+      .map(slot => {
+        // Handle both full spirit object and spiritId reference
+        if (slot.spirit) {
+          return slot.spirit;
+        } else if (slot.spiritId) {
+          const spirit = spirits.find(s => s.id === slot.spiritId);
+          return spirit;
+        }
+        return null;
+      })
+      .filter(spirit => spirit !== null);
+
+    return loadoutSpirits;
   };
 
   const handleLoadLoadout = (loadout) => {
@@ -259,7 +337,7 @@ const SavedLoadoutsPanel = ({ currentLoadout, onLoadLoadout, currentLoadedLoadou
                       {loadout.name}
                     </h4>
                     {isCurrentlyLoaded && (
-                      <span className="text-xs font-medium text-blue-600 dark:text-blue-400 flex-shrink-0">
+                      <span className="hidden sm:inline text-xs font-medium text-blue-600 dark:text-blue-400 flex-shrink-0">
                         (Loaded)
                       </span>
                     )}
@@ -273,6 +351,52 @@ const SavedLoadoutsPanel = ({ currentLoadout, onLoadLoadout, currentLoadedLoadou
                     <span>{formatDate(loadout.updatedAt)}</span>
                   </div>
                 </button>
+
+                {/* Preview Icons */}
+                <div className="flex-shrink-0 flex gap-2">
+                  {/* Spirits Section (Left) */}
+                  {getLoadoutSpirits(loadout).length > 0 && (
+                    <div className="flex flex-wrap gap-0.5 max-w-[52px] sm:max-w-none items-center">
+                      {getLoadoutSpirits(loadout).map((spirit, index) => {
+                        return (
+                          <div
+                            key={index}
+                            className="w-[24px] h-[24px] sm:w-[29px] sm:h-[29px] rounded overflow-hidden"
+                            title={spirit.name}
+                          >
+                            <img
+                              src={spirit.thumbnail || spirit.image}
+                              alt={spirit.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Skills Section (Right) */}
+                  {getLoadoutSkills(loadout).length > 0 && (
+                    <div className="grid grid-cols-4 sm:grid-cols-5 gap-0.5">
+                      {getLoadoutSkills(loadout).map((skill, index) => {
+                        const gradeColors = getSkillGradeColor(skill.grade);
+                        return (
+                          <div
+                            key={index}
+                            className={`w-5 h-5 rounded border ${gradeColors.border} ${gradeColors.glow} overflow-hidden`}
+                            title={skill.name}
+                          >
+                            <img
+                              src={skill.icon}
+                              alt={skill.name}
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
 
                 <button
                   onClick={() => deleteLoadout(loadout.id)}

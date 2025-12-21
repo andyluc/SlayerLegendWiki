@@ -6,6 +6,7 @@ import { useLoginFlow } from '../../wiki-framework/src/hooks/useLoginFlow';
 import LoginModal from '../../wiki-framework/src/components/auth/LoginModal';
 import { getCache, setCache, mergeCacheWithGitHub } from '../utils/buildCache';
 import { getSaveDataEndpoint, getDeleteDataEndpoint, getLoadDataEndpoint } from '../utils/apiEndpoints.js';
+import { getSkillGradeColor } from '../../wiki-framework/src/utils/rarityColors';
 
 /**
  * SavedBuildsPanel Component
@@ -40,6 +41,7 @@ const SavedBuildsPanel = ({
   const [error, setError] = useState(null);
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [weapons, setWeapons] = useState([]);
+  const [skills, setSkills] = useState([]);
 
   // Use external builds if provided (controlled mode), otherwise use internal state
   const savedBuilds = externalBuilds !== null ? externalBuilds : internalSavedBuilds;
@@ -48,6 +50,13 @@ const SavedBuildsPanel = ({
   useEffect(() => {
     if (buildType === 'engraving-builds') {
       loadWeapons();
+    }
+  }, [buildType]);
+
+  // Load skills data for skill builds
+  useEffect(() => {
+    if (buildType === 'skill-builds') {
+      loadSkills();
     }
   }, [buildType]);
 
@@ -65,6 +74,16 @@ const SavedBuildsPanel = ({
       setWeapons(data || []);
     } catch (err) {
       console.error('[SavedBuildsPanel] Failed to load weapons:', err);
+    }
+  };
+
+  const loadSkills = async () => {
+    try {
+      const response = await fetch('/data/skills.json');
+      const data = await response.json();
+      setSkills(data || []);
+    } catch (err) {
+      console.error('[SavedBuildsPanel] Failed to load skills:', err);
     }
   };
 
@@ -234,6 +253,27 @@ const SavedBuildsPanel = ({
   const getWeaponImage = (weaponId) => {
     const weapon = weapons.find(w => w.id === weaponId);
     return weapon?.image || null;
+  };
+
+  const getBuildSkills = (build) => {
+    if (!build.slots) return [];
+
+    // Get skill objects from the build slots
+    const buildSkills = build.slots
+      .filter(slot => slot.skill || slot.skillId)
+      .map(slot => {
+        // Handle both full skill object and skillId reference
+        if (slot.skill) {
+          return slot.skill;
+        } else if (slot.skillId) {
+          const skill = skills.find(s => s.id === slot.skillId);
+          return skill;
+        }
+        return null;
+      })
+      .filter(skill => skill !== null);
+
+    return buildSkills;
   };
 
   const handleLoadBuild = (build) => {
@@ -410,7 +450,7 @@ const SavedBuildsPanel = ({
                           {build.name}
                         </h4>
                         {isCurrentlyLoaded && (
-                          <span className="text-xs font-medium text-blue-600 dark:text-blue-400 flex-shrink-0">
+                          <span className="hidden sm:inline text-xs font-medium text-blue-600 dark:text-blue-400 flex-shrink-0">
                             (Loaded)
                           </span>
                         )}
@@ -442,6 +482,27 @@ const SavedBuildsPanel = ({
                         )}
                       </div>
                     </button>
+
+                    {/* Skill Icons for skill builds */}
+                    {buildType === 'skill-builds' && getBuildSkills(build).length > 0 && (
+                      <div className="flex-shrink-0 grid grid-cols-4 sm:grid-cols-5 gap-0.5">
+                        {getBuildSkills(build).map((skill, index) => {
+                          const gradeColors = getSkillGradeColor(skill.grade);
+                          return (
+                            <div
+                              key={index}
+                              className={`w-6 h-6 rounded border ${gradeColors.border} ${gradeColors.glow} overflow-hidden`}
+                            >
+                              <img
+                                src={skill.icon}
+                                alt={skill.name}
+                                className="w-full h-full object-contain"
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
 
                     {/* Weapon Image for engraving builds */}
                     {buildType === 'engraving-builds' && build.weaponId && getWeaponImage(build.weaponId) && (
