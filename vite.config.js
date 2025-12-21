@@ -125,17 +125,13 @@ export default createWikiConfigSync({
           }
 
           // CodeMirror (code editor - very large)
-          // Keep CodeMirror together with ALL its dependencies to avoid initialization issues
-          // Includes: @codemirror/*, @uiw/react-codemirror, @lezer/*, style-mod, crelt, w3c-keyname
-          if (id.includes('node_modules/@codemirror') ||
-              id.includes('node_modules/@uiw/react-codemirror') ||
-              id.includes('node_modules/@uiw/codemirror-extensions') ||
-              id.includes('node_modules/@lezer') ||
-              id.includes('node_modules/style-mod') ||
-              id.includes('node_modules/crelt') ||
-              id.includes('node_modules/w3c-keyname')) {
-            return 'codemirror';
-          }
+          // Let Vite handle CodeMirror automatically - manual chunking causes initialization issues
+          // with circular dependencies between @codemirror/* packages
+          // NOTE: Commented out to fix "Cannot access 'XX' before initialization" errors
+          // if (id.includes('node_modules/@codemirror') ||
+          //     id.includes('node_modules/@uiw/react-codemirror')) {
+          //   return 'codemirror';
+          // }
 
           // Search library (fuse.js - large)
           if (id.includes('node_modules/fuse.js')) {
