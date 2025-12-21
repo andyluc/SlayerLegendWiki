@@ -41,7 +41,29 @@
       "Bash(Get-Content \"C:\\\\Users\\\\dolb9\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Projects-slayerlegend-wiki\\\\tasks\\\\b47f9f9.output\" -Tail 50)",
       "Bash(dir /s \"C:\\\\Projects\\\\slayerlegend\\\\wiki\\\\netlify\\\\functions\")",
       "Bash(dir /s \"C:\\\\Projects\\\\slayerlegend\\\\wiki\\\\functions\\\\api\")",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(node process-equipment.js:*)",
+      "Bash(for file in access-token load-data delete-data save-data github-bot)",
+      "Bash(do)",
+      "Bash(done)",
+      "Bash(npm test:*)",
+      "Bash(npm run test:integration:*)",
+      "Bash(Get-Content \"C:\\\\Projects\\\\slayerlegend\\\\wiki\\\\.env.test\")",
+      "Bash(Select-String \"GITHUB_CLIENT_ID\")",
+      "Bash(Select-String -Pattern \"FAIL|Error:\" -Context 0,2)",
+      "Bash(tee:*)",
+      "Bash(Get-Content \"C:/Projects/slayerlegend/wiki/functions/_shared/handlers/github-bot.js\")",
+      "Bash(Select-String -Pattern \"case ''send-verification-email'':\" -Context 0,8)",
+      "Bash(node -c:*)",
+      "Bash(python3 -c \"\nimport re\n\nwith open\\(''C:/Projects/slayerlegend/wiki/functions/_shared/handlers/github-bot.js'', ''r''\\) as f:\n    content = f.read\\(\\)\n\n# The file has been corrupted by sed commands\n# Let''s identify patterns that need fixing\nlines = content.split\\(''\\\\n''\\)\nfixed_lines = []\ni = 0\nwhile i < len\\(lines\\):\n    line = lines[i]\n    # Check for broken adapter.createJsonResponse patterns\n    if ''adapter.createJsonResponse\\('' in line and i + 2 < len\\(lines\\):\n        # This is a multi-line createJsonResponse call\n        next_line = lines[i+1]\n        if ''error:'' in next_line or ''verified:'' in next_line:\n            # Check if it has proper closing\n            if i + 2 < len\\(lines\\) and ''}\\);'' not in lines[i+2] and ''};'' in lines[i+2]:\n                # Need to add closing paren\n                fixed_lines.append\\(line\\)\n                fixed_lines.append\\(next_line\\)\n                fixed_lines.append\\(lines[i+2].replace\\(''};'', ''}\\);''\\)\\)\n                i += 3\n                continue\n    fixed_lines.append\\(line\\)\n    i += 1\n\nwith open\\(''C:/Projects/slayerlegend/wiki/functions/_shared/handlers/github-bot.js'', ''w''\\) as f:\n    f.write\\(''\\\\n''.join\\(fixed_lines\\)\\)\n    \nprint\\(''Fixed syntax''\\)\n\")",
+      "Bash(awk:*)",
+      "Bash(npm run test:coverage:*)",
+      "Bash(npm run test:parent:*)",
+      "Bash(git rm:*)",
+      "Bash(find:*)",
+      "Bash(for file in EquipmentCard.jsx EquipmentPicker.jsx SavedBuildsPanel.jsx SavedLoadoutsPanel.jsx SkillCard.jsx SkillPicker.jsx SkillSelector.jsx SkillSlot.jsx)",
+      "Bash(do sed -i \"s|from ''../../wiki-framework/src/utils/rarityColors''|from ''../config/rarityColors''|g\" \"$file\")",
+      "Bash(tasklist:*)"
     ]
   }
 }

@@ -7,13 +7,25 @@ This wiki supports deployment to both **Netlify** and **Cloudflare Pages**. This
 The codebase uses a **dual-platform architecture** that automatically detects the hosting platform and adjusts endpoints accordingly:
 
 ```
-netlify/functions/shared/     # Shared business logic (platform-agnostic)
+functions/_shared/            # Shared business logic (platform-agnostic)
+├── handlers/                 # Request handlers
+│   ├── github-bot.js
+│   ├── save-data.js
+│   ├── load-data.js
+│   ├── delete-data.js
+│   ├── access-token.js
+│   └── device-code.js
 ├── utils.js                  # Common utilities and validation
+├── validation.js             # Request validation
+├── WikiGitHubStorage.js      # Storage implementation
+├── createWikiStorage.js      # Storage factory
 ├── githubBot.js              # GitHub bot operations
-├── dataOperations.js         # Load, save, delete operations
-└── oauth.js                  # OAuth proxy operations
+├── oauth.js                  # OAuth operations
+├── jwt.js                    # JWT utilities
+└── emailTemplates/
+    └── verificationEmail.js
 
-netlify/functions/            # Netlify Functions (Netlify-specific adapters)
+netlify/functions/            # Netlify Functions (thin adapters)
 ├── github-bot.js
 ├── save-data.js
 ├── load-data.js
@@ -21,10 +33,8 @@ netlify/functions/            # Netlify Functions (Netlify-specific adapters)
 ├── access-token.js
 └── device-code.js
 
-functions/api/                # Cloudflare Pages Functions (Cloudflare-specific adapters)
-├── github-bot.js             ✅ Ready (with email handlers)
-├── emailTemplates/
-│   └── verificationEmail.js  ✅ Ready (imported by github-bot)
+functions/api/                # Cloudflare Pages Functions (thin adapters)
+├── github-bot.js
 ├── save-data.js
 ├── load-data.js
 ├── delete-data.js
@@ -256,12 +266,16 @@ export async function onRequest(context) {
 
 ## Shared Business Logic
 
-Both platforms use the same business logic from `netlify/functions/shared/`:
+Both platforms use the same business logic from `functions/_shared/`:
 
+- **handlers/**: Platform-agnostic request handlers
 - **utils.js**: Validation, error handling, configuration
+- **validation.js**: Request validation
+- **WikiGitHubStorage.js**: Storage implementation
+- **createWikiStorage.js**: Storage factory
 - **githubBot.js**: All GitHub bot operations
-- **dataOperations.js**: Load, save, delete operations
 - **oauth.js**: OAuth proxy operations
+- **jwt.js**: JWT utilities
 
 This ensures:
 - **No code duplication**: Business logic written once
@@ -455,7 +469,7 @@ To support both Netlify and Cloudflare deployments:
    - `functions/api/` for Cloudflare
 
 2. **Update shared logic first**:
-   - Make changes in `netlify/functions/shared/`
+   - Make changes in `functions/_shared/`
    - Both platforms use the same business logic
 
 3. **Test on both platforms**:

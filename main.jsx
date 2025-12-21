@@ -9,6 +9,10 @@ import { Ghost, Sparkles, Sword } from 'lucide-react';
 import { initializeBotOctokit } from './wiki-framework/src/services/github/api.js';
 initializeBotOctokit();
 
+// Register game-specific rarity colors with styleRegistry
+// This must be imported early to register styles before components render
+import './src/config/rarityColors.js';
+
 // Register game-specific storage migrations
 import { registerMigrations } from './wiki-framework/src/utils/storageMigration.js';
 import { gameMigrations } from './src/utils/gameMigrations.js';

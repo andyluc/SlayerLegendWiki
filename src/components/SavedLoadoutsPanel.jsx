@@ -4,10 +4,10 @@ import { useAuthStore } from '../../wiki-framework/src/store/authStore';
 import { useWikiConfig } from '../../wiki-framework/src/hooks/useWikiConfig';
 import { useLoginFlow } from '../../wiki-framework/src/hooks/useLoginFlow';
 import LoginModal from '../../wiki-framework/src/components/auth/LoginModal';
-import { getUserLoadouts } from '../../wiki-framework/src/services/github/battleLoadouts';
+import { getUserLoadouts } from '../services/battleLoadouts';
 import { getCache, setCache, mergeCacheWithGitHub } from '../utils/buildCache';
 import { getDeleteDataEndpoint } from '../utils/apiEndpoints.js';
-import { getSkillGradeColor, getEquipmentRarityColor } from '../../wiki-framework/src/utils/rarityColors';
+import { getSkillGradeColor, getEquipmentRarityColor } from '../config/rarityColors';
 
 /**
  * SavedLoadoutsPanel Component

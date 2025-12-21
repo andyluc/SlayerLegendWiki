@@ -1,50 +1,14 @@
 /**
  * Netlify Function: GitHub Device Flow - Initiate
- * Proxies GitHub device flow initiation request
+ * Thin wrapper that delegates to platform-agnostic handler
  *
  * POST /.netlify/functions/device-code
- * Body: {
- *   client_id: string,
- *   scope: string
- * }
  */
 
-import { initiateDeviceFlow } from './shared/oauth.js';
+import { NetlifyAdapter } from 'github-wiki-framework/serverless/shared/adapters/PlatformAdapter.js';
+import { handleDeviceCode } from '../../functions/_shared/handlers/device-code.js';
 
 export async function handler(event) {
-  // Only allow POST
-  if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: 'Method not allowed' }),
-    };
-  }
-
-  try {
-    // Parse request body
-    const { client_id, scope } = JSON.parse(event.body);
-
-    // Initiate device flow
-    const result = await initiateDeviceFlow({
-      client_id,
-      scope
-    });
-
-    return {
-      statusCode: result.statusCode,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-      body: JSON.stringify(result.body),
-    };
-  } catch (error) {
-    console.error('[device-code] Error:', error);
-    return {
-      statusCode: 500,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: error.message || 'Internal server error' }),
-    };
-  }
+  const adapter = new NetlifyAdapter(event);
+  return await handleDeviceCode(adapter);
 }

@@ -7,17 +7,21 @@ This directory contains Cloudflare Pages Functions for the wiki. These functions
 The codebase uses a **shared business logic pattern** to support both Netlify and Cloudflare Pages:
 
 ```
-netlify/functions/shared/     # ← Shared business logic (platform-agnostic)
+functions/_shared/            # ← Shared business logic (platform-agnostic)
+├── handlers/                 # Request handlers
 ├── utils.js                  # Common utilities and validation
+├── validation.js             # Request validation
+├── WikiGitHubStorage.js      # Storage implementation
+├── createWikiStorage.js      # Storage factory
 ├── githubBot.js              # GitHub bot operations
-├── dataOperations.js         # Load, save, delete operations
-└── oauth.js                  # OAuth proxy operations
+├── oauth.js                  # OAuth operations
+└── jwt.js                    # JWT utilities
 
 netlify/functions/            # ← Netlify-specific adapters
-└── *.js                      # Thin wrappers that call shared logic
+└── *.js                      # Thin wrappers that call shared handlers
 
 functions/api/                # ← Cloudflare-specific adapters (THIS DIRECTORY)
-└── *.js                      # Thin wrappers that call shared logic
+└── *.js                      # Thin wrappers that call shared handlers
 ```
 
 ## Functions
@@ -52,32 +56,22 @@ export async function onRequest(context) {
 ## Shared Business Logic
 
 Each function is a thin adapter that:
-1. Parses the Cloudflare request format
-2. Calls shared business logic from `netlify/functions/shared/`
-3. Formats the response in Cloudflare format
+1. Creates platform-specific adapters (CloudflareAdapter, ConfigAdapter)
+2. Calls shared handlers from `../_shared/handlers/`
+3. Returns platform-specific response format
 
 Example:
 
 ```javascript
-import { saveData } from '../../netlify/functions/shared/dataOperations.js';
-import { getEnvConfig } from '../../netlify/functions/shared/utils.js';
+import { CloudflareAdapter } from 'github-wiki-framework/serverless/shared/adapters/PlatformAdapter.js';
+import { ConfigAdapter } from 'github-wiki-framework/serverless/shared/adapters/ConfigAdapter.js';
+import { handleSaveData } from '../_shared/handlers/save-data.js';
 
 export async function onRequest(context) {
-  const { request, env } = context;
-
-  // Parse Cloudflare request
-  const data = await request.json();
-
-  // Get environment configuration
-  const envConfig = getEnvConfig(env);
-
-  // Call shared business logic
-  const result = await saveData({
-    botToken: envConfig.botToken,
-    owner: envConfig.owner,
-    repo: envConfig.repo,
-    ...data
-  });
+  const adapter = new CloudflareAdapter(context);
+  const configAdapter = new ConfigAdapter('cloudflare');
+  return await handleSaveData(adapter, configAdapter);
+}
 
   // Return Cloudflare response
   return new Response(
@@ -140,7 +134,7 @@ VITE_CF_PAGES=1
 
 When adding a new function:
 
-1. **Add shared logic**: Create/update function in `netlify/functions/shared/`
+1. **Add shared logic**: Create handler in `functions/_shared/handlers/`
 2. **Add Netlify adapter**: Create thin wrapper in `netlify/functions/`
 3. **Add Cloudflare adapter**: Create thin wrapper in `functions/api/`
 4. **Update API endpoints**: Add to `src/utils/apiEndpoints.js`

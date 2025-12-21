@@ -1,152 +1,16 @@
 /**
- * Cloudflare Pages Function: Load Data (Universal)
- * Handles loading skill builds, battle loadouts, engraving builds, and spirit collection
+ * Cloudflare Function: Load Data
+ * Thin wrapper that delegates to platform-agnostic handler
  *
- * GET /api/load-data?type=TYPE&userId=USER_ID
- * Query Params:
- *   type: 'skill-builds' | 'battle-loadouts' | 'my-spirits' | 'spirit-builds' | 'engraving-builds'
- *   userId: number
+ * GET /api/load-data
  */
 
-import { createWikiStorage } from './_lib/createWikiStorage.js';
-import {
-  DATA_TYPE_CONFIGS,
-  createErrorResponse,
-  createSuccessResponse,
-} from './_lib/utils.js';
-
-/**
- * Get storage configuration from environment
- * Uses a default GitHub backend configuration
- */
-function getStorageConfig(env, owner, repo) {
-  // Check if KV namespace is bound (indicates KV backend should be used)
-  if (env.SLAYER_WIKI_DATA) {
-    return {
-      backend: 'cloudflare-kv',
-      version: 'v1',
-      cloudflareKV: { namespace: env.SLAYER_WIKI_DATA }
-    };
-  }
-
-  // Default to GitHub backend
-  return {
-    backend: 'github',
-    version: 'v1',
-    github: { owner, repo }
-  };
-}
+import { CloudflareAdapter } from 'github-wiki-framework/serverless/shared/adapters/PlatformAdapter.js';
+import { ConfigAdapter } from 'github-wiki-framework/serverless/shared/adapters/ConfigAdapter.js';
+import { handleLoadData } from '../_shared/handlers/load-data.js';
 
 export async function onRequest(context) {
-  const { request, env } = context;
-
-  // Only allow GET
-  if (request.method !== 'GET') {
-    return new Response(
-      JSON.stringify({ error: 'Method not allowed' }),
-      {
-        status: 405,
-        headers: { 'Content-Type': 'application/json' }
-      }
-    );
-  }
-
-  try {
-    // Parse query parameters
-    const url = new URL(request.url);
-    const type = url.searchParams.get('type');
-    const userId = url.searchParams.get('userId');
-
-    // Validate required fields
-    if (!type || !userId) {
-      return new Response(
-        JSON.stringify({ error: 'Missing required parameters: type, userId' }),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    // Validate type
-    const validTypes = ['skill-builds', 'battle-loadouts', 'my-spirits', 'spirit-builds', 'engraving-builds'];
-    if (!validTypes.includes(type)) {
-      return new Response(
-        JSON.stringify({ error: `Invalid type. Must be one of: ${validTypes.join(', ')}` }),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    // Get configuration
-    const config = DATA_TYPE_CONFIGS[type];
-
-    // Get bot token from environment
-    const botToken = env.WIKI_BOT_TOKEN;
-    if (!botToken) {
-      console.error('[load-data] WIKI_BOT_TOKEN not configured');
-      return new Response(
-        JSON.stringify({ error: 'Server configuration error' }),
-        {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    // Get repo info from environment
-    const owner = env.WIKI_REPO_OWNER || env.VITE_WIKI_REPO_OWNER;
-    const repo = env.WIKI_REPO_NAME || env.VITE_WIKI_REPO_NAME;
-
-    if (!owner || !repo) {
-      console.error('[load-data] Repository config missing');
-      return new Response(
-        JSON.stringify({ error: 'Server configuration error' }),
-        {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    // Create storage adapter
-    const storageConfig = getStorageConfig(env, owner, repo);
-
-    const storage = createWikiStorage(
-      storageConfig,
-      { WIKI_BOT_TOKEN: botToken }
-    );
-
-    // Load items
-    const items = await storage.load(type, userId);
-
-    console.log(`[load-data] Loaded ${items.length} ${config.itemsName} for user ${userId}`);
-
-    // Return response with dynamic key names
-    const response = {
-      success: true,
-    };
-    response[config.itemsName] = items;
-
-    const result = createSuccessResponse(response);
-    return new Response(
-      result.body,  // Already a JSON string from createSuccessResponse
-      {
-        status: result.statusCode,
-        headers: { 'Content-Type': 'application/json' }
-      }
-    );
-
-  } catch (error) {
-    console.error('[load-data] Error:', error);
-    return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      }
-    );
-  }
+  const adapter = new CloudflareAdapter(context);
+  const configAdapter = new ConfigAdapter('cloudflare');
+  return await handleLoadData(adapter, configAdapter);
 }

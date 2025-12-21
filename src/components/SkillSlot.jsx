@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Lock, Plus, Move } from 'lucide-react';
-import { getSkillGradeColor } from '../../wiki-framework/src/utils/rarityColors';
+import { getSkillGradeColor } from '../config/rarityColors';
 
 /**
  * SkillSlot Component

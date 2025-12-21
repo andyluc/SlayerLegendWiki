@@ -1,6 +1,6 @@
 import React from 'react';
 import { getSkillImage, getGenericSkillIcon, getElementIcon } from '../services/imageService';
-import { getGradeBackgroundColor } from '../../wiki-framework/src/utils/rarityColors';
+import { getGradeBackgroundColor } from '../config/rarityColors';
 
 /**
  * SkillCard component - Displays skill information in a card format

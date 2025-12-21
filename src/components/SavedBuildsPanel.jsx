@@ -6,7 +6,7 @@ import { useLoginFlow } from '../../wiki-framework/src/hooks/useLoginFlow';
 import LoginModal from '../../wiki-framework/src/components/auth/LoginModal';
 import { getCache, setCache, mergeCacheWithGitHub } from '../utils/buildCache';
 import { getSaveDataEndpoint, getDeleteDataEndpoint, getLoadDataEndpoint } from '../utils/apiEndpoints.js';
-import { getSkillGradeColor } from '../../wiki-framework/src/utils/rarityColors';
+import { getSkillGradeColor } from '../config/rarityColors';
 
 /**
  * SavedBuildsPanel Component

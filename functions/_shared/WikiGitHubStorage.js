@@ -67,16 +67,21 @@ class WikiGitHubStorage extends GitHubStorage {
       const existingIssue = this._findIssueByLabel(allIssues, userLabel);
 
       if (existingIssue) {
-        // Update existing issue
+        // Update existing issue (including title to fix old format)
+        const config = DATA_TYPE_CONFIGS[type];
+        const titlePrefix = config?.titlePrefix || `[${type}]`;
+        const issueTitle = `${titlePrefix} ${username}`;
+
         await this.octokit.rest.issues.update({
           owner: this.owner,
           repo: this.repo,
           issue_number: existingIssue.number,
+          title: issueTitle,
           body: issueBody,
           labels: [typeLabel, userLabel, versionLabel],
         });
 
-        console.log(`[WikiGitHubStorage] Updated issue for ${username}`);
+        console.log(`[WikiGitHubStorage] Updated issue for ${username}: ${issueTitle}`);
       } else {
         // Create new issue with wiki-specific title
         const config = DATA_TYPE_CONFIGS[type];

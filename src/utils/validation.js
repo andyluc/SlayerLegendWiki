@@ -2,7 +2,7 @@
  * Client-Side Validation Utilities
  * Mirrors server-side validation for consistency
  *
- * NOTE: These limits must match netlify/functions/shared/validationRules.js
+ * NOTE: These limits must match functions/_shared/validationRules.js
  * Client-side validation is for UX only - server-side is the source of truth
  */
 

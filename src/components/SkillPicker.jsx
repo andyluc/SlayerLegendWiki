@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, X, AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
-import { getSkillGradeColor } from '../../wiki-framework/src/utils/rarityColors';
+import { getSkillGradeColor } from '../config/rarityColors';
 
 /**
  * SkillPicker Modal - Select a skill to insert into markdown

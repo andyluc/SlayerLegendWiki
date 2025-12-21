@@ -18,6 +18,16 @@
     "preview:cloudflare": "npm run build:cloudflare && npx wrangler pages dev dist",
     "build:search": "node scripts/buildSearchIndex.js",
     "validate:html": "node wiki-framework/scripts/validateHtml.js",
+    "test": "npm run test:framework && vitest run",
+    "test:framework": "cd wiki-framework && npm test",
+    "test:parent": "vitest run",
+    "test:watch": "vitest watch",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "test:integration": "vitest run tests/integration --config vitest.config.integration.js",
+    "test:ci": "npm run test:framework && npm run test:integration",
+    "test:ci:optional": "npm run test:integration || echo 'Integration tests failed but continuing...'",
+    "prebuild:cloudflare": "npm run test:ci",
     "test:sendgrid": "node scripts/testSendGrid.js"
   },
   "dependencies": {
@@ -48,6 +58,8 @@
     "@octokit/rest": "^22.0.1",
     "@tailwindcss/typography": "^0.5.10",
     "@vitejs/plugin-react": "^5.1.2",
+    "@vitest/coverage-v8": "^4.0.16",
+    "@vitest/ui": "^4.0.16",
     "autoprefixer": "^10.4.23",
     "concurrently": "^9.2.1",
     "cross-env": "^7.0.3",
@@ -57,6 +69,7 @@
     "sharp": "^0.34.5",
     "tailwindcss": "^3.4.19",
     "vite": "^5.0.8",
-    "vite-plugin-node-polyfills": "^0.24.0"
+    "vite-plugin-node-polyfills": "^0.24.0",
+    "vitest": "^4.0.16"
   }
 }

@@ -14,13 +14,13 @@ export const VALID_DATA_TYPES = ['skill-builds', 'battle-loadouts', 'my-spirits'
 export const DATA_TYPE_CONFIGS = {
   'skill-builds': {
     label: 'skill-builds',
-    titlePrefix: '[Skill Builds]',
+    titlePrefix: '[Skill Build]',
     itemsName: 'builds',
     maxItems: 50,
   },
   'battle-loadouts': {
     label: 'battle-loadouts',
-    titlePrefix: '[Battle Loadouts]',
+    titlePrefix: '[Battle Loadout]',
     itemsName: 'loadouts',
     maxItems: 50,
   },
@@ -32,7 +32,7 @@ export const DATA_TYPE_CONFIGS = {
   },
   'spirit-builds': {
     label: 'spirit-builds',
-    titlePrefix: '[Spirit Builds]',
+    titlePrefix: '[Spirit Build]',
     itemsName: 'builds',
     maxItems: 50,
   },

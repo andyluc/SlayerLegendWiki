@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Search } from 'lucide-react';
-import { getSkillGradeColor } from '../../wiki-framework/src/utils/rarityColors';
+import { getSkillGradeColor } from '../config/rarityColors';
 
 /**
  * SkillSelector Component

@@ -369,11 +369,11 @@ export const renderSkillPreview = ({ skill, mode }) => {
 
 /**
  * Render an equipment card preview for EquipmentPicker
- * @param {object} params - { equipment, mode }
+ * @param {object} params - { equipment, mode, type }
  * @returns {JSX.Element} - EquipmentCard component
  */
-export const renderEquipmentPreview = ({ equipment, mode }) => {
-  return <EquipmentCard equipment={equipment} mode={mode} />;
+export const renderEquipmentPreview = ({ equipment, mode, type }) => {
+  return <EquipmentCard equipment={equipment} mode={mode} type={type} />;
 };
 
 /**
