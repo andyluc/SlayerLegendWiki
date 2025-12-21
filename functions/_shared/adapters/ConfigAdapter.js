@@ -5,8 +5,8 @@
  * Netlify can read from filesystem, Cloudflare uses embedded defaults + env overrides
  */
 
-import { readFileSync } from 'fs';
-import { join } from 'path';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 /**
  * Configuration Adapter
