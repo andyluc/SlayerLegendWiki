@@ -27,8 +27,10 @@ async function checkGameDataCount(octokit, owner, repo, userId, dataType, minCou
     for (const issue of issues) {
       try {
         const data = JSON.parse(issue.body);
-        const items = data[dataType] || [];
-        totalCount += items.length;
+        // Data is stored as a direct array [item1, item2, ...], not as {dataType: [...]}
+        if (Array.isArray(data)) {
+          totalCount += data.length;
+        }
       } catch (error) {
         console.error(`Failed to parse ${dataType} issue:`, error);
       }

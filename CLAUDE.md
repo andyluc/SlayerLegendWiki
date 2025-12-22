@@ -45,6 +45,11 @@ npm run build:search     # Rebuild search index after content changes
 # Framework updates
 cd wiki-framework && git pull origin main && cd ..
 git add wiki-framework && git commit -m "Update framework"
+
+# Skip tests on Cloudflare deployment
+# Include one of these markers in your commit message:
+# [skip tests], [skip-tests], [no tests], [tests skip]
+git commit -m "Fix typo [skip tests]"
 ```
 
 ## Project Structure
