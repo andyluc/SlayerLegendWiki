@@ -1457,8 +1457,9 @@ async function handleLinkAnonymousEdits(adapter, octokit, { owner, repo, manual 
 
     const userResponse = await fetch('https://api.github.com/user', {
       headers: {
-        'Authorization': `Bearer ${userToken}`,
+        'Authorization': `token ${userToken}`,
         'Accept': 'application/vnd.github.v3+json',
+        'User-Agent': 'SlayerLegend-Wiki/1.0',
       },
     });
 
@@ -1477,8 +1478,9 @@ async function handleLinkAnonymousEdits(adapter, octokit, { owner, repo, manual 
       try {
         const emailsResponse = await fetch('https://api.github.com/user/emails', {
           headers: {
-            'Authorization': `Bearer ${userToken}`,
+            'Authorization': `token ${userToken}`,
             'Accept': 'application/vnd.github.v3+json',
+            'User-Agent': 'SlayerLegend-Wiki/1.0',
           },
         });
 
@@ -1644,7 +1646,58 @@ async function handleCheckAchievements(adapter, octokit, { owner, repo }, header
 
     logger.info('Checking achievements server-side', { userId, username });
 
-    // 2. Load achievement definitions from public/achievements.json
+    // 2. Load wiki config to get base URL
+    let wikiConfig;
+    let baseUrl;
+
+    // In development, load from local filesystem
+    if (process.env.NODE_ENV !== 'production' && process.env.CONTEXT !== 'production') {
+      try {
+        const fs = await import('fs');
+        const path = await import('path');
+        const configPath = path.join(process.cwd(), 'public', 'wiki-config.json');
+        const configContent = fs.readFileSync(configPath, 'utf8');
+        wikiConfig = JSON.parse(configContent);
+        baseUrl = wikiConfig.wiki?.url || 'http://localhost:8888';
+        logger.debug('Loaded wiki config from local filesystem', { baseUrl });
+      } catch (error) {
+        logger.warn('Failed to load wiki config, using localhost', { error: error.message });
+        baseUrl = 'http://localhost:8888';
+      }
+    } else {
+      // In production, determine base URL from environment/headers, then fetch config
+      try {
+        // Try to get the host from the request headers or environment
+        const host = adapter.getEnv('CF_PAGES_URL') || adapter.getEnv('URL') || headers?.host;
+        if (host) {
+          baseUrl = host.startsWith('http') ? host : `https://${host}`;
+        } else {
+          baseUrl = null; // Will be loaded from config
+        }
+      } catch (e) {
+        baseUrl = null; // Will be loaded from config
+      }
+
+      // Fetch wiki config to get the configured URL as fallback
+      try {
+        const configUrl = baseUrl ? `${baseUrl}/wiki-config.json` : 'https://slayerlegend.wiki/wiki-config.json';
+        const configResponse = await fetch(configUrl);
+        if (configResponse.ok) {
+          wikiConfig = await configResponse.json();
+          // Use environment baseUrl if available, otherwise use config URL
+          baseUrl = baseUrl || wikiConfig.wiki?.url || 'https://slayerlegend.wiki';
+          logger.debug('Loaded wiki config from deployed site', { baseUrl });
+        } else {
+          logger.warn('Failed to fetch wiki config, using fallback', { status: configResponse.status });
+          baseUrl = baseUrl || 'https://slayerlegend.wiki';
+        }
+      } catch (e) {
+        logger.warn('Could not load wiki config, using fallback', { error: e.message });
+        baseUrl = baseUrl || 'https://slayerlegend.wiki';
+      }
+    }
+
+    // 3. Load achievement definitions from public/achievements.json
     let definitions;
 
     // In development, load from local filesystem
@@ -1661,16 +1714,25 @@ async function handleCheckAchievements(adapter, octokit, { owner, repo }, header
         throw new Error('Failed to load achievement definitions');
       }
     } else {
-      // In production, fetch from GitHub
-      const achievementDefsResponse = await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/main/public/achievements.json`);
+      // In production, fetch from the deployed site
+
+      const achievementsUrl = `${baseUrl}/achievements.json`;
+      logger.debug('Fetching achievement definitions from deployed site', { url: achievementsUrl });
+
+      const achievementDefsResponse = await fetch(achievementsUrl);
       if (!achievementDefsResponse.ok) {
+        logger.error('Failed to fetch achievement definitions', {
+          url: achievementsUrl,
+          status: achievementDefsResponse.status,
+          statusText: achievementDefsResponse.statusText
+        });
         throw new Error('Failed to load achievement definitions');
       }
       definitions = await achievementDefsResponse.json();
-      logger.debug('Loaded achievement definitions from GitHub');
+      logger.debug('Loaded achievement definitions from deployed site');
     }
 
-    // 2.5. Get release date from environment variable (VITE_RELEASE_DATE)
+    // 4. Get release date from environment variable (VITE_RELEASE_DATE)
     let releaseDate = null;
     const releaseDateStr = process.env.VITE_RELEASE_DATE;
     if (releaseDateStr && releaseDateStr.trim() !== '') {
@@ -1688,7 +1750,7 @@ async function handleCheckAchievements(adapter, octokit, { owner, repo }, header
       }
     }
 
-    // 3. Fetch user snapshot from GitHub Issues
+    // 5. Fetch user snapshot from GitHub Issues
     const userIdLabel = `user-id:${userId}`;
     const { data: snapshotIssues } = await octokit.rest.issues.listForRepo({
       owner,
@@ -1743,7 +1805,7 @@ async function handleCheckAchievements(adapter, octokit, { owner, repo }, header
       });
     }
 
-    // 4. Get existing achievements
+    // 6. Get existing achievements
     const { data: achievementIssues } = await octokit.rest.issues.listForRepo({
       owner,
       repo,
@@ -1766,7 +1828,7 @@ async function handleCheckAchievements(adapter, octokit, { owner, repo }, header
 
     const unlockedIds = new Set(existingAchievements.map(a => a.id));
 
-    // 5. Run deciders server-side to check for new achievements
+    // 7. Run deciders server-side to check for new achievements
     const newlyUnlocked = [];
 
     for (const achievement of definitions.achievements) {
@@ -1780,6 +1842,7 @@ async function handleCheckAchievements(adapter, octokit, { owner, repo }, header
         userId,
         username,
         releaseDate,
+        baseUrl, // Pass baseUrl for deciders that need to fetch data files
       });
 
       if (isUnlocked) {
@@ -1791,7 +1854,7 @@ async function handleCheckAchievements(adapter, octokit, { owner, repo }, header
       }
     }
 
-    // 6. If new achievements found, save to GitHub Issues
+    // 8. If new achievements found, save to GitHub Issues
     if (newlyUnlocked.length > 0) {
       const allAchievements = [...existingAchievements, ...newlyUnlocked];
       const issueData = {

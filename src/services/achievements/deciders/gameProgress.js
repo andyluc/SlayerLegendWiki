@@ -356,10 +356,17 @@ export async function collector(userData, context) {
   const { octokit, owner, repo, userId } = context;
 
   try {
-    // Fetch spirit-characters.json to get total count
-    const spiritDataResponse = await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/main/public/data/spirit-characters.json`);
+    // Fetch spirit-characters.json from deployed site
+    // Use absolute URL since this runs server-side
+    const baseUrl = context.baseUrl || 'https://slayerlegend.wiki';
+    const spiritDataUrl = `${baseUrl}/data/spirit-characters.json`;
+
+    const spiritDataResponse = await fetch(spiritDataUrl);
     if (!spiritDataResponse.ok) {
-      console.error('Failed to load spirit-characters.json');
+      console.error('Failed to load spirit-characters.json', {
+        url: spiritDataUrl,
+        status: spiritDataResponse.status
+      });
       return false;
     }
 
