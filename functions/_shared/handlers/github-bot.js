@@ -1603,6 +1603,15 @@ async function handleLinkAnonymousEdits(adapter, octokit, { owner, repo, manual 
  * Required Header: Authorization: Bearer {token}
  */
 async function handleCheckAchievements(adapter, octokit, { owner, repo }, headers) {
+  console.log('[CF] handleCheckAchievements called', {
+    owner,
+    repo,
+    hasHeaders: !!headers,
+    authHeader: headers?.authorization ? 'present' : 'missing',
+    NODE_ENV: process.env.NODE_ENV,
+    CONTEXT: process.env.CONTEXT
+  });
+
   logger.info('handleCheckAchievements called', {
     owner,
     repo,
@@ -1613,6 +1622,7 @@ async function handleCheckAchievements(adapter, octokit, { owner, repo }, header
   });
 
   if (!owner || !repo) {
+    console.error('[CF] Missing owner or repo', { owner, repo });
     logger.error('Missing owner or repo', { owner, repo });
     return adapter.createJsonResponse(400, { error: 'Missing required fields: owner, repo' });
   }
@@ -1620,6 +1630,10 @@ async function handleCheckAchievements(adapter, octokit, { owner, repo }, header
   // Extract and validate Authorization header
   const authHeader = headers?.authorization || headers?.Authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.error('[CF] Missing or invalid Authorization header', {
+      hasAuth: !!authHeader,
+      authType: authHeader?.substring(0, 10)
+    });
     logger.error('Missing or invalid Authorization header', {
       hasAuth: !!authHeader,
       authType: authHeader?.substring(0, 10)
@@ -1658,6 +1672,7 @@ async function handleCheckAchievements(adapter, octokit, { owner, repo }, header
     const userId = userData.id;
     const username = userData.login;
 
+    console.log('[CF] Checking achievements server-side', { userId, username });
     logger.info('Checking achievements server-side', { userId, username });
 
     // 2. Load wiki config to get base URL
@@ -1732,6 +1747,7 @@ async function handleCheckAchievements(adapter, octokit, { owner, repo }, header
         baseUrl = envBaseUrl || 'https://slayerlegend.wiki';
       }
 
+      console.log('[CF] Final base URL determined', { baseUrl });
       logger.info('Final base URL determined', { baseUrl });
     }
 
@@ -1754,12 +1770,20 @@ async function handleCheckAchievements(adapter, octokit, { owner, repo }, header
     } else {
       // In production, fetch from the deployed site
       const achievementsUrl = `${baseUrl}/achievements.json`;
+      console.log('[CF] Fetching achievement definitions from deployed site', { url: achievementsUrl, baseUrl });
       logger.info('Fetching achievement definitions from deployed site', { url: achievementsUrl, baseUrl });
 
       try {
         const achievementDefsResponse = await fetch(achievementsUrl);
         if (!achievementDefsResponse.ok) {
           const errorText = await achievementDefsResponse.text().catch(() => 'Unable to read error body');
+          console.error('[CF] Failed to fetch achievement definitions - HTTP error', {
+            url: achievementsUrl,
+            baseUrl,
+            status: achievementDefsResponse.status,
+            statusText: achievementDefsResponse.statusText,
+            errorBody: errorText,
+          });
           logger.error('Failed to fetch achievement definitions - HTTP error', {
             url: achievementsUrl,
             baseUrl,
@@ -1770,8 +1794,15 @@ async function handleCheckAchievements(adapter, octokit, { owner, repo }, header
           throw new Error(`Failed to load achievement definitions: ${achievementDefsResponse.status} ${achievementDefsResponse.statusText}`);
         }
         definitions = await achievementDefsResponse.json();
+        console.log('[CF] Successfully loaded achievement definitions from deployed site', { count: definitions.achievements?.length });
         logger.info('Successfully loaded achievement definitions from deployed site', { count: definitions.achievements?.length });
       } catch (fetchError) {
+        console.error('[CF] Failed to fetch achievement definitions - network/parse error', {
+          url: achievementsUrl,
+          baseUrl,
+          error: fetchError.message,
+          stack: fetchError.stack,
+        });
         logger.error('Failed to fetch achievement definitions - network/parse error', {
           url: achievementsUrl,
           baseUrl,
@@ -1981,6 +2012,12 @@ async function handleCheckAchievements(adapter, octokit, { owner, repo }, header
       totalAchievements: existingAchievements.length + newlyUnlocked.length,
     });
   } catch (error) {
+    console.error('[CF] Failed to check achievements - caught error', {
+      error: error.message,
+      stack: error.stack,
+      name: error.name,
+      cause: error.cause
+    });
     logger.error('Failed to check achievements - caught error', {
       error: error.message,
       stack: error.stack,
