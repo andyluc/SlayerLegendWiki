@@ -1,6 +1,47 @@
 const { createLogger } = require('../../../src/utils/logger');
 const logger = createLogger('GithubBot');
 
+// Cache for loaded achievement deciders
+let achievementDecidersCache = null;
+
+/**
+ * Load achievement deciders (framework defaults + custom)
+ * Lazy-loaded and cached for performance
+ */
+async function loadAchievementDeciders() {
+  if (achievementDecidersCache) {
+    return achievementDecidersCache;
+  }
+
+  let deciders = {};
+
+  try {
+    // Import framework default deciders
+    const frameworkModule = await import('github-wiki-framework/src/services/achievements/deciders/index.js');
+    deciders = { ...frameworkModule.defaultDeciders };
+
+    // Import custom deciders from parent project (if they exist)
+    try {
+      const customModule = await import('../../../src/services/achievements/deciders/index.js');
+      deciders = { ...deciders, ...customModule.customDeciders };
+    } catch (customError) {
+      // Custom deciders are optional
+      logger.debug('No custom deciders found (this is OK)', { error: customError.message });
+    }
+
+    logger.info('Loaded achievement deciders', {
+      count: Object.keys(deciders).length,
+      ids: Object.keys(deciders)
+    });
+
+    achievementDecidersCache = deciders;
+    return deciders;
+  } catch (error) {
+    logger.error('Failed to load achievement deciders', { error: error.message });
+    return {};
+  }
+}
+
 /**
  * GitHub Bot Handler (Platform-Agnostic)
  * Handles all bot-authenticated GitHub operations
@@ -250,6 +291,9 @@ export async function handleGithubBot(adapter, configAdapter, cryptoAdapter) {
       userAgent: 'GitHub-Wiki-Bot/1.0'
     });
 
+    // Get headers for authenticated endpoints
+    const headers = adapter.getHeaders();
+
     // Route to action handler
     switch (action) {
       case 'create-comment':
@@ -276,6 +320,10 @@ export async function handleGithubBot(adapter, configAdapter, cryptoAdapter) {
         return await handleCheckRateLimit(adapter, body);
       case 'create-anonymous-pr':
         return await handleCreateAnonymousPR(adapter, configAdapter, cryptoAdapter, octokit, body);
+      case 'link-anonymous-edits':
+        return await handleLinkAnonymousEdits(adapter, octokit, body, headers);
+      case 'check-achievements':
+        return await handleCheckAchievements(adapter, octokit, body, headers);
       default:
         return adapter.createJsonResponse(400, { error: `Unknown action: ${action}` });
     }
@@ -1107,12 +1155,12 @@ async function validateRecaptcha(adapter, token, ip) {
 /**
  * Create anonymous PR
  * Required: owner, repo, section, pageId, pageTitle, content, email, displayName, verificationToken, captchaToken
- * Optional: reason
+ * Optional: reason, consentToLinkEmail
  */
 async function handleCreateAnonymousPR(adapter, configAdapter, cryptoAdapter, octokit, {
   owner, repo, section, pageId, pageTitle,
   content, email, displayName, reason = '',
-  verificationToken, captchaToken
+  verificationToken, captchaToken, consentToLinkEmail = false
 }) {
   // Validate required fields
   if (!owner || !repo || !section || !pageId || !pageTitle || !content || !email || !displayName || !verificationToken || !captchaToken) {
@@ -1270,6 +1318,13 @@ async function handleCreateAnonymousPR(adapter, configAdapter, cryptoAdapter, oc
     // Hash email BEFORE masking for tracking purposes
     const emailHash = await hashIP(email);
 
+    // Use maximum hash length that fits in label if consent given (50 char limit - 4 char prefix = 46 chars)
+    // Use truncated hash if no consent (16 chars for basic tracking)
+    const LABEL_MAX_HASH_LENGTH = 46; // Max hash chars that fit in GitHub label (50 - len('ref:'))
+    const emailLabelHash = consentToLinkEmail
+      ? emailHash.substring(0, LABEL_MAX_HASH_LENGTH)
+      : emailHash.substring(0, 16);
+
     // Then mask email for display
     const maskedEmail = maskEmail(email);
     const commitMessage = `Update ${pageTitle}
@@ -1336,17 +1391,24 @@ ${reason ? `**Reason:** ${reason}` : ''}
     });
 
     // 9. Add labels (including display name and email hash for easy identification)
+    const labels = [
+      'anonymous-edit',
+      'needs-review',
+      section,
+      createNameLabel(displayName), // Store display name as label for easy access
+      createEmailLabel(emailLabelHash, consentToLinkEmail ? LABEL_MAX_HASH_LENGTH : 16), // Store max hash if consent, truncated otherwise
+    ];
+
+    // Add 'linkable' label if consent was given
+    if (consentToLinkEmail) {
+      labels.push('linkable');
+    }
+
     await octokit.rest.issues.addLabels({
       owner,
       repo,
       issue_number: pr.number,
-      labels: [
-        'anonymous-edit',
-        'needs-review',
-        section,
-        createNameLabel(displayName), // Store display name as label for easy access
-        createEmailLabel(emailHash, 16), // Store email hash (truncated) for tracking
-      ],
+      labels,
     });
 
     // 10. Record submission for rate limiting
@@ -1368,3 +1430,462 @@ ${reason ? `**Reason:** ${reason}` : ''}
     return adapter.createJsonResponse(500, { error: error.message || 'Failed to create pull request' });
   }
 }
+
+/**
+ * Link anonymous edits to user account
+ * Authenticates user via OAuth token and validates identity
+ * Required: owner, repo
+ * Optional: manual (boolean) - If true, enforces cooldown check
+ * Required Header: Authorization: Bearer {token}
+ */
+async function handleLinkAnonymousEdits(adapter, octokit, { owner, repo, manual = false }, headers) {
+  if (!owner || !repo) {
+    return adapter.createJsonResponse(400, { error: 'Missing required fields: owner, repo' });
+  }
+
+  // Extract and validate Authorization header
+  const authHeader = headers?.authorization || headers?.Authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return adapter.createJsonResponse(401, { error: 'Missing or invalid Authorization header' });
+  }
+
+  const userToken = authHeader.substring(7); // Remove 'Bearer ' prefix
+
+  try {
+    // 1. Validate token and fetch authenticated user from GitHub
+    logger.info('Validating user token for anonymous edit linking', { manual });
+
+    const userResponse = await fetch('https://api.github.com/user', {
+      headers: {
+        'Authorization': `Bearer ${userToken}`,
+        'Accept': 'application/vnd.github.v3+json',
+      },
+    });
+
+    if (!userResponse.ok) {
+      logger.error('Token validation failed', { status: userResponse.status });
+      return adapter.createJsonResponse(401, { error: 'Invalid or expired token' });
+    }
+
+    const userData = await userResponse.json();
+    const userId = userData.id;
+    const username = userData.login;
+    let userEmail = userData.email;
+
+    // 2. If email is null (private setting), fetch from /user/emails
+    if (!userEmail) {
+      try {
+        const emailsResponse = await fetch('https://api.github.com/user/emails', {
+          headers: {
+            'Authorization': `Bearer ${userToken}`,
+            'Accept': 'application/vnd.github.v3+json',
+          },
+        });
+
+        if (emailsResponse.ok) {
+          const emails = await emailsResponse.json();
+          const primaryEmail = emails.find(e => e.primary && e.verified);
+          if (primaryEmail) {
+            userEmail = primaryEmail.email;
+          }
+        }
+      } catch (emailError) {
+        logger.warn('Failed to fetch user emails', { error: emailError.message });
+      }
+    }
+
+    if (!userEmail) {
+      logger.info('User has no email, cannot link', { userId, username });
+      return adapter.createJsonResponse(400, {
+        error: 'No verified email found. Please add a verified email to your GitHub account.',
+        linked: false,
+        reason: 'no_email'
+      });
+    }
+
+    logger.info('User authenticated for linking', { userId, username });
+
+    // 3. Hash email server-side (don't trust client)
+    const emailHash = await hashIP(userEmail); // Reuse existing hash function
+
+    // 4. Check cooldown if this is a manual trigger
+    if (manual) {
+      const { checkLinkingCooldown } = await import('github-wiki-framework/src/services/github/emailUserMapping.js');
+      const cooldownCheck = await checkLinkingCooldown(octokit, owner, repo, emailHash, 60); // 60 minute cooldown
+
+      if (!cooldownCheck.allowed) {
+        logger.warn('Link request denied - cooldown active', {
+          userId,
+          username,
+          remainingSeconds: cooldownCheck.remainingSeconds
+        });
+
+        const remainingMinutes = Math.ceil(cooldownCheck.remainingSeconds / 60);
+        return adapter.createJsonResponse(429, {
+          error: `Please wait ${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''} before trying again`,
+          cooldown: cooldownCheck.remainingSeconds,
+          lastLinkedAt: cooldownCheck.lastLinkedAt
+        });
+      }
+
+      logger.info('Cooldown check passed', { userId, username });
+    }
+
+    // 4. Find linkable PRs with hash label + 'linkable' flag
+    // Note: Labels are limited to 50 chars, so we can only match first 46 chars of hash (50 - len('ref:'))
+    const LABEL_MAX_HASH_LENGTH = 46;
+    const truncatedHash = emailHash.substring(0, LABEL_MAX_HASH_LENGTH);
+
+    const { data: allPRs } = await octokit.rest.pulls.list({
+      owner,
+      repo,
+      state: 'all',
+      per_page: 100,
+    });
+
+    const linkablePRs = allPRs.filter(pr => {
+      const labelNames = pr.labels.map(l => l.name);
+      const hasRefHash = labelNames.some(name => name === `ref:${truncatedHash}`);
+      const hasLinkableFlag = labelNames.includes('linkable');
+      return hasRefHash && hasLinkableFlag;
+    });
+
+    logger.debug('Found linkable PRs', { count: linkablePRs.length });
+
+    if (linkablePRs.length === 0) {
+      return adapter.createJsonResponse(200, {
+        linked: true,
+        linkedCount: 0,
+        message: 'No linkable anonymous edits found',
+      });
+    }
+
+    // 2. Add user-id label to each PR (enables efficient queries)
+    const userIdLabel = `user-id:${userId}`;
+    for (const pr of linkablePRs) {
+      try {
+        await octokit.rest.issues.addLabels({
+          owner,
+          repo,
+          issue_number: pr.number,
+          labels: [userIdLabel],
+        });
+        logger.debug('Added user-id label', { prNumber: pr.number, userId });
+      } catch (error) {
+        logger.error('Failed to add label', { error, prNumber: pr.number });
+      }
+    }
+
+    // 3. Store mapping (for future O(1) lookups)
+    // Dynamically import the mapping service
+    const { addEmailUserMapping } = await import('github-wiki-framework/src/services/github/emailUserMapping.js');
+    await addEmailUserMapping(octokit, owner, repo, emailHash, userId, username, manual); // Update lastLinkedAt if manual=true
+
+    logger.info('Linking completed successfully', { userId, linkedCount: linkablePRs.length });
+
+    return adapter.createJsonResponse(200, {
+      linked: true,
+      linkedCount: linkablePRs.length,
+      prNumbers: linkablePRs.map(pr => pr.number),
+    });
+  } catch (error) {
+    logger.error('Failed to link anonymous edits', { error, userId });
+    return adapter.createJsonResponse(500, { error: error.message });
+  }
+}
+
+/**
+ * Check achievements for authenticated user (SERVER-SIDE)
+ * All data retrieval and processing happens on the server
+ * Required: owner, repo
+ * Required Header: Authorization: Bearer {token}
+ */
+async function handleCheckAchievements(adapter, octokit, { owner, repo }, headers) {
+  if (!owner || !repo) {
+    return adapter.createJsonResponse(400, { error: 'Missing required fields: owner, repo' });
+  }
+
+  // Extract and validate Authorization header
+  const authHeader = headers?.authorization || headers?.Authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return adapter.createJsonResponse(401, { error: 'Missing or invalid Authorization header' });
+  }
+
+  const userToken = authHeader.substring(7); // Remove 'Bearer ' prefix
+
+  try {
+    // 1. Validate token and fetch authenticated user
+    logger.debug('Validating user token for achievement checking');
+
+    const userResponse = await fetch('https://api.github.com/user', {
+      headers: {
+        'Authorization': `Bearer ${userToken}`,
+        'Accept': 'application/vnd.github.v3+json',
+      },
+    });
+
+    if (!userResponse.ok) {
+      logger.error('Token validation failed', { status: userResponse.status });
+      return adapter.createJsonResponse(401, { error: 'Invalid or expired token' });
+    }
+
+    const userData = await userResponse.json();
+    const userId = userData.id;
+    const username = userData.login;
+
+    logger.info('Checking achievements server-side', { userId, username });
+
+    // 2. Load achievement definitions from public/achievements.json
+    let definitions;
+
+    // In development, load from local filesystem
+    if (process.env.NODE_ENV !== 'production' && process.env.CONTEXT !== 'production') {
+      try {
+        const fs = await import('fs');
+        const path = await import('path');
+        const achievementsPath = path.join(process.cwd(), 'public', 'achievements.json');
+        const achievementsContent = fs.readFileSync(achievementsPath, 'utf8');
+        definitions = JSON.parse(achievementsContent);
+        logger.debug('Loaded achievement definitions from local filesystem');
+      } catch (error) {
+        logger.error('Failed to load achievement definitions from filesystem', { error: error.message });
+        throw new Error('Failed to load achievement definitions');
+      }
+    } else {
+      // In production, fetch from GitHub
+      const achievementDefsResponse = await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/main/public/achievements.json`);
+      if (!achievementDefsResponse.ok) {
+        throw new Error('Failed to load achievement definitions');
+      }
+      definitions = await achievementDefsResponse.json();
+      logger.debug('Loaded achievement definitions from GitHub');
+    }
+
+    // 2.5. Get release date from environment variable (VITE_RELEASE_DATE)
+    let releaseDate = null;
+    const releaseDateStr = process.env.VITE_RELEASE_DATE;
+    if (releaseDateStr && releaseDateStr.trim() !== '') {
+      try {
+        releaseDate = new Date(releaseDateStr);
+        if (isNaN(releaseDate.getTime())) {
+          logger.warn('Invalid VITE_RELEASE_DATE format', { value: releaseDateStr });
+          releaseDate = null;
+        } else {
+          logger.debug('Using release date from VITE_RELEASE_DATE', { releaseDate: releaseDate.toISOString() });
+        }
+      } catch (error) {
+        logger.warn('Failed to parse VITE_RELEASE_DATE', { error: error.message });
+        releaseDate = null;
+      }
+    }
+
+    // 3. Fetch user snapshot from GitHub Issues
+    const userIdLabel = `user-id:${userId}`;
+    const { data: snapshotIssues } = await octokit.rest.issues.listForRepo({
+      owner,
+      repo,
+      labels: `user-snapshot,${userIdLabel}`,
+      state: 'open',
+      per_page: 1,
+    });
+
+    let userSnapshot = null;
+    if (snapshotIssues.length > 0) {
+      try {
+        userSnapshot = JSON.parse(snapshotIssues[0].body);
+      } catch (error) {
+        logger.error('Failed to parse user snapshot', { error });
+      }
+    }
+
+    // If no snapshot, use minimal data
+    if (!userSnapshot) {
+      userSnapshot = {
+        userId,
+        user: userData,
+        stats: { totalPRs: 0, mergedPRs: 0, totalAdditions: 0, closedPRs: 0, totalFiles: 0 },
+        pullRequests: [],
+      };
+    }
+
+    // Filter PRs and recalculate stats based on release date
+    if (releaseDate && userSnapshot.pullRequests) {
+      const filteredPRs = userSnapshot.pullRequests.filter(pr => {
+        if (!pr.created_at) return false;
+        const prDate = new Date(pr.created_at);
+        return prDate >= releaseDate;
+      });
+
+      // Recalculate stats from filtered PRs
+      userSnapshot.pullRequests = filteredPRs;
+      userSnapshot.stats = {
+        totalPRs: filteredPRs.length,
+        mergedPRs: filteredPRs.filter(pr => pr.merged_at).length,
+        closedPRs: filteredPRs.filter(pr => pr.state === 'closed' && !pr.merged_at).length,
+        totalAdditions: filteredPRs.reduce((sum, pr) => sum + (pr.additions || 0), 0),
+        totalDeletions: filteredPRs.reduce((sum, pr) => sum + (pr.deletions || 0), 0),
+        totalFiles: new Set(filteredPRs.flatMap(pr => (pr.files || []).map(f => f.filename))).size,
+      };
+
+      logger.debug('Filtered PRs by release date', {
+        original: userSnapshot.pullRequests?.length || 0,
+        filtered: filteredPRs.length,
+        releaseDate: releaseDate.toISOString(),
+      });
+    }
+
+    // 4. Get existing achievements
+    const { data: achievementIssues } = await octokit.rest.issues.listForRepo({
+      owner,
+      repo,
+      labels: `achievements,${userIdLabel}`,
+      state: 'open',
+      per_page: 1,
+    });
+
+    let existingAchievements = [];
+    let existingIssueNumber = null;
+    if (achievementIssues.length > 0) {
+      existingIssueNumber = achievementIssues[0].number;
+      try {
+        const existingData = JSON.parse(achievementIssues[0].body);
+        existingAchievements = existingData.achievements || [];
+      } catch (error) {
+        logger.error('Failed to parse existing achievements', { error });
+      }
+    }
+
+    const unlockedIds = new Set(existingAchievements.map(a => a.id));
+
+    // 5. Run deciders server-side to check for new achievements
+    const newlyUnlocked = [];
+
+    for (const achievement of definitions.achievements) {
+      if (unlockedIds.has(achievement.id)) continue;
+
+      // Run decider logic server-side
+      const isUnlocked = await runDecider(achievement.id, userSnapshot, {
+        octokit,
+        owner,
+        repo,
+        userId,
+        username,
+        releaseDate,
+      });
+
+      if (isUnlocked) {
+        newlyUnlocked.push({
+          id: achievement.id,
+          unlockedAt: new Date().toISOString(),
+          progress: 100,
+        });
+      }
+    }
+
+    // 6. If new achievements found, save to GitHub Issues
+    if (newlyUnlocked.length > 0) {
+      const allAchievements = [...existingAchievements, ...newlyUnlocked];
+      const issueData = {
+        userId,
+        username,
+        lastUpdated: new Date().toISOString(),
+        achievements: allAchievements,
+        version: '1.0',
+      };
+
+      const body = JSON.stringify(issueData, null, 2);
+      const title = `[Achievements] ${username}`;
+      const labels = ['achievements', userIdLabel, 'automated'];
+
+      if (existingIssueNumber) {
+        // Update existing issue
+        await octokit.rest.issues.update({
+          owner,
+          repo,
+          issue_number: existingIssueNumber,
+          body,
+        });
+        logger.info('Updated achievements', { username, newCount: newlyUnlocked.length });
+      } else {
+        // Double-check before creating (race condition prevention)
+        // If multiple requests run simultaneously, one might have just created the issue
+        const { data: recheckIssues } = await octokit.rest.issues.listForRepo({
+          owner,
+          repo,
+          labels: `achievements,${userIdLabel}`,
+          state: 'open',
+          per_page: 1,
+        });
+
+        if (recheckIssues.length > 0) {
+          // Issue was just created by another request, update it instead
+          await octokit.rest.issues.update({
+            owner,
+            repo,
+            issue_number: recheckIssues[0].number,
+            body,
+          });
+          logger.info('Updated achievements (race condition avoided)', { username, newCount: newlyUnlocked.length });
+        } else {
+          // Create new issue
+          const { data: newIssue } = await octokit.rest.issues.create({
+            owner,
+            repo,
+            title,
+            body,
+            labels,
+          });
+
+          // Lock the issue
+          try {
+            await octokit.rest.issues.lock({
+              owner,
+              repo,
+              issue_number: newIssue.number,
+              lock_reason: 'off-topic',
+            });
+          } catch (lockError) {
+            logger.warn('Failed to lock achievement issue', { error: lockError.message });
+          }
+
+          logger.info('Created achievements', { username, count: newlyUnlocked.length });
+        }
+      }
+    }
+
+    return adapter.createJsonResponse(200, {
+      checked: true,
+      newlyUnlocked,
+      totalAchievements: existingAchievements.length + newlyUnlocked.length,
+    });
+  } catch (error) {
+    logger.error('Failed to check achievements', { error });
+    return adapter.createJsonResponse(500, { error: error.message });
+  }
+}
+
+/**
+ * Run achievement decider logic server-side
+ * Uses plugin-based decider registry (framework defaults + custom)
+ */
+async function runDecider(achievementId, userData, context) {
+  try {
+    // Load deciders from registry
+    const deciders = await loadAchievementDeciders();
+
+    // Get decider function for this achievement
+    const deciderFn = deciders[achievementId];
+
+    if (!deciderFn) {
+      logger.warn('No decider found for achievement', { achievementId });
+      return false;
+    }
+
+    // Run the decider
+    return await deciderFn(userData, context);
+  } catch (error) {
+    logger.error('Decider execution failed', { achievementId, error: error.message });
+    return false;
+  }
+}
+

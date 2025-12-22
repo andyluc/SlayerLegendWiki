@@ -1,6 +1,7 @@
 import { getOctokit } from '../../wiki-framework/src/services/github/api.js';
 import { createUserIdLabel } from '../../wiki-framework/src/utils/githubLabelUtils.js';
 import { createLogger } from '../utils/logger';
+import { eventBus, EventNames } from '../../wiki-framework/src/services/eventBus.js';
 
 const logger = createLogger('BattleLoadouts');
 
@@ -260,6 +261,9 @@ export async function addUserLoadout(owner, repo, username, userId, loadout) {
   await saveUserLoadouts(owner, repo, username, userId, loadouts);
   logger.info(`Added loadout "${loadout.name}" for ${username}`);
 
+  // Emit event for achievement system
+  eventBus.emit(EventNames.USER_LOADOUT_SAVED, { username, userId, loadout });
+
   return loadouts;
 }
 
@@ -292,6 +296,9 @@ export async function updateUserLoadout(owner, repo, username, userId, loadoutId
   await saveUserLoadouts(owner, repo, username, userId, loadouts);
   logger.info(`Updated loadout "${updatedLoadout.name}" for ${username}`);
 
+  // Emit event for achievement system
+  eventBus.emit(EventNames.USER_LOADOUT_UPDATED, { username, userId, loadoutId, loadout: loadouts[loadoutIndex] });
+
   return loadouts;
 }
 
@@ -315,6 +322,9 @@ export async function deleteUserLoadout(owner, repo, username, userId, loadoutId
 
   await saveUserLoadouts(owner, repo, username, userId, filteredLoadouts);
   logger.info(`Deleted loadout ${loadoutId} for ${username}`);
+
+  // Emit event for achievement system
+  eventBus.emit(EventNames.USER_LOADOUT_DELETED, { username, userId, loadoutId });
 
   return filteredLoadouts;
 }

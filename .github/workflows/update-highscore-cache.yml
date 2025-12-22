@@ -290,6 +290,104 @@ jobs:
                 }
               }
 
+              // Fetch linked anonymous PRs (PRs with user-id labels)
+              console.log('🔍 Fetching linked anonymous PRs...');
+              let linkedPRCount = 0;
+              let prPage = 1;
+              const prPerPage = 100;
+              let hasMorePRs = true;
+
+              while (hasMorePRs) {
+                const { data: prs } = await github.rest.pulls.list({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  state: 'all',
+                  per_page: prPerPage,
+                  page: prPage,
+                });
+
+                if (prs.length === 0) break;
+
+                // Find PRs with user-id labels (linked anonymous edits)
+                for (const pr of prs) {
+                  // Skip if not merged
+                  if (!pr.merged_at) continue;
+
+                  // Check for user-id label
+                  const userIdLabel = pr.labels.find(label => {
+                    const labelName = typeof label === 'string' ? label : label.name;
+                    return labelName && labelName.startsWith('user-id:');
+                  });
+
+                  if (userIdLabel) {
+                    const labelName = typeof userIdLabel === 'string' ? userIdLabel : userIdLabel.name;
+                    const userId = parseInt(labelName.replace('user-id:', ''));
+
+                    // Get detailed PR data for additions/deletions
+                    try {
+                      const { data: detailedPR } = await github.rest.pulls.get({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        pull_number: pr.number,
+                      });
+
+                      let additions = detailedPR.additions || 0;
+                      let deletions = detailedPR.deletions || 0;
+
+                      // If additions/deletions are missing (bot PRs), fetch from commits
+                      if (!additions && !deletions) {
+                        try {
+                          const { data: commits } = await github.rest.pulls.listCommits({
+                            owner: context.repo.owner,
+                            repo: context.repo.repo,
+                            pull_number: pr.number,
+                            per_page: 100,
+                          });
+
+                          for (const commit of commits) {
+                            const { data: commitData } = await github.rest.repos.getCommit({
+                              owner: context.repo.owner,
+                              repo: context.repo.repo,
+                              ref: commit.sha,
+                            });
+                            additions += commitData.stats?.additions || 0;
+                            deletions += commitData.stats?.deletions || 0;
+                          }
+                        } catch (commitError) {
+                          console.warn(`⚠️ Failed to fetch commits for PR #${pr.number}:`, commitError.message);
+                        }
+                      }
+
+                      // Add to contributor stats
+                      if (contributorMap.has(userId)) {
+                        const contributor = contributorMap.get(userId);
+                        contributor.contributions++;
+                        contributor.additions += additions;
+                        contributor.deletions += deletions;
+                        linkedPRCount++;
+                      } else {
+                        console.warn(`⚠️ Found linked PR #${pr.number} for unknown user ID: ${userId}`);
+                      }
+                    } catch (error) {
+                      console.warn(`⚠️ Failed to fetch details for linked PR #${pr.number}:`, error.message);
+                    }
+                  }
+                }
+
+                hasMorePRs = prs.length === prPerPage;
+                prPage++;
+
+                // Safety limit
+                if (prPage > 50) {
+                  console.warn('⚠️ Reached page limit (50) for PR fetching');
+                  break;
+                }
+              }
+
+              if (linkedPRCount > 0) {
+                console.log(`✅ Processed ${linkedPRCount} linked anonymous PR(s)`);
+              }
+
               // Merge regular contributors and anonymous contributors
               const allContributors = [
                 ...Array.from(contributorMap.values()),
@@ -443,6 +541,131 @@ jobs:
                 } catch (error) {
                   console.warn(`⚠️ Failed to fetch details for commit ${commit.sha.substring(0, 7)}:`, error.message);
                 }
+              }
+
+              // Fetch linked anonymous PRs within date range (PRs with user-id labels)
+              console.log('🔍 Fetching linked anonymous PRs within date range...');
+              let linkedPRCount = 0;
+              let prPage = 1;
+              const prPerPage = 100;
+              let hasMorePRs = true;
+
+              while (hasMorePRs) {
+                const { data: prs } = await github.rest.pulls.list({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  state: 'all',
+                  per_page: prPerPage,
+                  page: prPage,
+                });
+
+                if (prs.length === 0) break;
+
+                // Find PRs with user-id labels (linked anonymous edits)
+                for (const pr of prs) {
+                  // Skip if not merged
+                  if (!pr.merged_at) continue;
+
+                  // Check if PR is within date range
+                  const prDate = new Date(pr.created_at);
+                  const sinceDate = new Date(since);
+                  const untilDate = new Date(until);
+                  if (prDate < sinceDate || prDate > untilDate) continue;
+
+                  // Check for user-id label
+                  const userIdLabel = pr.labels.find(label => {
+                    const labelName = typeof label === 'string' ? label : label.name;
+                    return labelName && labelName.startsWith('user-id:');
+                  });
+
+                  if (userIdLabel) {
+                    const labelName = typeof userIdLabel === 'string' ? userIdLabel : userIdLabel.name;
+                    const userId = parseInt(labelName.replace('user-id:', ''));
+                    const userKey = userId.toString();
+
+                    // Get detailed PR data for additions/deletions
+                    try {
+                      const { data: detailedPR } = await github.rest.pulls.get({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        pull_number: pr.number,
+                      });
+
+                      let additions = detailedPR.additions || 0;
+                      let deletions = detailedPR.deletions || 0;
+
+                      // If additions/deletions are missing (bot PRs), fetch from commits
+                      if (!additions && !deletions) {
+                        try {
+                          const { data: commits } = await github.rest.pulls.listCommits({
+                            owner: context.repo.owner,
+                            repo: context.repo.repo,
+                            pull_number: pr.number,
+                            per_page: 100,
+                          });
+
+                          for (const commit of commits) {
+                            const { data: commitData } = await github.rest.repos.getCommit({
+                              owner: context.repo.owner,
+                              repo: context.repo.repo,
+                              ref: commit.sha,
+                            });
+                            additions += commitData.stats?.additions || 0;
+                            deletions += commitData.stats?.deletions || 0;
+                          }
+                        } catch (commitError) {
+                          console.warn(`⚠️ Failed to fetch commits for PR #${pr.number}:`, commitError.message);
+                        }
+                      }
+
+                      // Add to contributor stats
+                      if (contributorMap.has(userKey)) {
+                        const contributor = contributorMap.get(userKey);
+                        contributor.contributions++;
+                        contributor.additions += additions;
+                        contributor.deletions += deletions;
+                        linkedPRCount++;
+                      } else {
+                        // User not in map yet, try to fetch their info
+                        try {
+                          const { data: userData } = await github.rest.users.getByUsername({
+                            username: pr.user.login // This might be the bot, but we'll try
+                          });
+
+                          contributorMap.set(userKey, {
+                            userId: userId,
+                            login: userData.login,
+                            avatarUrl: userData.avatar_url,
+                            contributions: 1,
+                            additions,
+                            deletions,
+                            profileUrl: userData.html_url,
+                            prestige: 0,
+                            type: userData.type || 'User',
+                          });
+                          linkedPRCount++;
+                        } catch (error) {
+                          console.warn(`⚠️ Found linked PR #${pr.number} for unknown user ID ${userId}, failed to fetch user data`);
+                        }
+                      }
+                    } catch (error) {
+                      console.warn(`⚠️ Failed to fetch details for linked PR #${pr.number}:`, error.message);
+                    }
+                  }
+                }
+
+                hasMorePRs = prs.length === prPerPage;
+                prPage++;
+
+                // Safety limit
+                if (prPage > 50) {
+                  console.warn('⚠️ Reached page limit (50) for PR fetching');
+                  break;
+                }
+              }
+
+              if (linkedPRCount > 0) {
+                console.log(`✅ Processed ${linkedPRCount} linked anonymous PR(s) in date range`);
               }
 
               // Merge regular contributors and anonymous contributors

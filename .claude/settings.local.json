@@ -86,7 +86,16 @@
       "Bash(node migrate-services.cjs:*)",
       "Bash(Get-Content \"C:\\\\Users\\\\dolb9\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Projects-slayerlegend-wiki\\\\tasks\\\\b31197e.output\")",
       "Bash(node:*)",
-      "Bash(npx vitest:*)"
+      "Bash(npx vitest:*)",
+      "Bash(gh pr view:*)",
+      "Bash(taskkill /F /FI \"WINDOWTITLE eq npm*\")",
+      "Bash(Select-String -Pattern \"linking|Linking|anonymous|AuthStore|AnonymousEditLinking\" -Context 0,2)",
+      "Bash(Select-String -Pattern \"error|Error|ERROR\" -Context 2,2)",
+      "Bash(Select-Object -First 20)",
+      "Bash(Select-String -Pattern \"FAIL|✓.*link-anonymous\" -Context 2,0)",
+      "Bash(Select-String -Pattern \"link|Link|LINK|error|Error|ERROR\" -Context 2,2)",
+      "Bash(Select-String -Pattern \"PASS|FAIL|✓|✗|Tests:|passed|failed\")",
+      "Bash(Select-Object -First 50)"
     ]
   }
 }

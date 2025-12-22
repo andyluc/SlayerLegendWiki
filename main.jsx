@@ -20,6 +20,10 @@ import { registerMigrations } from './wiki-framework/src/utils/storageMigration.
 import { gameMigrations } from './src/utils/gameMigrations.js';
 registerMigrations(gameMigrations);
 
+// Achievement deciders are now registered via plugin system
+// See: src/services/achievements/deciders/index.js (exported as customDeciders)
+// The bot service automatically loads deciders from both framework and parent project
+
 // Register game-specific content renderers
 import { registerContentProcessor, registerCustomComponents, registerSkillPreview, registerEquipmentPreview, registerDataAutocompleteSearch, registerPicker } from './wiki-framework/src/utils/contentRendererRegistry.js';
 import { registerDataSelector } from './wiki-framework/src/utils/dataSelectorRegistry.js';

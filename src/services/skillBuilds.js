@@ -1,6 +1,7 @@
 import { getOctokit } from '../../wiki-framework/src/services/github/api.js';
 import { createUserIdLabel } from '../../wiki-framework/src/utils/githubLabelUtils.js';
 import { createLogger } from '../utils/logger';
+import { eventBus, EventNames } from '../../wiki-framework/src/services/eventBus.js';
 
 const logger = createLogger('SkillBuilds');
 
@@ -257,6 +258,9 @@ export async function addUserBuild(owner, repo, username, userId, build) {
   await saveUserBuilds(owner, repo, username, userId, builds);
   logger.info(`Added build "${build.name}" for ${username}`);
 
+  // Emit event for achievement system
+  eventBus.emit(EventNames.USER_BUILD_SAVED, { username, userId, build });
+
   return builds;
 }
 
@@ -289,6 +293,9 @@ export async function updateUserBuild(owner, repo, username, userId, buildId, up
   await saveUserBuilds(owner, repo, username, userId, builds);
   logger.info(`Updated build "${updatedBuild.name}" for ${username}`);
 
+  // Emit event for achievement system
+  eventBus.emit(EventNames.USER_BUILD_UPDATED, { username, userId, buildId, build: builds[buildIndex] });
+
   return builds;
 }
 
@@ -312,6 +319,9 @@ export async function deleteUserBuild(owner, repo, username, userId, buildId) {
 
   await saveUserBuilds(owner, repo, username, userId, filteredBuilds);
   logger.info(`Deleted build ${buildId} for ${username}`);
+
+  // Emit event for achievement system
+  eventBus.emit(EventNames.USER_BUILD_DELETED, { username, userId, buildId });
 
   return filteredBuilds;
 }
