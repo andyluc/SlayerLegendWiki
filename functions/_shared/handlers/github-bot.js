@@ -1615,17 +1615,26 @@ async function handleCheckAchievements(adapter, octokit, { owner, repo }, header
 
   try {
     // 1. Validate token and fetch authenticated user
-    logger.debug('Validating user token for achievement checking');
+    logger.debug('Validating user token for achievement checking', {
+      tokenLength: userToken?.length || 0,
+      tokenPrefix: userToken?.substring(0, 4) || 'none'
+    });
 
     const userResponse = await fetch('https://api.github.com/user', {
       headers: {
-        'Authorization': `Bearer ${userToken}`,
+        'Authorization': `token ${userToken}`,
         'Accept': 'application/vnd.github.v3+json',
+        'User-Agent': 'SlayerLegend-Wiki/1.0',
       },
     });
 
     if (!userResponse.ok) {
-      logger.error('Token validation failed', { status: userResponse.status });
+      const errorText = await userResponse.text();
+      logger.error('Token validation failed', {
+        status: userResponse.status,
+        statusText: userResponse.statusText,
+        error: errorText
+      });
       return adapter.createJsonResponse(401, { error: 'Invalid or expired token' });
     }
 
