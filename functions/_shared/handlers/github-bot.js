@@ -2556,7 +2556,7 @@ async function handleSubmitContentCreator(adapter, octokit, { owner, repo, creat
   try {
     // Get index issue
     const indexResult = await handleGetOrCreateCreatorIndex(adapter, octokit, { owner, repo });
-    const indexData = JSON.parse(indexResult.body);
+    const indexData = await indexResult.json();
     const issueNumber = indexData.issueNumber;
     const currentBody = indexData.body;
 
@@ -2635,7 +2635,7 @@ async function handleGetApprovedCreators(adapter, octokit, { owner, repo }) {
   try {
     // Get index issue
     const indexResult = await handleGetOrCreateCreatorIndex(adapter, octokit, { owner, repo });
-    const indexData = JSON.parse(indexResult.body);
+    const indexData = await indexResult.json();
     const issueNumber = indexData.issueNumber;
     const body = indexData.body;
 
@@ -2682,7 +2682,7 @@ async function handleGetAllCreatorSubmissions(adapter, octokit, { owner, repo })
   try {
     // Get index issue
     const indexResult = await handleGetOrCreateCreatorIndex(adapter, octokit, { owner, repo });
-    const indexData = JSON.parse(indexResult.body);
+    const indexData = await indexResult.json();
     const issueNumber = indexData.issueNumber;
     const body = indexData.body;
 
@@ -2770,7 +2770,7 @@ async function handleSyncCreatorApprovals(adapter, octokit, { owner, repo, admin
   try {
     // Get index issue
     const indexResult = await handleGetOrCreateCreatorIndex(adapter, octokit, { owner, repo });
-    const indexData = JSON.parse(indexResult.body);
+    const indexData = await indexResult.json();
     const issueNumber = indexData.issueNumber;
     const body = indexData.body;
 
@@ -2879,7 +2879,7 @@ async function handleApproveCreator(adapter, octokit, { owner, repo, creatorId, 
   try {
     // Get index issue
     const indexResult = await handleGetOrCreateCreatorIndex(adapter, octokit, { owner, repo });
-    const indexData = JSON.parse(indexResult.body);
+    const indexData = await indexResult.json();
     const issueNumber = indexData.issueNumber;
     const body = indexData.body;
 
@@ -3010,7 +3010,7 @@ async function handleDeleteCreatorSubmission(adapter, octokit, { owner, repo, cr
   try {
     // Get index issue
     const indexResult = await handleGetOrCreateCreatorIndex(adapter, octokit, { owner, repo });
-    const indexData = JSON.parse(indexResult.body);
+    const indexData = await indexResult.json();
     const issueNumber = indexData.issueNumber;
     const body = indexData.body;
 
