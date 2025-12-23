@@ -2,6 +2,7 @@ import { getOctokit } from '../../wiki-framework/src/services/github/api.js';
 import { createUserIdLabel } from '../../wiki-framework/src/utils/githubLabelUtils.js';
 import { createLogger } from '../utils/logger';
 import { eventBus, EventNames } from '../../wiki-framework/src/services/eventBus.js';
+import { queueAchievementCheck } from '../../wiki-framework/src/services/achievements/achievementQueue.js';
 
 const logger = createLogger('BattleLoadouts');
 
@@ -263,6 +264,33 @@ export async function addUserLoadout(owner, repo, username, userId, loadout) {
 
   // Emit event for achievement system
   eventBus.emit(EventNames.USER_LOADOUT_SAVED, { username, userId, loadout });
+
+  // Queue achievement checks for all loadout-related achievements
+  if (userId && username) {
+    const loadoutAchievements = [
+      'first-loadout',         // First loadout created
+      'loadout-expert',        // 10 loadouts
+      'spirit-collector',      // 10 different spirits
+      'strategist',            // Advanced tactical loadout (4+ slots filled)
+      'collector',             // All spirit types collected
+    ];
+
+    logger.info('Queueing loadout achievement checks', { userId, username, count: loadoutAchievements.length });
+
+    loadoutAchievements.forEach(achievementId => {
+      queueAchievementCheck(achievementId, {
+        owner,
+        repo,
+        userId,
+        username,
+        delay: 2000, // Wait 2 seconds for GitHub Issues to sync
+        retryDelay: 5000,
+        maxRetries: 3,
+      }).catch(error => {
+        logger.error(`Failed to queue ${achievementId} achievement check`, { error: error.message });
+      });
+    });
+  }
 
   return loadouts;
 }

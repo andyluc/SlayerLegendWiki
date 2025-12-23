@@ -2,6 +2,7 @@ import { getOctokit } from '../../wiki-framework/src/services/github/api.js';
 import { createUserIdLabel } from '../../wiki-framework/src/utils/githubLabelUtils.js';
 import { createLogger } from '../utils/logger';
 import { eventBus, EventNames } from '../../wiki-framework/src/services/eventBus.js';
+import { queueAchievementCheck } from '../../wiki-framework/src/services/achievements/achievementQueue.js';
 
 const logger = createLogger('SkillBuilds');
 
@@ -260,6 +261,35 @@ export async function addUserBuild(owner, repo, username, userId, build) {
 
   // Emit event for achievement system
   eventBus.emit(EventNames.USER_BUILD_SAVED, { username, userId, build });
+
+  // Queue achievement checks for all build-related achievements
+  if (userId && username) {
+    const buildAchievements = [
+      'first-build',           // First build created
+      'build-collector',       // 10 builds
+      'build-master',          // Max builds (10)
+      'skill-theorist',        // Unique skill combinations
+      'completionist',         // Variety of builds
+      'innovative',            // Build with unique combo (8 skills)
+      'min-maxer',             // Optimized build (8 slots filled)
+    ];
+
+    logger.info('Queueing build achievement checks', { userId, username, count: buildAchievements.length });
+
+    buildAchievements.forEach(achievementId => {
+      queueAchievementCheck(achievementId, {
+        owner,
+        repo,
+        userId,
+        username,
+        delay: 2000, // Wait 2 seconds for GitHub Issues to sync
+        retryDelay: 5000,
+        maxRetries: 3,
+      }).catch(error => {
+        logger.error(`Failed to queue ${achievementId} achievement check`, { error: error.message });
+      });
+    });
+  }
 
   return builds;
 }

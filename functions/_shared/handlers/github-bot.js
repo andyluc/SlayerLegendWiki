@@ -324,6 +324,22 @@ export async function handleGithubBot(adapter, configAdapter, cryptoAdapter) {
         return await handleLinkAnonymousEdits(adapter, octokit, body, headers);
       case 'check-achievements':
         return await handleCheckAchievements(adapter, octokit, body, headers);
+      case 'check-single-achievement':
+        return await handleCheckSingleAchievement(adapter, octokit, body, headers);
+      case 'get-or-create-creator-index':
+        return await handleGetOrCreateCreatorIndex(adapter, octokit, body);
+      case 'submit-content-creator':
+        return await handleSubmitContentCreator(adapter, octokit, body);
+      case 'get-approved-creators':
+        return await handleGetApprovedCreators(adapter, octokit, body);
+      case 'get-all-creator-submissions':
+        return await handleGetAllCreatorSubmissions(adapter, octokit, body);
+      case 'sync-creator-approvals':
+        return await handleSyncCreatorApprovals(adapter, octokit, body);
+      case 'approve-creator':
+        return await handleApproveCreator(adapter, octokit, body);
+      case 'delete-creator-submission':
+        return await handleDeleteCreatorSubmission(adapter, octokit, body);
       default:
         return adapter.createJsonResponse(400, { error: `Unknown action: ${action}` });
     }
@@ -1436,7 +1452,7 @@ ${reason ? `**Reason:** ${reason}` : ''}
  * Authenticates user via OAuth token and validates identity
  * Required: owner, repo
  * Optional: manual (boolean) - If true, enforces cooldown check
- * Required Header: Authorization: Bearer {token}
+ * Required Header: Authorization: token {token}
  */
 async function handleLinkAnonymousEdits(adapter, octokit, { owner, repo, manual = false }, headers) {
   if (!owner || !repo) {
@@ -1445,11 +1461,11 @@ async function handleLinkAnonymousEdits(adapter, octokit, { owner, repo, manual 
 
   // Extract and validate Authorization header
   const authHeader = headers?.authorization || headers?.Authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!authHeader || !authHeader.startsWith('token ')) {
     return adapter.createJsonResponse(401, { error: 'Missing or invalid Authorization header' });
   }
 
-  const userToken = authHeader.substring(7); // Remove 'Bearer ' prefix
+  const userToken = authHeader.substring(6); // Remove 'token ' prefix
 
   try {
     // 1. Validate token and fetch authenticated user from GitHub
@@ -1600,7 +1616,7 @@ async function handleLinkAnonymousEdits(adapter, octokit, { owner, repo, manual 
  * Check achievements for authenticated user (SERVER-SIDE)
  * All data retrieval and processing happens on the server
  * Required: owner, repo
- * Required Header: Authorization: Bearer {token}
+ * Required Header: Authorization: token {token}
  */
 async function handleCheckAchievements(adapter, octokit, { owner, repo }, headers) {
   console.log('[CF] handleCheckAchievements called', {
@@ -1629,7 +1645,7 @@ async function handleCheckAchievements(adapter, octokit, { owner, repo }, header
 
   // Extract and validate Authorization header
   const authHeader = headers?.authorization || headers?.Authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!authHeader || !authHeader.startsWith('token ')) {
     console.error('[CF] Missing or invalid Authorization header', {
       hasAuth: !!authHeader,
       authType: authHeader?.substring(0, 10)
@@ -1641,7 +1657,7 @@ async function handleCheckAchievements(adapter, octokit, { owner, repo }, header
     return adapter.createJsonResponse(401, { error: 'Missing or invalid Authorization header' });
   }
 
-  const userToken = authHeader.substring(7); // Remove 'Bearer ' prefix
+  const userToken = authHeader.substring(6); // Remove 'token ' prefix
 
   try {
     // 1. Validate token and fetch authenticated user
@@ -2045,6 +2061,254 @@ async function handleCheckAchievements(adapter, octokit, { owner, repo }, header
 }
 
 /**
+ * Check Single Achievement (SERVER-SIDE)
+ * Targeted achievement check for immediate feedback
+ * Required: owner, repo, achievementId
+ * Required Header: Authorization: token {token}
+ */
+async function handleCheckSingleAchievement(adapter, octokit, { owner, repo, achievementId }, headers) {
+  console.log('[CF] handleCheckSingleAchievement called', {
+    owner,
+    repo,
+    achievementId,
+    hasHeaders: !!headers,
+    authHeader: headers?.authorization ? 'present' : 'missing',
+  });
+
+  if (!owner || !repo || !achievementId) {
+    console.error('[CF] Missing required fields', { owner, repo, achievementId });
+    return adapter.createJsonResponse(400, { error: 'Missing required fields: owner, repo, achievementId' });
+  }
+
+  // Extract and validate Authorization header
+  const authHeader = headers?.authorization || headers?.Authorization;
+  if (!authHeader || !authHeader.startsWith('token ')) {
+    console.error('[CF] Missing or invalid Authorization header');
+    return adapter.createJsonResponse(401, { error: 'Missing or invalid Authorization header' });
+  }
+
+  const userToken = authHeader.substring(6); // Remove 'token ' prefix
+
+  try {
+    // 1. Validate token and fetch authenticated user
+    const userResponse = await fetch('https://api.github.com/user', {
+      headers: {
+        'Authorization': `token ${userToken}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'User-Agent': 'SlayerLegend-Wiki/1.0',
+      },
+    });
+
+    if (!userResponse.ok) {
+      const errorText = await userResponse.text();
+      console.error('[CF] Token validation failed', {
+        status: userResponse.status,
+        error: errorText
+      });
+      return adapter.createJsonResponse(401, { error: 'Invalid or expired token' });
+    }
+
+    const userData = await userResponse.json();
+    const userId = userData.id;
+    const username = userData.login;
+
+    console.log('[CF] Checking single achievement', { userId, username, achievementId });
+
+    // 2. Load achievement definition
+    const platform = adapter.getPlatform();
+    const hasFilesystemAccess = platform === 'netlify';
+    let definitions;
+
+    if (hasFilesystemAccess) {
+      const fs = await import('fs');
+      const path = await import('path');
+      const achievementsPath = path.join(process.cwd(), 'public', 'achievements.json');
+      const achievementsContent = fs.readFileSync(achievementsPath, 'utf8');
+      definitions = JSON.parse(achievementsContent);
+    } else {
+      // Fetch from deployed site
+      const host = adapter.getEnv('CF_PAGES_URL') || adapter.getEnv('URL') || headers?.host;
+      const baseUrl = host ? (host.startsWith('http') ? host : `https://${host}`) : 'https://slayerlegend.wiki';
+      const achievementsUrl = `${baseUrl}/achievements.json`;
+      const response = await fetch(achievementsUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to load achievements: ${response.status}`);
+      }
+      definitions = await response.json();
+    }
+
+    // Find the achievement definition
+    const achievementDef = definitions.achievements.find(a => a.id === achievementId);
+    if (!achievementDef) {
+      console.warn('[CF] Achievement not found', { achievementId });
+      return adapter.createJsonResponse(404, { error: `Achievement not found: ${achievementId}` });
+    }
+
+    // 3. Get user snapshot
+    const userIdLabel = `user-id:${userId}`;
+    const { data: snapshotIssues } = await octokit.rest.issues.listForRepo({
+      owner,
+      repo,
+      labels: `user-snapshot,${userIdLabel}`,
+      state: 'open',
+      per_page: 1,
+    });
+
+    let userSnapshot = null;
+    if (snapshotIssues.length > 0) {
+      try {
+        userSnapshot = JSON.parse(snapshotIssues[0].body);
+      } catch (error) {
+        console.error('[CF] Failed to parse user snapshot', error);
+      }
+    }
+
+    // If no snapshot, use minimal data
+    if (!userSnapshot) {
+      userSnapshot = {
+        userId,
+        user: userData,
+        stats: { totalPRs: 0, mergedPRs: 0, totalAdditions: 0, closedPRs: 0, totalFiles: 0 },
+        pullRequests: [],
+      };
+    }
+
+    // 4. Check if already unlocked
+    const { data: achievementIssues } = await octokit.rest.issues.listForRepo({
+      owner,
+      repo,
+      labels: `achievements,${userIdLabel}`,
+      state: 'open',
+      per_page: 1,
+    });
+
+    let existingAchievements = [];
+    let existingIssueNumber = null;
+
+    if (achievementIssues.length > 0) {
+      existingIssueNumber = achievementIssues[0].number;
+      try {
+        const data = JSON.parse(achievementIssues[0].body);
+        existingAchievements = data.achievements || [];
+      } catch (error) {
+        console.error('[CF] Failed to parse achievements', error);
+      }
+    }
+
+    // Check if already unlocked
+    const alreadyUnlocked = existingAchievements.some(a => a.id === achievementId);
+    if (alreadyUnlocked) {
+      console.log('[CF] Achievement already unlocked', { achievementId });
+      return adapter.createJsonResponse(200, {
+        unlocked: false,
+        alreadyHas: true,
+        message: 'Achievement already unlocked'
+      });
+    }
+
+    // 5. Run the decider
+    const platform2 = adapter.getPlatform();
+    const hasFilesystemAccess2 = platform2 === 'netlify';
+    let baseUrl = 'https://slayerlegend.wiki';
+
+    if (!hasFilesystemAccess2) {
+      const host = adapter.getEnv('CF_PAGES_URL') || adapter.getEnv('URL') || headers?.host;
+      if (host) {
+        baseUrl = host.startsWith('http') ? host : `https://${host}`;
+      }
+    }
+
+    const isUnlocked = await runDecider(achievementId, userSnapshot, {
+      octokit,
+      owner,
+      repo,
+      userId,
+      username,
+      releaseDate: null, // TODO: get from env if needed
+      baseUrl,
+    });
+
+    if (!isUnlocked) {
+      console.log('[CF] Achievement not yet unlocked', { achievementId });
+      return adapter.createJsonResponse(200, {
+        unlocked: false,
+        message: 'Achievement requirements not met'
+      });
+    }
+
+    // 6. Save the achievement
+    const newAchievement = {
+      id: achievementId,
+      unlockedAt: new Date().toISOString(),
+      progress: 100,
+    };
+
+    const allAchievements = [...existingAchievements, newAchievement];
+    const issueData = {
+      userId,
+      username,
+      lastUpdated: new Date().toISOString(),
+      achievements: allAchievements,
+      version: '1.0',
+    };
+
+    const body = JSON.stringify(issueData, null, 2);
+    const title = `[Achievements] ${username}`;
+    const labels = ['achievements', userIdLabel, 'automated'];
+
+    if (existingIssueNumber) {
+      await octokit.rest.issues.update({
+        owner,
+        repo,
+        issue_number: existingIssueNumber,
+        body,
+      });
+      console.log('[CF] Updated achievements', { username, achievementId });
+    } else {
+      const { data: newIssue } = await octokit.rest.issues.create({
+        owner,
+        repo,
+        title,
+        body,
+        labels,
+      });
+
+      // Lock the issue
+      try {
+        await octokit.rest.issues.lock({
+          owner,
+          repo,
+          issue_number: newIssue.number,
+          lock_reason: 'off-topic',
+        });
+      } catch (lockError) {
+        logger.warn('Failed to lock achievement issue', { error: lockError.message });
+      }
+
+      console.log('[CF] Created achievements', { username, achievementId });
+    }
+
+    // Return the full achievement data for client
+    return adapter.createJsonResponse(200, {
+      unlocked: true,
+      achievement: {
+        ...achievementDef,
+        ...newAchievement,
+      }
+    });
+
+  } catch (error) {
+    console.error('[CF] Failed to check single achievement', {
+      error: error.message,
+      stack: error.stack,
+    });
+    return adapter.createJsonResponse(500, {
+      error: error.message || 'Failed to check achievement'
+    });
+  }
+}
+
+/**
  * Run achievement decider logic server-side
  * Uses plugin-based decider registry (framework defaults + custom)
  */
@@ -2066,6 +2330,724 @@ async function runDecider(achievementId, userData, context) {
   } catch (error) {
     logger.error('Decider execution failed', { achievementId, error: error.message });
     return false;
+  }
+}
+
+// ============================================================================
+// Content Creator Handler Functions
+// ============================================================================
+
+const CREATOR_INDEX_LABEL = 'content-creator-index';
+const CREATOR_INDEX_TITLE = '[Content Creator Index]';
+const CREATOR_INDEX_HEADER = '# Content Creator Index\n\n## Approved Creators\n';
+const PENDING_APPROVALS_HEADER = '\n## Pending Approvals\n';
+
+/**
+ * In-flight request tracking to prevent race conditions
+ * Key: "owner/repo", Value: Promise
+ */
+const pendingCreatorIndexRequests = new Map();
+
+/**
+ * Parse creator index map from issue body
+ * Returns: Map<creatorId, commentId>
+ */
+function parseCreatorIndex(body) {
+  const map = new Map();
+  if (!body) return map;
+
+  // Find the Approved Creators section
+  const approvedSection = body.match(/## Approved Creators\n([\s\S]*?)(?=\n##|\n---|\n🤖|$)/);
+  if (!approvedSection) return map;
+
+  // Match lines like: [creator-id]=comment-id
+  const regex = /\[([a-z0-9-]+)\]=(\d+)/gi;
+  let match;
+
+  while ((match = regex.exec(approvedSection[1])) !== null) {
+    const creatorId = match[1];
+    const commentId = parseInt(match[2], 10);
+    map.set(creatorId, commentId);
+  }
+
+  return map;
+}
+
+/**
+ * Parse pending approvals from issue body
+ * Returns: Array<{ creatorId, checked, commentUrl, channelName, platform, submittedBy }>
+ */
+function parsePendingApprovals(body) {
+  const pending = [];
+  if (!body) return pending;
+
+  // Find the Pending Approvals section
+  const pendingSection = body.match(/## Pending Approvals\n([\s\S]*?)(?=\n---|\n🤖|$)/);
+  if (!pendingSection) return pending;
+
+  // Match lines like: - [ ] [Name](URL#comment-123) - Platform - submitted by @user
+  const regex = /- \[([ x])\] \[([^\]]+)\]\(([^)]+#issuecomment-(\d+))\) - ([^-]+) - submitted by @([^\n]+)/gi;
+  let match;
+
+  while ((match = regex.exec(pendingSection[1])) !== null) {
+    const checked = match[1] === 'x';
+    const channelName = match[2].trim();
+    const commentUrl = match[3].trim();
+    const commentId = match[4];
+    const platform = match[5].trim().toLowerCase();
+    const submittedBy = match[6].trim();
+
+    // Extract creator ID from comment data (will need to fetch)
+    pending.push({
+      commentId: parseInt(commentId, 10),
+      checked,
+      channelName,
+      platform,
+      submittedBy,
+      commentUrl
+    });
+  }
+
+  return pending;
+}
+
+/**
+ * Serialize creator index map to issue body
+ */
+function serializeCreatorIndex(approvedMap, pendingList) {
+  let body = CREATOR_INDEX_HEADER;
+
+  // Add approved creators
+  for (const [creatorId, commentId] of approvedMap.entries()) {
+    body += `[${creatorId}]=${commentId}\n`;
+  }
+
+  // Add pending approvals section
+  body += PENDING_APPROVALS_HEADER;
+  for (const pending of pendingList) {
+    const checkbox = pending.checked ? 'x' : ' ';
+    body += `- [${checkbox}] [${pending.channelName}](${pending.commentUrl}) - ${pending.platform} - submitted by @${pending.submittedBy}\n`;
+  }
+
+  body += '\n---\n\n🤖 Managed by wiki bot';
+  return body;
+}
+
+/**
+ * Get or create content creator index issue
+ * Required: owner, repo
+ */
+async function handleGetOrCreateCreatorIndex(adapter, octokit, { owner, repo }) {
+  if (!owner || !repo) {
+    return adapter.createJsonResponse(400, { error: 'Missing required fields: owner, repo' });
+  }
+
+  const cacheKey = `${owner}/${repo}`;
+
+  // Check if there's already a request in-flight for this key
+  if (pendingCreatorIndexRequests.has(cacheKey)) {
+    logger.debug('Waiting for in-flight creator index request', { cacheKey });
+    return await pendingCreatorIndexRequests.get(cacheKey);
+  }
+
+  // Create new request promise
+  const requestPromise = (async () => {
+    try {
+      // Search for existing index issue
+      const { data: issues } = await octokit.rest.issues.listForRepo({
+        owner,
+        repo,
+        labels: CREATOR_INDEX_LABEL,
+        state: 'open',
+        per_page: 1,
+      });
+
+      if (issues.length > 0) {
+        const issue = issues[0];
+        return adapter.createJsonResponse(200, {
+          issueNumber: issue.number,
+          issueUrl: issue.html_url,
+          body: issue.body || ''
+        });
+      }
+
+      // Create new index issue
+      const initialBody = CREATOR_INDEX_HEADER + PENDING_APPROVALS_HEADER + '\n---\n\n🤖 Managed by wiki bot';
+      const { data: newIssue } = await octokit.rest.issues.create({
+        owner,
+        repo,
+        title: CREATOR_INDEX_TITLE,
+        body: initialBody,
+        labels: [CREATOR_INDEX_LABEL],
+      });
+
+      // Lock issue to prevent tampering
+      await octokit.rest.issues.lock({
+        owner,
+        repo,
+        issue_number: newIssue.number,
+        lock_reason: 'resolved',
+      });
+
+      logger.info('Created content creator index issue', { issueNumber: newIssue.number });
+
+      return adapter.createJsonResponse(201, {
+        issueNumber: newIssue.number,
+        issueUrl: newIssue.html_url,
+        body: newIssue.body || ''
+      });
+    } catch (error) {
+      logger.error('Failed to get/create creator index', { error: error.message });
+      return adapter.createJsonResponse(500, { error: error.message });
+    } finally {
+      // Keep in-flight entry for 5 seconds after completion to prevent race conditions during GitHub's eventual consistency
+      setTimeout(() => {
+        pendingCreatorIndexRequests.delete(cacheKey);
+      }, 5000);
+    }
+  })();
+
+  // Track this request
+  pendingCreatorIndexRequests.set(cacheKey, requestPromise);
+
+  return requestPromise;
+}
+
+/**
+ * Submit content creator (create comment + add pending checkbox)
+ * Required: owner, repo, creatorId, channelUrl, channelName, platform, submittedBy
+ */
+async function handleSubmitContentCreator(adapter, octokit, { owner, repo, creatorId, channelUrl, channelName, platform, submittedBy }) {
+  if (!owner || !repo || !creatorId || !channelUrl || !channelName || !platform || !submittedBy) {
+    return adapter.createJsonResponse(400, {
+      error: 'Missing required fields: owner, repo, creatorId, channelUrl, channelName, platform, submittedBy'
+    });
+  }
+
+  try {
+    // Get index issue
+    const indexResult = await handleGetOrCreateCreatorIndex(adapter, octokit, { owner, repo });
+    const indexData = JSON.parse(indexResult.body);
+    const issueNumber = indexData.issueNumber;
+    const currentBody = indexData.body;
+
+    // Check if already exists
+    const indexMap = parseCreatorIndex(currentBody);
+    if (indexMap.has(creatorId)) {
+      return adapter.createJsonResponse(409, { error: 'This creator has already been submitted' });
+    }
+
+    // Create comment with submission data
+    const submissionData = {
+      creatorId,
+      platform,
+      channelUrl,
+      channelName,
+      submittedBy,
+      submittedAt: new Date().toISOString(),
+      approved: false,
+      approvedBy: null,
+      approvedAt: null
+    };
+
+    const { data: comment } = await octokit.rest.issues.createComment({
+      owner,
+      repo,
+      issue_number: issueNumber,
+      body: JSON.stringify(submissionData, null, 2)
+    });
+
+    // Parse current pending list
+    const pendingList = parsePendingApprovals(currentBody);
+
+    // Add new pending entry
+    const commentUrl = `https://github.com/${owner}/${repo}/issues/${issueNumber}#issuecomment-${comment.id}`;
+    pendingList.push({
+      commentId: comment.id,
+      checked: false,
+      channelName,
+      platform,
+      submittedBy,
+      commentUrl
+    });
+
+    // Update issue body with new pending entry
+    const updatedBody = serializeCreatorIndex(indexMap, pendingList);
+    await octokit.rest.issues.update({
+      owner,
+      repo,
+      issue_number: issueNumber,
+      body: updatedBody
+    });
+
+    logger.info('Created content creator submission', { creatorId, commentId: comment.id });
+
+    return adapter.createJsonResponse(201, {
+      creatorId,
+      commentId: comment.id,
+      issueNumber,
+      issueUrl: `https://github.com/${owner}/${repo}/issues/${issueNumber}`
+    });
+  } catch (error) {
+    logger.error('Failed to submit content creator', { error: error.message, creatorId });
+    return adapter.createJsonResponse(500, { error: error.message });
+  }
+}
+
+/**
+ * Get approved creators
+ * Required: owner, repo
+ */
+async function handleGetApprovedCreators(adapter, octokit, { owner, repo }) {
+  if (!owner || !repo) {
+    return adapter.createJsonResponse(400, { error: 'Missing required fields: owner, repo' });
+  }
+
+  try {
+    // Get index issue
+    const indexResult = await handleGetOrCreateCreatorIndex(adapter, octokit, { owner, repo });
+    const indexData = JSON.parse(indexResult.body);
+    const issueNumber = indexData.issueNumber;
+    const body = indexData.body;
+
+    // Parse index map
+    const indexMap = parseCreatorIndex(body);
+
+    if (indexMap.size === 0) {
+      return adapter.createJsonResponse(200, { creators: [] });
+    }
+
+    // Fetch all approved creator comments
+    const creators = [];
+    for (const [creatorId, commentId] of indexMap.entries()) {
+      try {
+        const { data: comment } = await octokit.rest.issues.getComment({
+          owner,
+          repo,
+          comment_id: commentId
+        });
+
+        const creatorData = JSON.parse(comment.body);
+        creators.push(creatorData);
+      } catch (error) {
+        logger.warn('Failed to fetch creator comment', { creatorId, commentId, error: error.message });
+      }
+    }
+
+    return adapter.createJsonResponse(200, { creators });
+  } catch (error) {
+    logger.error('Failed to get approved creators', { error: error.message });
+    return adapter.createJsonResponse(500, { error: error.message });
+  }
+}
+
+/**
+ * Get all creator submissions (for admin panel)
+ * Required: owner, repo
+ */
+async function handleGetAllCreatorSubmissions(adapter, octokit, { owner, repo }) {
+  if (!owner || !repo) {
+    return adapter.createJsonResponse(400, { error: 'Missing required fields: owner, repo' });
+  }
+
+  try {
+    // Get index issue
+    const indexResult = await handleGetOrCreateCreatorIndex(adapter, octokit, { owner, repo });
+    const indexData = JSON.parse(indexResult.body);
+    const issueNumber = indexData.issueNumber;
+    const body = indexData.body;
+
+    // Parse both approved and pending
+    const indexMap = parseCreatorIndex(body);
+    const pendingList = parsePendingApprovals(body);
+
+    // Fetch all comments (approved)
+    const submissions = [];
+    for (const [creatorId, commentId] of indexMap.entries()) {
+      try {
+        const { data: comment } = await octokit.rest.issues.getComment({
+          owner,
+          repo,
+          comment_id: commentId
+        });
+
+        const creatorData = JSON.parse(comment.body);
+        submissions.push(creatorData);
+      } catch (error) {
+        logger.warn('Failed to fetch creator comment', { creatorId, commentId, error: error.message });
+      }
+    }
+
+    // Fetch pending comments
+    for (const pending of pendingList) {
+      try {
+        const { data: comment } = await octokit.rest.issues.getComment({
+          owner,
+          repo,
+          comment_id: pending.commentId
+        });
+
+        const creatorData = JSON.parse(comment.body);
+        submissions.push(creatorData);
+      } catch (error) {
+        logger.warn('Failed to fetch pending creator comment', { commentId: pending.commentId, error: error.message });
+      }
+    }
+
+    return adapter.createJsonResponse(200, { submissions });
+  } catch (error) {
+    logger.error('Failed to get all creator submissions', { error: error.message });
+    return adapter.createJsonResponse(500, { error: error.message });
+  }
+}
+
+/**
+ * Sync creator approvals from checkboxes
+ * Required: owner, repo, adminUsername, userToken
+ */
+async function handleSyncCreatorApprovals(adapter, octokit, { owner, repo, adminUsername, userToken }) {
+  if (!owner || !repo || !adminUsername || !userToken) {
+    return adapter.createJsonResponse(400, {
+      error: 'Missing required fields: owner, repo, adminUsername, userToken'
+    });
+  }
+
+  // Verify admin permissions
+  const userOctokit = new Octokit({
+    auth: userToken,
+    userAgent: 'GitHub-Wiki-Bot/1.0'
+  });
+
+  try {
+    const { data: repoData } = await userOctokit.rest.repos.get({ owner, repo });
+    const { data: userData } = await userOctokit.rest.users.getAuthenticated();
+
+    const isOwner = repoData.owner.login === userData.login;
+    const { data: permData } = await userOctokit.rest.repos.getCollaboratorPermissionLevel({
+      owner,
+      repo,
+      username: userData.login,
+    });
+    const hasAdminPerm = permData.permission === 'admin';
+
+    if (!isOwner && !hasAdminPerm) {
+      return adapter.createJsonResponse(403, { error: 'Only repository owner and admins can perform this action' });
+    }
+  } catch (error) {
+    logger.error('Permission check failed', { error: error.message });
+    return adapter.createJsonResponse(403, { error: 'Permission verification failed' });
+  }
+
+  try {
+    // Get index issue
+    const indexResult = await handleGetOrCreateCreatorIndex(adapter, octokit, { owner, repo });
+    const indexData = JSON.parse(indexResult.body);
+    const issueNumber = indexData.issueNumber;
+    const body = indexData.body;
+
+    // Parse current state
+    const indexMap = parseCreatorIndex(body);
+    const pendingList = parsePendingApprovals(body);
+
+    let updatesCount = 0;
+
+    // Process newly checked boxes
+    for (const pending of pendingList) {
+      if (pending.checked && !indexMap.has(pending.creatorId)) {
+        // Fetch comment data
+        try {
+          const { data: comment } = await octokit.rest.issues.getComment({
+            owner,
+            repo,
+            comment_id: pending.commentId
+          });
+
+          const creatorData = JSON.parse(comment.body);
+
+          // Update approval status
+          creatorData.approved = true;
+          creatorData.approvedBy = adminUsername;
+          creatorData.approvedAt = new Date().toISOString();
+
+          // Update comment
+          await octokit.rest.issues.updateComment({
+            owner,
+            repo,
+            comment_id: pending.commentId,
+            body: JSON.stringify(creatorData, null, 2)
+          });
+
+          // Add to index
+          indexMap.set(creatorData.creatorId, pending.commentId);
+          updatesCount++;
+
+          logger.info('Approved creator via checkbox sync', { creatorId: creatorData.creatorId });
+        } catch (error) {
+          logger.error('Failed to process checked creator', { commentId: pending.commentId, error: error.message });
+        }
+      }
+    }
+
+    // Update pending list to remove approved items
+    const updatedPendingList = pendingList.filter(p => !p.checked || !indexMap.has(p.creatorId));
+
+    // Update issue body
+    const updatedBody = serializeCreatorIndex(indexMap, updatedPendingList);
+    await octokit.rest.issues.update({
+      owner,
+      repo,
+      issue_number: issueNumber,
+      body: updatedBody
+    });
+
+    return adapter.createJsonResponse(200, {
+      updatesCount,
+      message: `Synced ${updatesCount} approval(s)`
+    });
+  } catch (error) {
+    logger.error('Failed to sync creator approvals', { error: error.message });
+    return adapter.createJsonResponse(500, { error: error.message });
+  }
+}
+
+/**
+ * Approve creator manually
+ * Required: owner, repo, creatorId, adminUsername, userToken
+ */
+async function handleApproveCreator(adapter, octokit, { owner, repo, creatorId, adminUsername, userToken }) {
+  if (!owner || !repo || !creatorId || !adminUsername || !userToken) {
+    return adapter.createJsonResponse(400, {
+      error: 'Missing required fields: owner, repo, creatorId, adminUsername, userToken'
+    });
+  }
+
+  // Verify admin permissions
+  const userOctokit = new Octokit({
+    auth: userToken,
+    userAgent: 'GitHub-Wiki-Bot/1.0'
+  });
+
+  try {
+    const { data: repoData } = await userOctokit.rest.repos.get({ owner, repo });
+    const { data: userData } = await userOctokit.rest.users.getAuthenticated();
+
+    const isOwner = repoData.owner.login === userData.login;
+    const { data: permData } = await userOctokit.rest.repos.getCollaboratorPermissionLevel({
+      owner,
+      repo,
+      username: userData.login,
+    });
+    const hasAdminPerm = permData.permission === 'admin';
+
+    if (!isOwner && !hasAdminPerm) {
+      return adapter.createJsonResponse(403, { error: 'Only repository owner and admins can perform this action' });
+    }
+  } catch (error) {
+    logger.error('Permission check failed', { error: error.message });
+    return adapter.createJsonResponse(403, { error: 'Permission verification failed' });
+  }
+
+  try {
+    // Get index issue
+    const indexResult = await handleGetOrCreateCreatorIndex(adapter, octokit, { owner, repo });
+    const indexData = JSON.parse(indexResult.body);
+    const issueNumber = indexData.issueNumber;
+    const body = indexData.body;
+
+    // Parse current state
+    const indexMap = parseCreatorIndex(body);
+    const pendingList = parsePendingApprovals(body);
+
+    // Check if already approved
+    if (indexMap.has(creatorId)) {
+      return adapter.createJsonResponse(409, { error: 'Creator already approved' });
+    }
+
+    // Find in pending list
+    const pending = pendingList.find(p => {
+      // We need to fetch the comment to get the creatorId
+      return true; // Will check in loop
+    });
+
+    let commentId = null;
+    let creatorData = null;
+
+    // Search through pending comments to find the matching creator
+    for (const p of pendingList) {
+      try {
+        const { data: comment } = await octokit.rest.issues.getComment({
+          owner,
+          repo,
+          comment_id: p.commentId
+        });
+
+        const data = JSON.parse(comment.body);
+        if (data.creatorId === creatorId) {
+          commentId = p.commentId;
+          creatorData = data;
+          break;
+        }
+      } catch (error) {
+        logger.warn('Failed to check pending comment', { commentId: p.commentId, error: error.message });
+      }
+    }
+
+    if (!commentId || !creatorData) {
+      return adapter.createJsonResponse(404, { error: 'Creator not found in pending list' });
+    }
+
+    // Update approval status
+    creatorData.approved = true;
+    creatorData.approvedBy = adminUsername;
+    creatorData.approvedAt = new Date().toISOString();
+
+    // Update comment
+    await octokit.rest.issues.updateComment({
+      owner,
+      repo,
+      comment_id: commentId,
+      body: JSON.stringify(creatorData, null, 2)
+    });
+
+    // Add to index
+    indexMap.set(creatorId, commentId);
+
+    // Remove from pending list and check the checkbox
+    const updatedPendingList = pendingList.map(p => {
+      if (p.commentId === commentId) {
+        return { ...p, checked: true };
+      }
+      return p;
+    }).filter(p => p.commentId !== commentId);
+
+    // Update issue body
+    const updatedBody = serializeCreatorIndex(indexMap, updatedPendingList);
+    await octokit.rest.issues.update({
+      owner,
+      repo,
+      issue_number: issueNumber,
+      body: updatedBody
+    });
+
+    logger.info('Approved creator manually', { creatorId, adminUsername });
+
+    return adapter.createJsonResponse(200, {
+      message: 'Creator approved successfully',
+      creatorId
+    });
+  } catch (error) {
+    logger.error('Failed to approve creator', { error: error.message, creatorId });
+    return adapter.createJsonResponse(500, { error: error.message });
+  }
+}
+
+/**
+ * Delete creator submission
+ * Required: owner, repo, creatorId, adminUsername, userToken
+ */
+async function handleDeleteCreatorSubmission(adapter, octokit, { owner, repo, creatorId, adminUsername, userToken }) {
+  if (!owner || !repo || !creatorId || !adminUsername || !userToken) {
+    return adapter.createJsonResponse(400, {
+      error: 'Missing required fields: owner, repo, creatorId, adminUsername, userToken'
+    });
+  }
+
+  // Verify admin permissions
+  const userOctokit = new Octokit({
+    auth: userToken,
+    userAgent: 'GitHub-Wiki-Bot/1.0'
+  });
+
+  try {
+    const { data: repoData } = await userOctokit.rest.repos.get({ owner, repo });
+    const { data: userData } = await userOctokit.rest.users.getAuthenticated();
+
+    const isOwner = repoData.owner.login === userData.login;
+    const { data: permData } = await userOctokit.rest.repos.getCollaboratorPermissionLevel({
+      owner,
+      repo,
+      username: userData.login,
+    });
+    const hasAdminPerm = permData.permission === 'admin';
+
+    if (!isOwner && !hasAdminPerm) {
+      return adapter.createJsonResponse(403, { error: 'Only repository owner and admins can perform this action' });
+    }
+  } catch (error) {
+    logger.error('Permission check failed', { error: error.message });
+    return adapter.createJsonResponse(403, { error: 'Permission verification failed' });
+  }
+
+  try {
+    // Get index issue
+    const indexResult = await handleGetOrCreateCreatorIndex(adapter, octokit, { owner, repo });
+    const indexData = JSON.parse(indexResult.body);
+    const issueNumber = indexData.issueNumber;
+    const body = indexData.body;
+
+    // Parse current state
+    const indexMap = parseCreatorIndex(body);
+    const pendingList = parsePendingApprovals(body);
+
+    let commentId = null;
+
+    // Check if in approved list
+    if (indexMap.has(creatorId)) {
+      commentId = indexMap.get(creatorId);
+      indexMap.delete(creatorId);
+    } else {
+      // Search in pending list
+      for (const p of pendingList) {
+        try {
+          const { data: comment } = await octokit.rest.issues.getComment({
+            owner,
+            repo,
+            comment_id: p.commentId
+          });
+
+          const data = JSON.parse(comment.body);
+          if (data.creatorId === creatorId) {
+            commentId = p.commentId;
+            break;
+          }
+        } catch (error) {
+          logger.warn('Failed to check pending comment', { commentId: p.commentId, error: error.message });
+        }
+      }
+    }
+
+    if (!commentId) {
+      return adapter.createJsonResponse(404, { error: 'Creator not found' });
+    }
+
+    // Delete comment
+    await octokit.rest.issues.deleteComment({
+      owner,
+      repo,
+      comment_id: commentId
+    });
+
+    // Remove from pending list
+    const updatedPendingList = pendingList.filter(p => p.commentId !== commentId);
+
+    // Update issue body
+    const updatedBody = serializeCreatorIndex(indexMap, updatedPendingList);
+    await octokit.rest.issues.update({
+      owner,
+      repo,
+      issue_number: issueNumber,
+      body: updatedBody
+    });
+
+    logger.info('Deleted creator submission', { creatorId, adminUsername });
+
+    return adapter.createJsonResponse(200, {
+      message: 'Creator deleted successfully',
+      creatorId
+    });
+  } catch (error) {
+    logger.error('Failed to delete creator submission', { error: error.message, creatorId });
+    return adapter.createJsonResponse(500, { error: error.message });
   }
 }
 

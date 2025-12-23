@@ -4,11 +4,13 @@ import SpiritComponent from './SpiritComponent';
 import SpiritSlot from './SpiritSlot';
 import SpiritSelector from './SpiritSelector';
 import { useAuthStore } from '../../wiki-framework/src/store/authStore';
+import { useConfigStore } from '../../wiki-framework/src/store/configStore';
 import { getCache, setCache, clearCache } from '../utils/buildCache';
 import { getSaveDataEndpoint, getLoadDataEndpoint, getDeleteDataEndpoint } from '../utils/apiEndpoints.js';
 import { useSpiritsData } from '../hooks/useSpiritsData';
 import { serializeSpirit, deserializeSpirit } from '../utils/spiritSerialization';
 import { createLogger } from '../utils/logger';
+import { queueAchievementCheck } from '../../wiki-framework/src/services/achievements/achievementQueue.js';
 
 const logger = createLogger('MySpiritCollection');
 
@@ -140,6 +142,35 @@ const MySpiritCollection = () => {
 
       // Reload spirits (will deserialize the saved data)
       await loadSpirits();
+
+      // Queue spirit collection achievement checks
+      if (user?.id && user?.login) {
+        const { config } = useConfigStore.getState();
+        if (config?.wiki?.repository) {
+          const spiritAchievements = ['spirit-collector', 'collector'];
+
+          logger.info('Queueing spirit achievement checks', {
+            userId: user.id,
+            username: user.login,
+            count: spiritAchievements.length
+          });
+
+          spiritAchievements.forEach(achievementId => {
+            queueAchievementCheck(achievementId, {
+              owner: config.wiki.repository.owner,
+              repo: config.wiki.repository.repo,
+              userId: user.id,
+              username: user.login,
+              delay: 2000,       // Wait for GitHub to sync
+              retryDelay: 5000,  // Retry delay
+              maxRetries: 3,     // Max retries
+            }).catch(error => {
+              logger.error(`Failed to queue ${achievementId} check`, { error: error.message });
+            });
+          });
+        }
+      }
+
       setEditingSpirit(null);
     } catch (error) {
       logger.error('Failed to save spirit:', { error: error });

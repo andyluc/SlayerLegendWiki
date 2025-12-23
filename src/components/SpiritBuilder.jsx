@@ -7,6 +7,7 @@ import SavedSpiritsGallery from './SavedSpiritsGallery';
 import ValidatedInput from './ValidatedInput';
 import { encodeBuild, decodeBuild } from '../../wiki-framework/src/components/wiki/BuildEncoder';
 import { useAuthStore } from '../../wiki-framework/src/store/authStore';
+import { useConfigStore } from '../../wiki-framework/src/store/configStore';
 import { setCache } from '../utils/buildCache';
 import { saveBuild as saveSharedBuild, loadBuild as loadSharedBuild, generateShareUrl } from '../../wiki-framework/src/services/github/buildShare';
 import { useDraftStorage } from '../../wiki-framework/src/hooks/useDraftStorage';
@@ -14,6 +15,7 @@ import { getSaveDataEndpoint, getLoadDataEndpoint } from '../utils/apiEndpoints.
 import { serializeBuild, deserializeBuild } from '../utils/spiritSerialization';
 import { validateBuildName, STRING_LIMITS } from '../utils/validation';
 import { createLogger } from '../utils/logger';
+import { queueAchievementCheck } from '../../wiki-framework/src/services/achievements/achievementQueue.js';
 
 const logger = createLogger('SpiritBuilder');
 
@@ -36,6 +38,7 @@ const logger = createLogger('SpiritBuilder');
  */
 const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave = null, allowSavingBuilds = true }, ref) => {
   const { isAuthenticated, user } = useAuthStore();
+  const { config } = useConfigStore();
   const [spirits, setSpirits] = useState([]);
   const [mySpirits, setMySpirits] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -583,17 +586,23 @@ const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave
    * Save a base spirit to the my-spirits collection
    */
   const handleSaveToCollection = async (slotIndex) => {
+    console.log('[SpiritBuilder] handleSaveToCollection called', { slotIndex, isAuthenticated, hasUser: !!user });
+
     if (!isAuthenticated || !user) {
       alert('Please sign in to save spirits to your collection.');
       return;
     }
 
     const slot = build.slots[slotIndex];
+    console.log('[SpiritBuilder] Slot data', { slot, hasSpirit: !!slot?.spirit, type: slot?.type });
+
     if (!slot || !slot.spirit || slot.type === 'collection') {
+      console.log('[SpiritBuilder] Skipping save - invalid slot or already collection');
       return; // Nothing to save or already a collection spirit
     }
 
     try {
+      console.log('[SpiritBuilder] Starting save process');
       logger.info('Saving base spirit to collection', {
         spiritId: slot.spirit.id,
         level: slot.level
@@ -628,6 +637,7 @@ const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave
       }
 
       const responseData = await response.json();
+      console.log('[SpiritBuilder] Got save response', { responseData });
       logger.debug('Save response', { responseData });
 
       // The response should contain the saved spirits array
@@ -637,9 +647,38 @@ const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave
 
       if (!savedSpirit || !savedSpirit.id) {
         // If we can't find it, just reload and use the most recent one
+        console.log('[SpiritBuilder] Could not find saved spirit, reloading collection');
         await loadMySpirits();
         logger.warn('Could not find saved spirit in response, reloaded collection');
         alert(`${slot.spirit.name} has been saved to your spirit collection!`);
+
+        // Queue achievements even on this path
+        console.log('[SpiritBuilder] [EARLY EXIT PATH] About to queue achievements');
+        if (user?.id && user?.login && config?.wiki?.repository) {
+          console.log('[SpiritBuilder] [EARLY EXIT PATH] Conditions met, queueing');
+          const spiritAchievements = ['spirit-collector', 'collector'];
+          spiritAchievements.forEach(achievementId => {
+            queueAchievementCheck(achievementId, {
+              owner: config.wiki.repository.owner,
+              repo: config.wiki.repository.repo,
+              userId: user.id,
+              username: user.login,
+              delay: 2000,
+              retryDelay: 5000,
+              maxRetries: 3,
+            }).catch(error => {
+              logger.error(`Failed to queue ${achievementId} achievement check`, { error: error.message });
+            });
+          });
+        } else {
+          console.log('[SpiritBuilder] [EARLY EXIT PATH] Conditions NOT met', {
+            hasUserId: !!user?.id,
+            hasUsername: !!user?.login,
+            hasConfig: !!config,
+            hasRepository: !!config?.wiki?.repository
+          });
+        }
+
         return;
       }
 
@@ -699,6 +738,40 @@ const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave
       }
 
       alert(`${slot.spirit.name} has been saved to your spirit collection!`);
+
+      // Queue spirit collection achievement checks
+      console.log('[SpiritBuilder] Checking achievement queue conditions', {
+        hasUserId: !!user?.id,
+        hasUsername: !!user?.login,
+        hasConfig: !!config,
+        hasRepository: !!config?.wiki?.repository,
+        userId: user?.id,
+        username: user?.login,
+        config: config
+      });
+
+      if (user?.id && user?.login && config?.wiki?.repository) {
+        const spiritAchievements = [
+          'spirit-collector',  // 10 different spirits
+          'collector',         // All spirit types
+        ];
+
+        logger.info('Queueing spirit achievement checks', { userId: user.id, username: user.login, count: spiritAchievements.length });
+
+        spiritAchievements.forEach(achievementId => {
+          queueAchievementCheck(achievementId, {
+            owner: config.wiki.repository.owner,
+            repo: config.wiki.repository.repo,
+            userId: user.id,
+            username: user.login,
+            delay: 2000, // Wait 2 seconds for GitHub Issues to sync
+            retryDelay: 5000,
+            maxRetries: 3,
+          }).catch(error => {
+            logger.error(`Failed to queue ${achievementId} achievement check`, { error: error.message });
+          });
+        });
+      }
     } catch (error) {
       logger.error('Failed to save spirit to collection', { error });
       alert('Failed to save spirit to collection. Please try again.');

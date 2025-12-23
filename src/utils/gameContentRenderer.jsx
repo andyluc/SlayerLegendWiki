@@ -4,6 +4,7 @@ import DataInjector from '../components/DataInjector';
 import SpiritSprite from '../components/SpiritSprite';
 import SpiritCard from '../components/SpiritCard';
 import ContributionBanner from '../components/ContributionBanner';
+import { VideoGuideCard } from '../../wiki-framework/src/components/contentCreators';
 
 /**
  * Process game-specific syntax in markdown content
@@ -129,6 +130,17 @@ export const processGameSyntax = (content) => {
   processed = processed.replace(/<!--\s*contribution-banner:\s*([^-]+?)\s*-->/gi, (match, type) => {
     const typeStr = type || 'ai-generated';
     return `{{CONTRIBUTION_BANNER:${typeStr}}}`;
+  });
+
+  // Process {{video-guide:...}} format
+  // Syntax: {{video-guide:ID}} or {{video-guide:TITLE}}
+  processed = processed.replace(/\{\{\s*video-guide:\s*([^}]+?)\s*\}\}/gi, (match, identifier) => {
+    return `{{VIDEO_GUIDE:${identifier}}}`;
+  });
+
+  // Process <!-- video-guide:... --> format (legacy)
+  processed = processed.replace(/<!--\s*video-guide:\s*([^-]+?)\s*-->/gi, (match, identifier) => {
+    return `{{VIDEO_GUIDE:${identifier}}}`;
   });
 
   return processed;
@@ -288,13 +300,33 @@ export const CustomParagraph = ({ node, children, ...props }) => {
     );
   }
 
+  // Check for standalone video guide marker
+  const videoGuideMatch = content.match(/^\{\{VIDEO_GUIDE:([^}]+)\}\}$/);
+  if (videoGuideMatch) {
+    const identifier = videoGuideMatch[1].trim();
+
+    // Simple heuristic: if alphanumeric+dashes, assume ID; otherwise, title
+    const isId = /^[a-z0-9-]+$/.test(identifier);
+
+    return (
+      <div>
+        <VideoGuideCard
+          identifier={identifier}
+          findBy={isId ? 'id' : 'title'}
+          mode="embed"
+          showId={false}
+        />
+      </div>
+    );
+  }
+
   // Check for inline markers (markers mixed with text)
   if (content.includes('{{')) {
     const parts = [];
     let lastIndex = 0;
 
     // Match all markers in the content
-    const markerRegex = /\{\{(SKILL|EQUIPMENT|SPIRIT|DATA|SPIRIT_SPRITE):([^}]+)\}\}/g;
+    const markerRegex = /\{\{(SKILL|EQUIPMENT|SPIRIT|DATA|SPIRIT_SPRITE|VIDEO_GUIDE):([^}]+)\}\}/g;
     let match;
 
     while ((match = markerRegex.exec(content)) !== null) {
@@ -366,6 +398,22 @@ export const CustomParagraph = ({ node, children, ...props }) => {
             </span>
           );
         }
+      } else if (type === 'VIDEO_GUIDE') {
+        const identifier = params.trim();
+
+        // Simple heuristic: if alphanumeric+dashes, assume ID; otherwise, title
+        const isId = /^[a-z0-9-]+$/.test(identifier);
+
+        parts.push(
+          <span key={match.index} className="inline-block">
+            <VideoGuideCard
+              identifier={identifier}
+              findBy={isId ? 'id' : 'title'}
+              mode="card"
+              showId={false}
+            />
+          </span>
+        );
       }
 
       lastIndex = match.index + match[0].length;
@@ -634,6 +682,22 @@ export const CustomListItem = ({ node, children, ...props }) => {
             </span>
           );
         }
+      } else if (type === 'VIDEO_GUIDE') {
+        const identifier = params.trim();
+
+        // Simple heuristic: if alphanumeric+dashes, assume ID; otherwise, title
+        const isId = /^[a-z0-9-]+$/.test(identifier);
+
+        parts.push(
+          <span key={match.index} className="inline-block">
+            <VideoGuideCard
+              identifier={identifier}
+              findBy={isId ? 'id' : 'title'}
+              mode="card"
+              showId={false}
+            />
+          </span>
+        );
       }
 
       lastIndex = match.index + match[0].length;

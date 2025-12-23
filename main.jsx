@@ -5,7 +5,7 @@ import App from './wiki-framework/src/App.jsx';
 import AppWrapper from './src/components/AppWrapper.jsx';
 import ErrorBoundary from './wiki-framework/src/components/common/ErrorBoundary.jsx';
 import './wiki-framework/src/styles/index.css';
-import { Ghost, Sparkles, Sword } from 'lucide-react';
+import { Ghost, Sparkles, Sword, Video } from 'lucide-react';
 
 // Initialize bot token for comment system (prevents users from closing comment issues)
 import { initializeBotOctokit } from './wiki-framework/src/services/github/api.js';
@@ -33,6 +33,7 @@ import DataSelector from './src/components/DataSelector.jsx';
 import SpiritPicker from './src/components/SpiritPicker.jsx';
 import SkillPicker from './src/components/SkillPicker.jsx';
 import EquipmentPicker from './src/components/EquipmentPicker.jsx';
+import { VideoGuidePicker } from './wiki-framework/src/components/contentCreators/index.js';
 
 // Register custom markdown processors for skill/equipment cards and data injection
 registerContentProcessor(processGameSyntax);
@@ -43,6 +44,21 @@ registerDataSelector(DataSelector);
 registerPicker('spirit', SpiritPicker, { icon: Ghost, label: 'Insert Spirit' });
 registerPicker('skill', SkillPicker, { icon: Sparkles, label: 'Insert Skill' });
 registerPicker('equipment', EquipmentPicker, { icon: Sword, label: 'Insert Equipment' });
+
+// Video guide picker is conditionally registered based on config
+// This is done after config loads to check features.contentCreators.enabled
+const registerVideoGuidePicker = () => {
+  fetch('/wiki-config.json')
+    .then(res => res.json())
+    .then(config => {
+      if (config?.features?.contentCreators?.enabled && config?.features?.contentCreators?.videoGuides?.enabled) {
+        registerPicker('video-guide', VideoGuidePicker, { icon: Video, label: 'Insert Video Guide' });
+      }
+    })
+    .catch(err => console.error('Failed to load config for video guide picker:', err));
+};
+registerVideoGuidePicker();
+
 registerDataAutocompleteSearch(searchDataForAutocomplete);
 
 // Register data sources for data injection
@@ -412,8 +428,10 @@ const MySpiritCollectionPage = React.lazy(() => import('./src/pages/MySpiritColl
 const MyCollectionsPage = React.lazy(() => import('./src/pages/MyCollectionsPage.jsx'));
 const SoulWeaponEngravingBuilderPage = React.lazy(() => import('./src/pages/SoulWeaponEngravingBuilderPage.jsx'));
 const DonatePage = React.lazy(() => import('./src/pages/DonatePage.jsx'));
+const ContentCreatorsPage = React.lazy(() => import('./wiki-framework/src/pages/ContentCreatorsPage.jsx'));
 
-registerCustomRoutes([
+// Base routes that are always registered
+const baseRoutes = [
   {
     path: 'skill-builder',
     component: <SkillBuildSimulatorPage />,
@@ -453,8 +471,15 @@ registerCustomRoutes([
     path: 'donate',
     component: <DonatePage />,
     suspense: true
+  },
+  {
+    path: 'creators',
+    component: <ContentCreatorsPage />,
+    suspense: true
   }
-]);
+];
+
+registerCustomRoutes(baseRoutes);
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

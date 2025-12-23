@@ -95,6 +95,11 @@
         "icon": "🏆"
       },
       {
+        "title": "Content Creators",
+        "path": "/creators",
+        "icon": "🎥"
+      },
+      {
         "title": "Guidelines",
         "path": "/meta/guidelines",
         "icon": "📋",
@@ -355,6 +360,18 @@
       "ignoreRepositoryOwner": true,
       "ignoreMainContributors": false
     },
+    "achievements": {
+      "enabled": true,
+      "checking": {
+        "checkOnLogin": true,
+        "checkOnBuildSave": true,
+        "checkOnLoadoutSave": true,
+        "checkOnSnapshotUpdate": true
+      },
+      "limits": {
+        "maxChecksPerHour": 10
+      }
+    },
     "maintenance": {
       "enabled": false,
       "title": "Maintenance in Progress",
@@ -387,6 +404,30 @@
           "url": "https://ko-fi.com/yourkofi"
         }
       }
+    },
+    "contentCreators": {
+      "enabled": true,
+      "streamers": {
+        "enabled": true,
+        "allowSubmissions": true,
+        "requireApproval": true,
+        "platforms": ["twitch", "youtube"],
+        "rateLimit": {
+          "maxSubmissionsPerHour": 5
+        }
+      },
+      "videoGuides": {
+        "enabled": true,
+        "allowSubmissions": true,
+        "requireAuthentication": true,
+        "requireApproval": true,
+        "dataFile": "public/data/video-guides.json",
+        "categories": ["beginner", "intermediate", "advanced", "pvp", "pve", "farming"],
+        "difficulties": ["beginner", "intermediate", "advanced", "expert"],
+        "tags": ["tutorial", "guide", "tips", "strategy", "build", "farming", "pvp", "pve"]
+      },
+      "showInSidebar": true,
+      "sidebarPosition": "top"
     }
   },
   "theme": {

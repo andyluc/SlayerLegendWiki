@@ -149,21 +149,51 @@ async function getUserLoadoutsData(octokit, owner, repo, userId) {
 }
 
 /**
+ * Helper: Get all user's saved spirits with parsed data
+ */
+async function getUserSpiritsData(octokit, owner, repo, userId) {
+  try {
+    const { data: issues } = await octokit.rest.issues.listForRepo({
+      owner,
+      repo,
+      labels: `my-spirits,user-id:${userId}`,
+      state: 'open',
+      per_page: 100,
+    });
+
+    const spirits = [];
+    for (const issue of issues) {
+      try {
+        const data = JSON.parse(issue.body);
+        if (Array.isArray(data)) {
+          spirits.push(...data);
+        }
+      } catch (error) {
+        console.error('Failed to parse my-spirits issue:', error);
+      }
+    }
+
+    return spirits;
+  } catch (error) {
+    console.error('Failed to get user spirits:', error);
+    return [];
+  }
+}
+
+/**
  * Spirit Collector - User collected and saved 10 different spirits
  */
 export async function spiritCollector(userData, context) {
   const { octokit, owner, repo, userId } = context;
 
   try {
-    const loadouts = await getUserLoadoutsData(octokit, owner, repo, userId);
+    const spirits = await getUserSpiritsData(octokit, owner, repo, userId);
 
-    // Extract unique spirit IDs/names from loadouts
+    // Extract unique spirit IDs from my-spirits collection
     const uniqueSpirits = new Set();
-    for (const loadout of loadouts) {
-      if (loadout.spirit?.id) {
-        uniqueSpirits.add(loadout.spirit.id);
-      } else if (loadout.spirit?.name) {
-        uniqueSpirits.add(loadout.spirit.name);
+    for (const spirit of spirits) {
+      if (spirit.spiritId) {
+        uniqueSpirits.add(spirit.spiritId);
       }
     }
 
@@ -377,16 +407,14 @@ export async function collector(userData, context) {
 
     if (totalSpirits === 0) return false;
 
-    // Get user's collected spirits from battle loadouts
-    const loadouts = await getUserLoadoutsData(octokit, owner, repo, userId);
+    // Get user's collected spirits from my-spirits collection
+    const spirits = await getUserSpiritsData(octokit, owner, repo, userId);
 
-    // Extract unique spirit IDs/names from loadouts
+    // Extract unique spirit IDs from my-spirits collection
     const uniqueSpirits = new Set();
-    for (const loadout of loadouts) {
-      if (loadout.spirit?.id) {
-        uniqueSpirits.add(loadout.spirit.id);
-      } else if (loadout.spirit?.name) {
-        uniqueSpirits.add(loadout.spirit.name);
+    for (const spirit of spirits) {
+      if (spirit.spiritId) {
+        uniqueSpirits.add(spirit.spiritId);
       }
     }
 
