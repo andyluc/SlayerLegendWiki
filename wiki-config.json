@@ -59,35 +59,35 @@
       "sections": ["getting-started", "progression"]
     },
     {
+      "id": "tools",
+      "title": "Tools",
+      "icon": "🛠️",
+      "order": 2,
+      "expandedByDefault": true,
+      "sections": ["tools"]
+    },
+    {
       "id": "content",
       "title": "Content",
       "icon": "🗺️",
-      "order": 2,
-      "expandedByDefault": true,
+      "order": 3,
+      "expandedByDefault": false,
       "sections": ["characters", "equipment", "companions", "skills", "stages", "spirits", "resources"]
     },
     {
       "id": "guides",
       "title": "Guides",
       "icon": "📚",
-      "order": 3,
+      "order": 4,
       "sections": ["guides", "database"]
     },
     {
       "id": "community",
       "title": "Community",
       "icon": "👥",
-      "order": 4,
-      "expandedByDefault": false,
-      "sections": ["community"]
-    },
-    {
-      "id": "tools",
-      "title": "Tools",
-      "icon": "🛠️",
       "order": 5,
       "expandedByDefault": false,
-      "sections": ["tools"]
+      "sections": ["community"]
     }
   ],
   "sidebar": {
