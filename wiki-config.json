@@ -74,10 +74,18 @@
       "sections": ["guides", "database"]
     },
     {
+      "id": "community",
+      "title": "Community",
+      "icon": "👥",
+      "order": 4,
+      "expandedByDefault": false,
+      "sections": ["community"]
+    },
+    {
       "id": "tools",
       "title": "Tools",
       "icon": "🛠️",
-      "order": 4,
+      "order": 5,
       "expandedByDefault": false,
       "sections": ["tools"]
     }
@@ -93,11 +101,6 @@
         "title": "Highscore",
         "path": "/highscore",
         "icon": "🏆"
-      },
-      {
-        "title": "Content Creators",
-        "path": "/creators",
-        "icon": "🎥"
       },
       {
         "title": "Guidelines",
@@ -205,6 +208,22 @@
       "showInHeader": false,
       "allowContributions": true,
       "order": 10
+    },
+    {
+      "id": "community",
+      "title": "Community",
+      "path": "community",
+      "icon": "👥",
+      "allowContributions": false,
+      "hideTitleInSidebar": true,
+      "order": 10.5,
+      "pages": [
+        {
+          "title": "Content Creators",
+          "path": "/creators",
+          "icon": "🎥"
+        }
+      ]
     },
     {
       "id": "tools",
@@ -414,7 +433,9 @@
         "platforms": ["twitch", "youtube"],
         "rateLimit": {
           "maxSubmissionsPerHour": 5
-        }
+        },
+        "showOnHomePage": true,
+        "homePageLimit": 3
       },
       "videoGuides": {
         "enabled": true,
@@ -424,7 +445,9 @@
         "dataFile": "public/data/video-guides.json",
         "categories": ["beginner", "intermediate", "advanced", "pvp", "pve", "farming"],
         "difficulties": ["beginner", "intermediate", "advanced", "expert"],
-        "tags": ["tutorial", "guide", "tips", "strategy", "build", "farming", "pvp", "pve"]
+        "tags": ["tutorial", "guide", "tips", "strategy", "build", "farming", "pvp", "pve"],
+        "showOnHomePage": true,
+        "homePageLimit": 6
       },
       "showInSidebar": true,
       "sidebarPosition": "top"

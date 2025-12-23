@@ -4,6 +4,7 @@ import DataInjector from '../components/DataInjector';
 import SpiritSprite from '../components/SpiritSprite';
 import SpiritCard from '../components/SpiritCard';
 import ContributionBanner from '../components/ContributionBanner';
+import Emoticon from '../components/Emoticon';
 import { VideoGuideCard } from '../../wiki-framework/src/components/contentCreators';
 
 /**
@@ -22,6 +23,8 @@ import { VideoGuideCard } from '../../wiki-framework/src/components/contentCreat
  * - {{data:spirits:1:inline}} or <!-- data:spirits:1:inline -->
  * - {{spirit-sprite:1:0}} or <!-- spirit-sprite:1:0 -->
  * - {{contribution-banner:ai-generated}} or <!-- contribution-banner:ai-generated -->
+ * - {{emoticon:1}} or {{emoticon:Hello}} - Emoticon by ID or name (defaults to medium size)
+ * - {{emoticon:1:large}} or {{emoticon:Hello:small}} - Emoticon with custom size
  *
  * @param {string} content - Markdown content
  * @returns {string} - Processed content with internal markers
@@ -141,6 +144,20 @@ export const processGameSyntax = (content) => {
   // Process <!-- video-guide:... --> format (legacy)
   processed = processed.replace(/<!--\s*video-guide:\s*([^-]+?)\s*-->/gi, (match, identifier) => {
     return `{{VIDEO_GUIDE:${identifier}}}`;
+  });
+
+  // Process {{emoticon:...}} format
+  // Syntax: {{emoticon:ID:SIZE}} or {{emoticon:NAME:SIZE}}
+  // Examples: {{emoticon:1}}, {{emoticon:Hello}}, {{emoticon:1001:large}}, {{emoticon:Happy:small}}
+  processed = processed.replace(/\{\{\s*emoticon:\s*([^:}]+?)\s*(?::\s*([^}]+?)\s*)?\}\}/gi, (match, idOrName, size) => {
+    const sizeStr = size || 'medium';
+    return `{{EMOTICON:${idOrName}:${sizeStr}}}`;
+  });
+
+  // Process <!-- emoticon:... --> format (legacy)
+  processed = processed.replace(/<!--\s*emoticon:\s*([^:]+?)(?::([^-]+?))?\s*-->/gi, (match, idOrName, size) => {
+    const sizeStr = size || 'medium';
+    return `{{EMOTICON:${idOrName}:${sizeStr}}}`;
   });
 
   return processed;
@@ -461,7 +478,7 @@ const processInlineMarkers = (content) => {
   let lastIndex = 0;
 
   // Match all markers in the content
-  const markerRegex = /\{\{(SKILL|EQUIPMENT|DATA|SPIRIT_SPRITE):([^}]+)\}\}/g;
+  const markerRegex = /\{\{(SKILL|EQUIPMENT|DATA|SPIRIT_SPRITE|EMOTICON):([^}]+)\}\}/g;
   let match;
 
   while ((match = markerRegex.exec(content)) !== null) {
@@ -497,6 +514,13 @@ const processInlineMarkers = (content) => {
       if (source && id) {
         parts.push(<DataInjector key={match.index} source={source} id={id} fieldOrTemplate={fieldOrTemplate} />);
       }
+    } else if (type === 'EMOTICON') {
+      const [idOrName, size = 'medium'] = params.split(':');
+      const isId = /^\d+$/.test(idOrName);
+      const emoticonProps = isId
+        ? { id: parseInt(idOrName), size }
+        : { name: idOrName, size };
+      parts.push(<Emoticon key={match.index} {...emoticonProps} />);
     }
 
     lastIndex = match.index + match[0].length;

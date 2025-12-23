@@ -200,6 +200,67 @@ jobs:
                 });
               });
 
+              // First, fetch linked anonymous PRs to build a set of commit SHAs to exclude
+              console.log('🔍 Pre-fetching linked anonymous PRs to avoid double-counting...');
+              const linkedPRCommitSHAs = new Set();
+              let prPage = 1;
+              const prPerPage = 100;
+              let hasMorePRs = true;
+
+              while (hasMorePRs) {
+                const { data: prs } = await github.rest.pulls.list({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  state: 'all',
+                  per_page: prPerPage,
+                  page: prPage,
+                });
+
+                if (prs.length === 0) break;
+
+                // Find PRs with user-id labels (linked anonymous edits)
+                for (const pr of prs) {
+                  // Skip if not merged
+                  if (!pr.merged_at) continue;
+
+                  // Check for user-id label
+                  const userIdLabel = pr.labels.find(label => {
+                    const labelName = typeof label === 'string' ? label : label.name;
+                    return labelName && labelName.startsWith('user-id:');
+                  });
+
+                  if (userIdLabel) {
+                    // Fetch all commits from this linked PR
+                    try {
+                      const { data: prCommits } = await github.rest.pulls.listCommits({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        pull_number: pr.number,
+                        per_page: 100,
+                      });
+
+                      // Add all commit SHAs from this linked PR to exclusion set
+                      for (const commit of prCommits) {
+                        linkedPRCommitSHAs.add(commit.sha);
+                      }
+                    } catch (error) {
+                      console.warn(`⚠️ Failed to fetch commits for linked PR #${pr.number}:`, error.message);
+                    }
+                  }
+                }
+
+                hasMorePRs = prs.length === prPerPage;
+                prPage++;
+
+                // Safety limit
+                if (prPage > 50) {
+                  console.warn('⚠️ Reached page limit (50) for PR pre-fetching');
+                  break;
+                }
+              }
+
+              console.log(`✅ Found ${linkedPRCommitSHAs.size} commit(s) from linked anonymous PRs (will exclude from anonymous map)`);
+
               // Enhance with commit data to get additions/deletions
               console.log('📊 Fetching all commits for additions/deletions data...');
 
@@ -243,6 +304,12 @@ jobs:
 
                     // Check if this is a bot commit (anonymous contribution)
                     if (login === BOT_USERNAME) {
+                      // Skip if this commit is from a linked PR (already attributed to authenticated user)
+                      if (linkedPRCommitSHAs.has(commit.sha)) {
+                        // This commit belongs to a linked PR, skip it to avoid double-counting
+                        continue;
+                      }
+
                       const anonData = parseAnonymousContribution(detailedCommit.commit.message);
                       if (anonData && anonData.verified) {
                         const emailHash = hashEmail(anonData.email);
@@ -421,6 +488,73 @@ jobs:
             async function fetchCommitsWithStatsInDateRange(since, until, branch = 'main') {
               console.log(`📊 Fetching commits from ${since} to ${until} on branch '${branch}'...`);
 
+              // First, fetch linked anonymous PRs to build a set of commit SHAs to exclude
+              console.log('🔍 Pre-fetching linked anonymous PRs in date range to avoid double-counting...');
+              const linkedPRCommitSHAs = new Set();
+              let prPrePage = 1;
+              const prPrePerPage = 100;
+              let hasMorePrePRs = true;
+
+              while (hasMorePrePRs) {
+                const { data: prs } = await github.rest.pulls.list({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  state: 'all',
+                  per_page: prPrePerPage,
+                  page: prPrePage,
+                });
+
+                if (prs.length === 0) break;
+
+                // Find PRs with user-id labels (linked anonymous edits) within date range
+                for (const pr of prs) {
+                  // Skip if not merged
+                  if (!pr.merged_at) continue;
+
+                  // Check if PR is within date range
+                  const prDate = new Date(pr.created_at);
+                  const sinceDate = new Date(since);
+                  const untilDate = new Date(until);
+                  if (prDate < sinceDate || prDate > untilDate) continue;
+
+                  // Check for user-id label
+                  const userIdLabel = pr.labels.find(label => {
+                    const labelName = typeof label === 'string' ? label : label.name;
+                    return labelName && labelName.startsWith('user-id:');
+                  });
+
+                  if (userIdLabel) {
+                    // Fetch all commits from this linked PR
+                    try {
+                      const { data: prCommits } = await github.rest.pulls.listCommits({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        pull_number: pr.number,
+                        per_page: 100,
+                      });
+
+                      // Add all commit SHAs from this linked PR to exclusion set
+                      for (const commit of prCommits) {
+                        linkedPRCommitSHAs.add(commit.sha);
+                      }
+                    } catch (error) {
+                      console.warn(`⚠️ Failed to fetch commits for linked PR #${pr.number}:`, error.message);
+                    }
+                  }
+                }
+
+                hasMorePrePRs = prs.length === prPrePerPage;
+                prPrePage++;
+
+                // Safety limit
+                if (prPrePage > 50) {
+                  console.warn('⚠️ Reached page limit (50) for PR pre-fetching');
+                  break;
+                }
+              }
+
+              console.log(`✅ Found ${linkedPRCommitSHAs.size} commit(s) from linked anonymous PRs in date range (will exclude from anonymous map)`);
+
               const commits = [];
               let page = 1;
               const perPage = 100;
@@ -487,6 +621,12 @@ jobs:
 
                   // Check if this is a bot commit (anonymous contribution)
                   if (login === BOT_USERNAME) {
+                    // Skip if this commit is from a linked PR (already attributed to authenticated user)
+                    if (linkedPRCommitSHAs.has(commit.sha)) {
+                      // This commit belongs to a linked PR, skip it to avoid double-counting
+                      continue;
+                    }
+
                     const anonData = parseAnonymousContribution(detailedCommit.commit.message);
                     if (anonData && anonData.verified) {
                       const emailHash = hashEmail(anonData.email);

@@ -700,7 +700,7 @@ const SpiritSprite = ({
             <img
               src={getCurrentFramePath()}
               alt={`${spirit.name} - Level ${level} - Frame ${currentFrame}`}
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain object-center"
               onError={(e) => {
                 e.target.src = '/images/placeholder-spirit.png'; // Fallback image
               }}
