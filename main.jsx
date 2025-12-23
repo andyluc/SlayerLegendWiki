@@ -41,9 +41,9 @@ registerCustomComponents(getGameComponents());
 registerSkillPreview(renderSkillPreview);
 registerEquipmentPreview(renderEquipmentPreview);
 registerDataSelector(DataSelector);
-registerPicker('spirit', SpiritPicker, { icon: Ghost, label: 'Insert Spirit' });
-registerPicker('skill', SkillPicker, { icon: Sparkles, label: 'Insert Skill' });
-registerPicker('equipment', EquipmentPicker, { icon: Sword, label: 'Insert Equipment' });
+registerPicker('spirit', SpiritPicker, { icon: Ghost, label: 'Spirit' });
+registerPicker('skill', SkillPicker, { icon: Sparkles, label: 'Skill' });
+registerPicker('equipment', EquipmentPicker, { icon: Sword, label: 'Equipment' });
 
 // Video guide picker is conditionally registered based on config
 // This is done after config loads to check features.contentCreators.enabled
@@ -52,7 +52,7 @@ const registerVideoGuidePicker = () => {
     .then(res => res.json())
     .then(config => {
       if (config?.features?.contentCreators?.enabled && config?.features?.contentCreators?.videoGuides?.enabled) {
-        registerPicker('video-guide', VideoGuidePicker, { icon: Video, label: 'Insert Video Guide' });
+        registerPicker('video-guide', VideoGuidePicker, { icon: Video, label: 'Video Guide' });
       }
     })
     .catch(err => console.error('Failed to load config for video guide picker:', err));

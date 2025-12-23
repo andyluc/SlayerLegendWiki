@@ -407,7 +407,7 @@
       "prompt": {
         "minTimeOnSite": 60,
         "minPagesViewed": 3,
-        "daysUntilNextPrompt": 7
+        "daysUntilNextPrompt": 2
       },
       "methods": {
         "stripe": {
@@ -415,12 +415,12 @@
           "url": ""
         },
         "paypal": {
-          "enabled": false,
-          "url": ""
+          "enabled": true,
+          "url": "https://paypal.me/bendolus"
         },
         "kofi": {
           "enabled": true,
-          "url": "https://ko-fi.com/yourkofi"
+          "url": "https://ko-fi.com/bendol"
         }
       }
     },

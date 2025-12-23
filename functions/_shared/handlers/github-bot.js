@@ -340,6 +340,8 @@ export async function handleGithubBot(adapter, configAdapter, cryptoAdapter) {
         return await handleApproveCreator(adapter, octokit, body);
       case 'delete-creator-submission':
         return await handleDeleteCreatorSubmission(adapter, octokit, body);
+      case 'delete-video-guide':
+        return await handleDeleteVideoGuide(adapter, octokit, body);
       default:
         return adapter.createJsonResponse(400, { error: `Unknown action: ${action}` });
     }
@@ -2466,8 +2468,20 @@ async function handleGetOrCreateCreatorIndex(adapter, octokit, { owner, repo }) 
     return await pendingCreatorIndexRequests.get(cacheKey);
   }
 
-  // Create new request promise
-  const requestPromise = (async () => {
+  // Create promise placeholder and track it IMMEDIATELY (before any async work)
+  // This prevents race condition where multiple calls check pendingCreatorIndexRequests
+  // at the same time before any of them set it
+  let resolvePromise, rejectPromise;
+  const requestPromise = new Promise((resolve, reject) => {
+    resolvePromise = resolve;
+    rejectPromise = reject;
+  });
+
+  // Set in map IMMEDIATELY
+  pendingCreatorIndexRequests.set(cacheKey, requestPromise);
+
+  // Now do the actual async work
+  (async () => {
     try {
       // Search for existing index issue
       const { data: issues } = await octokit.rest.issues.listForRepo({
@@ -2480,11 +2494,12 @@ async function handleGetOrCreateCreatorIndex(adapter, octokit, { owner, repo }) 
 
       if (issues.length > 0) {
         const issue = issues[0];
-        return adapter.createJsonResponse(200, {
+        resolvePromise(adapter.createJsonResponse(200, {
           issueNumber: issue.number,
           issueUrl: issue.html_url,
           body: issue.body || ''
-        });
+        }));
+        return;
       }
 
       // Create new index issue
@@ -2507,14 +2522,14 @@ async function handleGetOrCreateCreatorIndex(adapter, octokit, { owner, repo }) 
 
       logger.info('Created content creator index issue', { issueNumber: newIssue.number });
 
-      return adapter.createJsonResponse(201, {
+      resolvePromise(adapter.createJsonResponse(201, {
         issueNumber: newIssue.number,
         issueUrl: newIssue.html_url,
         body: newIssue.body || ''
-      });
+      }));
     } catch (error) {
       logger.error('Failed to get/create creator index', { error: error.message });
-      return adapter.createJsonResponse(500, { error: error.message });
+      rejectPromise(adapter.createJsonResponse(500, { error: error.message }));
     } finally {
       // Keep in-flight entry for 5 seconds after completion to prevent race conditions during GitHub's eventual consistency
       setTimeout(() => {
@@ -2523,9 +2538,7 @@ async function handleGetOrCreateCreatorIndex(adapter, octokit, { owner, repo }) 
     }
   })();
 
-  // Track this request
-  pendingCreatorIndexRequests.set(cacheKey, requestPromise);
-
+  // Promise already tracked above (line 2479) - return it
   return requestPromise;
 }
 
@@ -3063,6 +3076,142 @@ async function handleDeleteCreatorSubmission(adapter, octokit, { owner, repo, cr
     });
   } catch (error) {
     logger.error('Failed to delete creator submission', { error: error.message, creatorId });
+    return adapter.createJsonResponse(500, { error: error.message });
+  }
+}
+
+/**
+ * Delete video guide (admin only)
+ * Creates a PR to remove guide from video-guides.json
+ */
+async function handleDeleteVideoGuide(adapter, octokit, { owner, repo, guideId, adminUsername, userToken }) {
+  if (!owner || !repo || !guideId || !adminUsername || !userToken) {
+    return adapter.createJsonResponse(400, {
+      error: 'Missing required fields: owner, repo, guideId, adminUsername, userToken'
+    });
+  }
+
+  // Verify admin permissions
+  const userOctokit = new Octokit({
+    auth: userToken,
+    userAgent: 'GitHub-Wiki-Bot/1.0'
+  });
+
+  try {
+    const { data: repoData } = await userOctokit.rest.repos.get({ owner, repo });
+    const { data: userData } = await userOctokit.rest.users.getAuthenticated();
+
+    const isOwner = repoData.owner.login === userData.login;
+    const { data: permData } = await userOctokit.rest.repos.getCollaboratorPermissionLevel({
+      owner,
+      repo,
+      username: userData.login,
+    });
+    const hasAdminPerm = permData.permission === 'admin';
+
+    if (!isOwner && !hasAdminPerm) {
+      return adapter.createJsonResponse(403, { error: 'Only repository owner and admins can perform this action' });
+    }
+  } catch (error) {
+    logger.error('Permission check failed', { error: error.message });
+    return adapter.createJsonResponse(403, { error: 'Permission verification failed' });
+  }
+
+  try {
+    // Fetch current video-guides.json from main branch
+    const { data: fileData } = await octokit.rest.repos.getContent({
+      owner,
+      repo,
+      path: 'public/data/video-guides.json',
+      ref: 'main'
+    });
+
+    // Decode and parse
+    const currentContent = Buffer.from(fileData.content, 'base64').toString('utf8');
+    const videoGuidesData = JSON.parse(currentContent);
+    const existingGuides = videoGuidesData.videoGuides || [];
+
+    // Find guide to delete
+    const guideIndex = existingGuides.findIndex(g => g.id === guideId);
+    if (guideIndex === -1) {
+      return adapter.createJsonResponse(404, { error: 'Video guide not found' });
+    }
+
+    const guideToDelete = existingGuides[guideIndex];
+
+    // Remove from array
+    existingGuides.splice(guideIndex, 1);
+    videoGuidesData.videoGuides = existingGuides;
+
+    // Serialize
+    const updatedContent = JSON.stringify(videoGuidesData, null, 2);
+    const updatedContentBase64 = Buffer.from(updatedContent).toString('base64');
+
+    // Create branch
+    const branchName = `delete-video-guide-${guideId}-${Date.now()}`;
+    const { data: mainRef } = await octokit.rest.git.getRef({
+      owner,
+      repo,
+      ref: 'heads/main'
+    });
+
+    await octokit.rest.git.createRef({
+      owner,
+      repo,
+      ref: `refs/heads/${branchName}`,
+      sha: mainRef.object.sha
+    });
+
+    // Commit to branch
+    await octokit.rest.repos.createOrUpdateFileContents({
+      owner,
+      repo,
+      path: 'public/data/video-guides.json',
+      message: `Delete video guide: ${guideToDelete.title}`,
+      content: updatedContentBase64,
+      branch: branchName,
+      sha: fileData.sha
+    });
+
+    // Create PR
+    const prTitle = `[Video Guide] Delete: ${guideToDelete.title}`;
+    const prBody = `## Video Guide Deletion
+
+**Title:** ${guideToDelete.title}
+**Video:** ${guideToDelete.videoUrl}
+**Guide ID:** ${guideToDelete.id}
+**Originally Submitted By:** ${guideToDelete.submittedBy || 'Unknown'}
+
+---
+
+Deleted by @${adminUsername}
+
+**For reviewers:** This PR removes the video guide from the database.`;
+
+    const { data: pr } = await octokit.rest.pulls.create({
+      owner,
+      repo,
+      title: prTitle,
+      body: prBody,
+      head: branchName,
+      base: 'main'
+    });
+
+    logger.info('Video guide deletion PR created', {
+      prNumber: pr.number,
+      prUrl: pr.html_url,
+      guideId,
+      adminUsername
+    });
+
+    return adapter.createJsonResponse(200, {
+      message: 'Video guide deletion PR created successfully',
+      prNumber: pr.number,
+      prUrl: pr.html_url,
+      guideId
+    });
+  } catch (error) {
+    logger.error('Failed to delete video guide', { error: error.message, guideId });
     return adapter.createJsonResponse(500, { error: error.message });
   }
 }

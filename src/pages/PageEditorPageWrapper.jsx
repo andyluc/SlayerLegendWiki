@@ -2,20 +2,16 @@
  * PageEditorPageWrapper
  * Parent project wrapper that extends framework's PageEditorPage
  * Adds support for anonymous editing by loading content for unauthenticated users
+ * Provides game-specific emoticon map for the emoticon picker
  */
 
-import { useEffect } from 'react';
+import React from 'react';
 import PageEditorPage from '../../wiki-framework/src/pages/PageEditorPage';
-import { useAuthStore } from '../../wiki-framework/src/store/authStore';
-import { useWikiConfig, useSection } from '../../wiki-framework/src/hooks/useWikiConfig';
-import { useBranchNamespace } from '../../wiki-framework/src/hooks/useBranchNamespace';
+import { EMOTICON_MAP } from '../components/Emoticon';
 
-// Re-export the framework's PageEditorPage with anonymous editing support
-// The framework already has anonymous editing built-in, but there's a bug
-// where it doesn't load content for unauthenticated users
+// Wrapper component that passes game-specific emoticon map
+const PageEditorPageWrapper = (props) => {
+  return <PageEditorPage {...props} emoticonMap={EMOTICON_MAP} />;
+};
 
-// For now, we'll just re-export the framework component
-// The issue is that the framework stops loading at line 88-92 if !isAuthenticated
-// This needs to be fixed in the framework itself
-
-export default PageEditorPage;
+export default PageEditorPageWrapper;

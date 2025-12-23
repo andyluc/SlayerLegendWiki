@@ -23,8 +23,10 @@ import { VideoGuideCard } from '../../wiki-framework/src/components/contentCreat
  * - {{data:spirits:1:inline}} or <!-- data:spirits:1:inline -->
  * - {{spirit-sprite:1:0}} or <!-- spirit-sprite:1:0 -->
  * - {{contribution-banner:ai-generated}} or <!-- contribution-banner:ai-generated -->
- * - {{emoticon:1}} or {{emoticon:Hello}} - Emoticon by ID or name (defaults to medium size)
- * - {{emoticon:1:large}} or {{emoticon:Hello:small}} - Emoticon with custom size
+ * - {{emoticon:1}} or {{emoticon:Hello}} - Emoticon by ID or name (defaults to large size)
+ * - {{emoticon:1:medium}} or {{emoticon:Hello:small}} - Emoticon with custom size
+ * - {{emoticon:Sleep:original}} - Emoticon at native resolution (no scaling)
+ * - Size options: small (24px), medium (32px), large (48px), xlarge (64px), original (native)
  *
  * @param {string} content - Markdown content
  * @returns {string} - Processed content with internal markers
@@ -150,13 +152,13 @@ export const processGameSyntax = (content) => {
   // Syntax: {{emoticon:ID:SIZE}} or {{emoticon:NAME:SIZE}}
   // Examples: {{emoticon:1}}, {{emoticon:Hello}}, {{emoticon:1001:large}}, {{emoticon:Happy:small}}
   processed = processed.replace(/\{\{\s*emoticon:\s*([^:}]+?)\s*(?::\s*([^}]+?)\s*)?\}\}/gi, (match, idOrName, size) => {
-    const sizeStr = size || 'medium';
+    const sizeStr = size || 'large';
     return `{{EMOTICON:${idOrName}:${sizeStr}}}`;
   });
 
   // Process <!-- emoticon:... --> format (legacy)
   processed = processed.replace(/<!--\s*emoticon:\s*([^:]+?)(?::([^-]+?))?\s*-->/gi, (match, idOrName, size) => {
-    const sizeStr = size || 'medium';
+    const sizeStr = size || 'large';
     return `{{EMOTICON:${idOrName}:${sizeStr}}}`;
   });
 
@@ -343,7 +345,7 @@ export const CustomParagraph = ({ node, children, ...props }) => {
     let lastIndex = 0;
 
     // Match all markers in the content
-    const markerRegex = /\{\{(SKILL|EQUIPMENT|SPIRIT|DATA|SPIRIT_SPRITE|VIDEO_GUIDE):([^}]+)\}\}/g;
+    const markerRegex = /\{\{(SKILL|EQUIPMENT|SPIRIT|DATA|SPIRIT_SPRITE|EMOTICON|VIDEO_GUIDE):([^}]+)\}\}/g;
     let match;
 
     while ((match = markerRegex.exec(content)) !== null) {
@@ -415,6 +417,17 @@ export const CustomParagraph = ({ node, children, ...props }) => {
             </span>
           );
         }
+      } else if (type === 'EMOTICON') {
+        const [idOrName, size = 'large'] = params.split(':');
+        const isId = /^\d+$/.test(idOrName);
+        const emoticonProps = isId
+          ? { id: parseInt(idOrName), size }
+          : { name: idOrName, size };
+        parts.push(
+          <span key={match.index} className="inline-block align-middle">
+            <Emoticon {...emoticonProps} />
+          </span>
+        );
       } else if (type === 'VIDEO_GUIDE') {
         const identifier = params.trim();
 
@@ -559,7 +572,7 @@ export const CustomTableCell = ({ node, children, ...props }) => {
   let lastIndex = 0;
 
   // Match all markers in the content
-  const markerRegex = /\{\{(SKILL|EQUIPMENT|DATA|SPIRIT_SPRITE):([^}]+)\}\}/g;
+  const markerRegex = /\{\{(SKILL|EQUIPMENT|DATA|SPIRIT_SPRITE|EMOTICON):([^}]+)\}\}/g;
   let match;
 
   while ((match = markerRegex.exec(content)) !== null) {
@@ -607,6 +620,13 @@ export const CustomTableCell = ({ node, children, ...props }) => {
           </span>
         );
       }
+    } else if (type === 'EMOTICON') {
+      const [idOrName, size = 'medium'] = params.split(':');
+      const isId = /^\d+$/.test(idOrName);
+      const emoticonProps = isId
+        ? { id: parseInt(idOrName), size }
+        : { name: idOrName, size };
+      parts.push(<Emoticon key={`emoticon-${match.index}`} {...emoticonProps} />);
     }
 
     lastIndex = match.index + match[0].length;
@@ -634,7 +654,7 @@ export const CustomListItem = ({ node, children, ...props }) => {
     let lastIndex = 0;
 
     // Match all markers in the content
-    const markerRegex = /\{\{(SKILL|EQUIPMENT|SPIRIT|DATA|SPIRIT_SPRITE):([^}]+)\}\}/g;
+    const markerRegex = /\{\{(SKILL|EQUIPMENT|SPIRIT|DATA|SPIRIT_SPRITE|EMOTICON|VIDEO_GUIDE):([^}]+)\}\}/g;
     let match;
 
     while ((match = markerRegex.exec(content)) !== null) {
@@ -722,6 +742,13 @@ export const CustomListItem = ({ node, children, ...props }) => {
             />
           </span>
         );
+      } else if (type === 'EMOTICON') {
+        const [idOrName, size = 'large'] = params.split(':');
+        const isId = /^\d+$/.test(idOrName);
+        const emoticonProps = isId
+          ? { id: parseInt(idOrName), size }
+          : { name: idOrName, size };
+        parts.push(<Emoticon key={match.index} {...emoticonProps} />);
       }
 
       lastIndex = match.index + match[0].length;
@@ -761,7 +788,7 @@ export const CustomTableHeaderCell = ({ node, children, ...props }) => {
   let lastIndex = 0;
 
   // Match all markers in the content
-  const markerRegex = /\{\{(SKILL|EQUIPMENT|DATA|SPIRIT_SPRITE):([^}]+)\}\}/g;
+  const markerRegex = /\{\{(SKILL|EQUIPMENT|DATA|SPIRIT_SPRITE|EMOTICON):([^}]+)\}\}/g;
   let match;
 
   while ((match = markerRegex.exec(content)) !== null) {
@@ -809,6 +836,13 @@ export const CustomTableHeaderCell = ({ node, children, ...props }) => {
           </span>
         );
       }
+    } else if (type === 'EMOTICON') {
+      const [idOrName, size = 'medium'] = params.split(':');
+      const isId = /^\d+$/.test(idOrName);
+      const emoticonProps = isId
+        ? { id: parseInt(idOrName), size }
+        : { name: idOrName, size };
+      parts.push(<Emoticon key={`emoticon-${match.index}`} {...emoticonProps} />);
     }
 
     lastIndex = match.index + match[0].length;

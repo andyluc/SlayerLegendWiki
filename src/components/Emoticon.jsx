@@ -8,11 +8,15 @@
  *   <Emoticon id={1} />
  *   <Emoticon name="Hello" />
  *   <Emoticon id={1001} size="large" />
+ *   <Emoticon id={1001} size="original" /> // Native resolution, no scaling
  *
  * Usage in Markdown:
  *   {{emoticon:1}}
  *   {{emoticon:Hello}}
  *   {{emoticon:1001:large}}
+ *   {{emoticon:Sleep:original}}
+ *
+ * Size options: small (24px), medium (32px), large (48px), xlarge (64px), original (native)
  */
 
 import React from 'react';
@@ -50,9 +54,10 @@ const SIZE_MAP = {
   medium: '32px',
   large: '48px',
   xlarge: '64px',
+  original: null, // No scaling - use native resolution
 };
 
-const Emoticon = ({ id, name, size = 'medium', alt, className = '', style = {} }) => {
+const Emoticon = ({ id, name, size = 'large', alt, className = '', style = {} }) => {
   // Determine the emoticon ID
   let emoticonId = id;
 
@@ -79,7 +84,24 @@ const Emoticon = ({ id, name, size = 'medium', alt, className = '', style = {} }
   const altText = alt || emoticonName;
 
   // Determine size
-  const sizeValue = SIZE_MAP[size] || size;
+  const sizeValue = SIZE_MAP[size] !== undefined ? SIZE_MAP[size] : size;
+
+  // Build style object - omit width/height for 'original' size
+  const imgStyle = {
+    display: 'inline',
+    objectFit: 'contain',
+    verticalAlign: 'middle',
+    margin: 0,
+    padding: 0,
+    lineHeight: 0,
+    ...style,
+  };
+
+  // Only add width/height if not using original size
+  if (sizeValue !== null) {
+    imgStyle.width = sizeValue;
+    imgStyle.height = sizeValue;
+  }
 
   return (
     <img
@@ -87,17 +109,7 @@ const Emoticon = ({ id, name, size = 'medium', alt, className = '', style = {} }
       alt={altText}
       title={emoticonName}
       className={className}
-      style={{
-        display: 'inline',
-        width: sizeValue,
-        height: sizeValue,
-        objectFit: 'contain',
-        verticalAlign: 'middle',
-        margin: 0,
-        padding: 0,
-        lineHeight: 0,
-        ...style,
-      }}
+      style={imgStyle}
       loading="lazy"
     />
   );
@@ -107,7 +119,7 @@ Emoticon.propTypes = {
   id: PropTypes.number,
   name: PropTypes.string,
   size: PropTypes.oneOfType([
-    PropTypes.oneOf(['small', 'medium', 'large', 'xlarge']),
+    PropTypes.oneOf(['small', 'medium', 'large', 'xlarge', 'original']),
     PropTypes.string,
   ]),
   alt: PropTypes.string,

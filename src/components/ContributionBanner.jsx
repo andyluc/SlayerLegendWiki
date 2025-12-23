@@ -28,7 +28,7 @@ const ContributionBanner = ({ type = 'ai-generated' }) => {
           >
             become a contributor
           </Link>
-          {' '}to the Slayer Legend wiki?! We need your help to build comprehensive information.
+          {' '}to the Slayer Legend wiki?! We need your help to build out comprehensive information for the community.
         </>
       ),
       footer: (
