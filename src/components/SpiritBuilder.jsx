@@ -12,7 +12,7 @@ import { setCache } from '../utils/buildCache';
 import { saveBuild as saveSharedBuild, loadBuild as loadSharedBuild, generateShareUrl } from '../../wiki-framework/src/services/github/buildShare';
 import { useDraftStorage } from '../../wiki-framework/src/hooks/useDraftStorage';
 import { getSaveDataEndpoint, getLoadDataEndpoint } from '../utils/apiEndpoints.js';
-import { serializeBuild, deserializeBuild } from '../utils/spiritSerialization';
+import { serializeBuild, deserializeBuild, serializeBuildForSharing } from '../utils/spiritSerialization';
 import { validateBuildName, STRING_LIMITS } from '../utils/validation';
 import { createLogger } from '../utils/logger';
 import { queueAchievementCheck } from '../../wiki-framework/src/services/achievements/achievementQueue.js';
@@ -994,8 +994,8 @@ const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave
       const owner = config.wiki.repository.owner;
       const repo = config.wiki.repository.repo;
 
-      // Serialize build to only include spirit IDs
-      const serializedBuild = serializeBuild(build);
+      // Serialize build for sharing (convert collection spirits to base format)
+      const serializedBuild = serializeBuildForSharing(build);
       const buildData = {
         name: buildName,
         slots: serializedBuild.slots
@@ -1033,7 +1033,7 @@ const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave
       // Fallback to old method if share service fails
       try {
         logger.warn('Falling back to old encoding method');
-        const serializedBuild = serializeBuild(build);
+        const serializedBuild = serializeBuildForSharing(build);
         const encoded = encodeBuild(serializedBuild);
         if (encoded) {
           const baseURL = window.location.origin + window.location.pathname;
@@ -1296,10 +1296,10 @@ const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave
       {!isModal && (
         <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
           <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
-            <div className="flex items-center gap-3">
-              <span className="text-3xl">🔮</span>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Spirit Builder</h1>
-            </div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Spirit Builder</h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+              Build your spirit team with 1 companion and 2 partner spirits, each with customizable levels and upgrades.
+            </p>
           </div>
         </div>
       )}

@@ -217,6 +217,52 @@ export const serializeBuild = (build) => {
 };
 
 /**
+ * Serialize a spirit slot for sharing (always use base format, never collection)
+ * Recipients won't have access to collection IDs, so convert everything to base snapshots
+ *
+ * @param {Object} slot - Spirit slot with full data
+ * @returns {Object} Serialized slot in base format
+ */
+export const serializeSlotForSharing = (slot) => {
+  if (!slot || !slot.spirit) {
+    return {
+      type: "base",
+      spiritId: null,
+      level: 1,
+      awakeningLevel: 0,
+      evolutionLevel: 4,
+      skillEnhancementLevel: 0
+    };
+  }
+
+  // Always convert to base format (including collection spirits)
+  return {
+    type: "base",
+    spiritId: slot.spirit?.id || null,
+    level: slot.level,
+    awakeningLevel: slot.awakeningLevel,
+    evolutionLevel: slot.evolutionLevel,
+    skillEnhancementLevel: slot.skillEnhancementLevel
+  };
+};
+
+/**
+ * Serialize a spirit build for sharing
+ * Converts all slots to base format so recipients can see them without collection access
+ *
+ * @param {Object} build - Build with full spirit objects
+ * @returns {Object} Serialized build with base spirits only
+ */
+export const serializeBuildForSharing = (build) => {
+  if (!build) return null;
+
+  return {
+    ...build,
+    slots: build.slots?.map(slot => serializeSlotForSharing(slot)) || []
+  };
+};
+
+/**
  * Load spirits database from JSON
  * @returns {Promise<Array>} Spirits database
  */

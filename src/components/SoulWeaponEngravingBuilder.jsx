@@ -4472,20 +4472,21 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
   const currentScale = autoScale ? calculatedScale : gridScale; // Use auto or manual scale
 
   return (
-    <div className="max-w-7xl mx-auto">
-      {/* Header */}
+    <div className={isModal ? "bg-gray-50 dark:bg-gray-950" : "min-h-screen bg-gray-50 dark:bg-gray-950"}>
+      {/* Header - Title (only in page mode) */}
       {!isModal && (
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Soul Weapon Engraving
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Drag and drop engraving pieces onto the grid to plan your layout
-          </p>
+        <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Soul Weapon Engraving</h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+              Drag and drop engraving pieces onto the grid to plan your layout
+            </p>
+          </div>
         </div>
       )}
 
       {/* Saved Builds Panel */}
+      <div className={`${isModal ? 'px-4 pt-6 pb-0' : 'max-w-7xl mx-auto px-3 sm:px-4 pt-2 pb-6'}`}>
       {allowSavingBuilds && (
         <SavedBuildsPanel
           currentBuild={{ gridState, inventory }}
@@ -6451,6 +6452,7 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 });

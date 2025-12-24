@@ -724,10 +724,10 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
       {!isModal && (
         <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
           <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
-            <div className="flex items-center gap-3">
-              <img src="/images/skills/Icon_skillCard.png" alt="" className="w-8 h-8 flex-shrink-0" />
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Skill Builder</h1>
-            </div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Skill Builder</h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+              Create and share skill builds with up to 10 configurable skill slots.
+            </p>
           </div>
         </div>
       )}

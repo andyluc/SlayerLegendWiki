@@ -15,7 +15,7 @@ import { setCache } from '../utils/buildCache';
 import { saveBuild, loadBuild, generateShareUrl } from '../../wiki-framework/src/services/github/buildShare';
 import { useDraftStorage } from '../../wiki-framework/src/hooks/useDraftStorage';
 import { getSaveDataEndpoint, getLoadDataEndpoint } from '../utils/apiEndpoints.js';
-import { serializeBuild, deserializeBuild } from '../utils/spiritSerialization';
+import { serializeBuild, deserializeBuild, serializeBuildForSharing } from '../utils/spiritSerialization';
 import { validateBuildName, STRING_LIMITS } from '../utils/validation';
 import { createLogger } from '../utils/logger';
 
@@ -395,6 +395,28 @@ const BattleLoadouts = () => {
       skillBuildId: loadout.skillBuild?.id || null,
       spiritBuildId: loadout.spiritBuild?.id || null,
       soulWeaponBuild: loadout.soulWeaponBuild || null,
+      spirit: loadout.spirit ? { spiritId: loadout.spirit.id } : null,
+      skillStone: loadout.skillStone,
+      promotionAbility: loadout.promotionAbility,
+      familiar: loadout.familiar
+    };
+  };
+
+  /**
+   * Serialize loadout for sharing (embed full serialized builds, not IDs)
+   * Recipients won't have access to build IDs or collection IDs, so we need full build data
+   */
+  const serializeLoadoutForSharing = (loadout) => {
+    return {
+      name: loadout.name,
+      skillBuild: loadout.skillBuild ? serializeSkillBuild(loadout.skillBuild) : null,
+      spiritBuild: loadout.spiritBuild ? serializeBuildForSharing(loadout.spiritBuild) : null,
+      soulWeaponBuild: loadout.soulWeaponBuild ? {
+        weaponId: loadout.soulWeaponBuild.weaponId,
+        weaponName: loadout.soulWeaponBuild.weaponName,
+        gridState: loadout.soulWeaponBuild.gridState,
+        inventory: loadout.soulWeaponBuild.inventory
+      } : null,
       spirit: loadout.spirit ? { spiritId: loadout.spirit.id } : null,
       skillStone: loadout.skillStone,
       promotionAbility: loadout.promotionAbility,
@@ -1053,8 +1075,8 @@ const BattleLoadouts = () => {
       const owner = config.wiki.repository.owner;
       const repo = config.wiki.repository.repo;
 
-      // Serialize the loadout (only store IDs)
-      const serializedLoadout = serializeLoadout(currentLoadout);
+      // Serialize the loadout for sharing (embed full builds for recipients)
+      const serializedLoadout = serializeLoadoutForSharing(currentLoadout);
 
       // Save build and get checksum
       const checksum = await saveBuild(owner, repo, 'battle-loadouts', serializedLoadout);
@@ -1086,7 +1108,7 @@ const BattleLoadouts = () => {
 
       // Fallback to old method if share service fails
       try {
-        const serializedLoadout = serializeLoadout(currentLoadout);
+        const serializedLoadout = serializeLoadoutForSharing(currentLoadout);
 
         const encoded = encodeLoadout(serializedLoadout);
         if (encoded) {
@@ -1233,7 +1255,7 @@ const BattleLoadouts = () => {
 
       {/* Main Content */}
       <div className="relative">
-        <div className={`max-w-7xl mx-auto px-3 sm:px-4 pt-6 pb-6 ${isAuthenticated ? 'pb-24' : ''}`}>
+        <div className={`max-w-7xl mx-auto px-3 sm:px-4 pt-2 pb-6 ${isAuthenticated ? 'pb-24' : ''}`}>
 
         {/* Saved Loadouts Panel */}
         <SavedLoadoutsPanel
@@ -1771,8 +1793,8 @@ const SoulWeaponSection = ({ soulWeaponBuild, onEdit, onClear, allWeapons }) => 
   const gridSize = soulWeaponBuild?.gridState?.length || 5;
   const baseCellSize = 45;
 
-  // Scale factor to fit nicely in the panel
-  const scale = gridSize === 4 ? 1.1 : 0.95;
+  // Scale factor to fit nicely in the panel - increased to compensate for removed padding
+  const scale = gridSize === 4 ? 1.15 : 1.0;
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 md:p-6 border border-gray-200 dark:border-gray-800 flex flex-col">
@@ -1801,11 +1823,11 @@ const SoulWeaponSection = ({ soulWeaponBuild, onEdit, onClear, allWeapons }) => 
       </div>
 
       {soulWeaponBuild ? (
-        <div className="flex flex-col lg:flex-row items-center lg:items-start justify-center gap-4 lg:gap-6">
+        <div className="flex flex-col lg:flex-row items-center lg:items-stretch justify-center gap-4 lg:gap-6">
           {weapon ? (
             <>
               {/* Weapon Info Card */}
-              <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 p-3 min-w-[200px] max-w-[220px]">
+              <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700 p-3 min-w-[200px] max-w-[220px] flex flex-col">
                 {/* Weapon Image */}
                 <div className="flex justify-center mb-2.5">
                   <div className="relative w-[72px] h-[72px] bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-lg border-2 border-purple-400/50 dark:border-purple-500/50 p-1 shadow-lg">
@@ -1818,38 +1840,40 @@ const SoulWeaponSection = ({ soulWeaponBuild, onEdit, onClear, allWeapons }) => 
                       }}
                     />
                     {/* Weapon Name Overlay */}
-                    <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 bg-gray-900/90 dark:bg-gray-950/90 px-1.5 py-[2px] rounded shadow-lg">
+                    <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 bg-gray-900/90 dark:bg-gray-950/90 px-1.5 py-[2px] rounded shadow-lg">
                       <span className="text-[9px] font-semibold text-white whitespace-nowrap leading-none block">{weapon.name}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Weapon Stats */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between py-1.5 border-b border-gray-200 dark:border-gray-700">
-                    <span className="text-[11px] text-gray-600 dark:text-gray-400">ATK</span>
-                    <span className="text-[11px] font-semibold text-red-600 dark:text-red-400">{weapon.attack.toLocaleString()}</span>
-                  </div>
+                <div className="flex-1 flex flex-col justify-center">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between py-1.5 border-b border-gray-200 dark:border-gray-700">
+                      <span className="text-[11px] text-gray-600 dark:text-gray-400">ATK</span>
+                      <span className="text-[11px] font-semibold text-red-600 dark:text-red-400">{weapon.attack.toLocaleString()}</span>
+                    </div>
 
-                  <div className="flex items-center justify-between py-1.5 border-b border-gray-200 dark:border-gray-700">
-                    <span className="text-[11px] text-gray-600 dark:text-gray-400">Required</span>
-                    <span className="text-[11px] font-semibold text-gray-900 dark:text-white">{weapon.requirements.toLocaleString()} 🔮</span>
-                  </div>
+                    <div className="flex items-center justify-between py-1.5 border-b border-gray-200 dark:border-gray-700">
+                      <span className="text-[11px] text-gray-600 dark:text-gray-400">Required</span>
+                      <span className="text-[11px] font-semibold text-gray-900 dark:text-white">{weapon.requirements.toLocaleString()} 🔮</span>
+                    </div>
 
-                  <div className="flex items-center justify-between py-1.5 border-b border-gray-200 dark:border-gray-700">
-                    <span className="text-[11px] text-gray-600 dark:text-gray-400">Stage</span>
-                    <span className="text-[11px] font-semibold text-gray-900 dark:text-white truncate ml-2">{weapon.stageRequirement}</span>
-                  </div>
+                    <div className="flex items-center justify-between py-1.5 border-b border-gray-200 dark:border-gray-700">
+                      <span className="text-[11px] text-gray-600 dark:text-gray-400">Stage</span>
+                      <span className="text-[11px] font-semibold text-gray-900 dark:text-white truncate ml-2">{weapon.stageRequirement}</span>
+                    </div>
 
-                  <div className="flex items-center justify-between py-1.5">
-                    <span className="text-[11px] text-gray-600 dark:text-gray-400">Disasm.</span>
-                    <span className="text-[11px] font-semibold text-green-600 dark:text-green-400">{weapon.disassemblyReward.toLocaleString()} 🔮</span>
+                    <div className="flex items-center justify-between py-1.5">
+                      <span className="text-[11px] text-gray-600 dark:text-gray-400">Disasm.</span>
+                      <span className="text-[11px] font-semibold text-green-600 dark:text-green-400">{weapon.disassemblyReward.toLocaleString()} 🔮</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Grid Preview */}
-              <div className="flex flex-col items-center gap-3">
+              <div className="flex flex-col items-center justify-center gap-3">
                 <div
                   className="relative inline-block"
                   style={{
