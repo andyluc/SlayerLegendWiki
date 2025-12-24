@@ -360,7 +360,7 @@ jobs:
               // Fetch linked anonymous PRs (PRs with user-id labels)
               console.log('🔍 Fetching linked anonymous PRs...');
               let linkedPRCount = 0;
-              let prPage = 1;
+              prPage = 1;  // Reset page counter (already declared above)
               const prPerPage = 100;
               let hasMorePRs = true;
 
