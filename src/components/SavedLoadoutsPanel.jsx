@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Loader, Trash2, Clock, CheckCircle2, LogIn, ChevronDown, ChevronUp } from 'lucide-react';
+import { Save, Loader, Trash2, Clock, CheckCircle2, LogIn, ChevronDown, ChevronUp, Copy, Pencil } from 'lucide-react';
 import { useAuthStore } from '../../wiki-framework/src/store/authStore';
 import { useWikiConfig } from '../../wiki-framework/src/hooks/useWikiConfig';
 import { useLoginFlow } from '../../wiki-framework/src/hooks/useLoginFlow';
 import LoginModal from '../../wiki-framework/src/components/auth/LoginModal';
 import { getUserLoadouts } from '../services/battleLoadouts';
 import { getCache, setCache, mergeCacheWithGitHub } from '../utils/buildCache';
-import { getDeleteDataEndpoint, getLoadDataEndpoint } from '../utils/apiEndpoints.js';
+import { getSaveDataEndpoint, getDeleteDataEndpoint, getLoadDataEndpoint } from '../utils/apiEndpoints.js';
 import { getSkillGradeColor, getEquipmentRarityColor } from '../config/rarityColors';
 import { createLogger } from '../utils/logger';
+import { validateBuildName } from '../utils/validation';
 import { deserializeSoulWeaponBuild, deserializeSkillBuild } from '../utils/battleLoadoutSerializer.js';
 import { deserializeBuild as deserializeSpiritBuild } from '../utils/spiritSerialization.js';
 import SkillStone from './SkillStone';
@@ -307,6 +308,115 @@ const SavedLoadoutsPanel = ({ currentLoadout, onLoadLoadout, currentLoadedLoadou
     }
   };
 
+  const duplicateLoadout = async (loadout) => {
+    if (!user || !isAuthenticated) return;
+
+    setError(null);
+
+    try {
+      // Create a copy of the loadout with a new name
+      const copyName = `${loadout.name} (Copy)`;
+      const loadoutDataCopy = { ...loadout };
+      delete loadoutDataCopy.id; // Remove ID so a new one is generated
+      delete loadoutDataCopy.createdAt;
+      delete loadoutDataCopy.updatedAt;
+      loadoutDataCopy.name = copyName;
+
+      const response = await fetch(getSaveDataEndpoint(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'battle-loadouts',
+          username: user.login,
+          userId: user.id,
+          data: loadoutDataCopy,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to duplicate loadout');
+      }
+
+      const data = await response.json();
+      const sortedLoadouts = data.loadouts.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+
+      setInternalSavedLoadouts(sortedLoadouts);
+
+      // Notify parent of the updated loadouts
+      if (onLoadoutsChange) {
+        onLoadoutsChange(sortedLoadouts);
+      }
+
+      // Update cache
+      setCache('battle_loadouts', user.id, sortedLoadouts);
+
+      logger.info('Loadout duplicated successfully', { originalName: loadout.name, copyName });
+    } catch (err) {
+      logger.error('Failed to duplicate loadout:', { error: err });
+      setError(err.message || 'Failed to duplicate loadout');
+    }
+  };
+
+  const renameLoadout = async (loadout) => {
+    if (!user || !isAuthenticated) return;
+
+    const newName = prompt('Enter new loadout name:', loadout.name);
+    if (!newName || newName.trim() === '') return; // User cancelled or entered empty name
+    if (newName === loadout.name) return; // No change
+
+    // Validate the name
+    const validation = validateBuildName(newName);
+    if (!validation.valid) {
+      alert(validation.error);
+      return;
+    }
+
+    setError(null);
+
+    try {
+      const updatedLoadout = { ...loadout, name: validation.sanitized };
+
+      const response = await fetch(getSaveDataEndpoint(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'battle-loadouts',
+          username: user.login,
+          userId: user.id,
+          data: updatedLoadout,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to rename loadout');
+      }
+
+      const data = await response.json();
+      const sortedLoadouts = data.loadouts.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+
+      setInternalSavedLoadouts(sortedLoadouts);
+
+      // Notify parent of the updated loadouts
+      if (onLoadoutsChange) {
+        onLoadoutsChange(sortedLoadouts);
+      }
+
+      // Update cache
+      setCache('battle_loadouts', user.id, sortedLoadouts);
+
+      logger.info('Loadout renamed successfully', { oldName: loadout.name, newName: validation.sanitized });
+    } catch (err) {
+      logger.error('Failed to rename loadout:', { error: err });
+      setError(err.message || 'Failed to rename loadout');
+    }
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -478,10 +588,17 @@ const SavedLoadoutsPanel = ({ currentLoadout, onLoadLoadout, currentLoadedLoadou
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full flex items-center justify-between hover:opacity-80 transition-opacity"
       >
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-          <Save className="w-5 h-5" />
-          <span>Saved Loadouts</span>
-        </h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <Save className="w-5 h-5" />
+            <span>Saved Loadouts</span>
+          </h3>
+          {!loading && savedLoadouts.length > 0 && (
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              ({savedLoadouts.length})
+            </span>
+          )}
+        </div>
         <div className="p-2 text-gray-600 dark:text-gray-400">
           {isExpanded ? (
             <ChevronUp className="w-5 h-5" />
@@ -638,13 +755,30 @@ const SavedLoadoutsPanel = ({ currentLoadout, onLoadLoadout, currentLoadedLoadou
                   )}
                 </div>
 
-                <button
-                  onClick={() => deleteLoadout(loadout.id)}
-                  className="flex-shrink-0 p-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                  title="Delete loadout"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                {/* Action Buttons */}
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button
+                    onClick={() => renameLoadout(loadout)}
+                    className="p-2 text-gray-600 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900/20 rounded-lg transition-colors"
+                    title="Rename loadout"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  {/* <button
+                    onClick={() => duplicateLoadout(loadout)}
+                    className="p-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                    title="Duplicate loadout"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </button> */}
+                  <button
+                    onClick={() => deleteLoadout(loadout.id)}
+                    className="p-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                    title="Delete loadout"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             );
               })}

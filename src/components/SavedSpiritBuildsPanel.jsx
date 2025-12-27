@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronDown, ChevronUp, Trash2, Upload, AlertCircle, Tag } from 'lucide-react';
+import { ChevronDown, ChevronUp, Trash2, Upload, AlertCircle, Tag, Copy, Pencil } from 'lucide-react';
 import SpiritSprite from './SpiritSprite';
 import { useAuthStore } from '../../wiki-framework/src/store/authStore';
 import { getCache, setCache, clearCache } from '../utils/buildCache';
-import { getLoadDataEndpoint, getDeleteDataEndpoint } from '../utils/apiEndpoints.js';
+import { getSaveDataEndpoint, getLoadDataEndpoint, getDeleteDataEndpoint } from '../utils/apiEndpoints.js';
 import { getUserLoadouts } from '../services/battleLoadouts';
 import { useSpiritsData } from '../hooks/useSpiritsData';
 import { deserializeBuild } from '../utils/spiritSerialization';
 import { createLogger } from '../utils/logger';
+import { validateBuildName } from '../utils/validation';
 
 const logger = createLogger('SavedSpiritBuildsPanel');
 
@@ -292,6 +293,119 @@ const SavedSpiritBuildsPanel = ({
     }
   };
 
+  const handleDuplicateBuild = async (build) => {
+    if (!user || !isAuthenticated) return;
+
+    try {
+      // Create a copy of the build with a new name
+      const copyName = `${build.name} (Copy)`;
+      const buildDataCopy = { ...build };
+      delete buildDataCopy.id; // Remove ID so a new one is generated
+      delete buildDataCopy.createdAt;
+      delete buildDataCopy.updatedAt;
+      buildDataCopy.name = copyName;
+
+      const response = await fetch(getSaveDataEndpoint(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'spirit-builds',
+          username: user.login,
+          userId: user.id,
+          data: buildDataCopy,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to duplicate build');
+      }
+
+      const data = await response.json();
+      const updatedBuilds = data.builds || [];
+
+      // Clear cache
+      clearCache('spirit_builds', user.id);
+
+      // Update state based on mode (store serialized, will be deserialized by useMemo)
+      if (externalSavedBuilds !== null) {
+        // Controlled mode: update parent via callback
+        if (onBuildsChange) {
+          onBuildsChange(updatedBuilds);
+        }
+      } else {
+        // Uncontrolled mode: update internal state
+        setInternalSavedBuilds(updatedBuilds);
+      }
+
+      logger.info('Spirit build duplicated successfully', { originalName: build.name, copyName });
+    } catch (err) {
+      logger.error('Failed to duplicate build:', { error: err });
+      alert('Failed to duplicate build: ' + err.message);
+    }
+  };
+
+  const handleRenameBuild = async (build) => {
+    if (!user || !isAuthenticated) return;
+
+    const newName = prompt('Enter new build name:', build.name);
+    if (!newName || newName.trim() === '') return; // User cancelled or entered empty name
+    if (newName === build.name) return; // No change
+
+    // Validate the name
+    const validation = validateBuildName(newName);
+    if (!validation.valid) {
+      alert(validation.error);
+      return;
+    }
+
+    try {
+      const updatedBuild = { ...build, name: validation.sanitized };
+
+      const response = await fetch(getSaveDataEndpoint(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: 'spirit-builds',
+          username: user.login,
+          userId: user.id,
+          data: updatedBuild,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to rename build');
+      }
+
+      const data = await response.json();
+      const updatedBuilds = data.builds || [];
+
+      // Clear cache
+      clearCache('spirit_builds', user.id);
+
+      // Update state based on mode (store serialized, will be deserialized by useMemo)
+      if (externalSavedBuilds !== null) {
+        // Controlled mode: update parent via callback
+        if (onBuildsChange) {
+          onBuildsChange(updatedBuilds);
+        }
+      } else {
+        // Uncontrolled mode: update internal state
+        setInternalSavedBuilds(updatedBuilds);
+      }
+
+      logger.info('Spirit build renamed successfully', { oldName: build.name, newName: validation.sanitized });
+    } catch (err) {
+      logger.error('Failed to rename build:', { error: err });
+      alert('Failed to rename build: ' + err.message);
+    }
+  };
+
   // Compact Spirit Preview Component
   const CompactSpiritPreview = ({ slot }) => {
     if (!slot.spirit) return null;
@@ -429,7 +543,7 @@ const SavedSpiritBuildsPanel = ({
                         : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600'
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center justify-between gap-3">
                       {/* Build Info */}
                       <button
                         onClick={() => handleLoadBuild(build)}
@@ -472,7 +586,21 @@ const SavedSpiritBuildsPanel = ({
                       </button>
 
                       {/* Actions */}
-                      <div className="flex gap-1 flex-shrink-0">
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <button
+                          onClick={() => handleRenameBuild(build)}
+                          className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded transition-colors"
+                          title="Rename build"
+                        >
+                          <Pencil className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                        </button>
+                        {/* <button
+                          onClick={() => handleDuplicateBuild(build)}
+                          className="p-2 hover:bg-white dark:hover:bg-gray-700 rounded transition-colors"
+                          title="Duplicate build"
+                        >
+                          <Copy className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                        </button> */}
                         <button
                           onClick={() => handleDeleteBuild(build.id)}
                           disabled={deletingId === build.id}

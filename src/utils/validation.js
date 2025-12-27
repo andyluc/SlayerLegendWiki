@@ -29,7 +29,7 @@ export const STRING_LIMITS = {
  */
 export const VALIDATION_PATTERNS = {
   EMAIL: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-  NAME_PATTERN: /^[a-zA-Z0-9\s\-_.']+$/,
+  NAME_PATTERN: /^[a-zA-Z0-9\s\-_.'()]+$/,
 };
 
 /**

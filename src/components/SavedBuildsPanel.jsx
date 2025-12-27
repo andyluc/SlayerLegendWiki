@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Loader, Trash2, Clock, CheckCircle2, LogIn, ChevronDown, ChevronUp } from 'lucide-react';
+import { Save, Loader, Trash2, Clock, CheckCircle2, LogIn, ChevronDown, ChevronUp, Copy, Pencil } from 'lucide-react';
 import { useAuthStore } from '../../wiki-framework/src/store/authStore';
 import { useWikiConfig } from '../../wiki-framework/src/hooks/useWikiConfig';
 import { useLoginFlow } from '../../wiki-framework/src/hooks/useLoginFlow';
@@ -285,6 +285,113 @@ const SavedBuildsPanel = ({
     }
   };
 
+  const duplicateBuild = async (build) => {
+    if (!user || !isAuthenticated) return;
+
+    try {
+      // Create a copy of the build with a new name
+      const copyName = `${build.name} (Copy)`;
+      const buildDataCopy = { ...build };
+      delete buildDataCopy.id; // Remove ID so a new one is generated
+      delete buildDataCopy.createdAt;
+      delete buildDataCopy.updatedAt;
+      buildDataCopy.name = copyName;
+
+      const response = await fetch(getSaveDataEndpoint(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: buildType,
+          username: user.login,
+          userId: user.id,
+          data: buildDataCopy,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to duplicate build');
+      }
+
+      const data = await response.json();
+      const sortedBuilds = data.builds.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+
+      setInternalSavedBuilds(sortedBuilds);
+
+      // Notify parent of the updated builds
+      if (onBuildsChange) {
+        onBuildsChange(sortedBuilds);
+      }
+
+      // Convert buildType to cache key (e.g., 'skill-builds' -> 'skill_builds')
+      const cacheKey = buildType.replace(/-/g, '_');
+      setCache(cacheKey, user.id, sortedBuilds);
+
+      logger.info('Build duplicated successfully', { originalName: build.name, copyName });
+    } catch (err) {
+      logger.error('Failed to duplicate build:', { error: err });
+      setError(err.message || 'Failed to duplicate build');
+    }
+  };
+
+  const renameBuild = async (build) => {
+    if (!user || !isAuthenticated) return;
+
+    const newName = prompt('Enter new build name:', build.name);
+    if (!newName || newName.trim() === '') return; // User cancelled or entered empty name
+    if (newName === build.name) return; // No change
+
+    // Validate the name
+    const validation = validateBuildName(newName);
+    if (!validation.valid) {
+      alert(validation.error);
+      return;
+    }
+
+    try {
+      const updatedBuild = { ...build, name: validation.sanitized };
+
+      const response = await fetch(getSaveDataEndpoint(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: buildType,
+          username: user.login,
+          userId: user.id,
+          data: updatedBuild,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to rename build');
+      }
+
+      const data = await response.json();
+      const sortedBuilds = data.builds.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+
+      setInternalSavedBuilds(sortedBuilds);
+
+      // Notify parent of the updated builds
+      if (onBuildsChange) {
+        onBuildsChange(sortedBuilds);
+      }
+
+      // Convert buildType to cache key (e.g., 'skill-builds' -> 'skill_builds')
+      const cacheKey = buildType.replace(/-/g, '_');
+      setCache(cacheKey, user.id, sortedBuilds);
+
+      logger.info('Build renamed successfully', { oldName: build.name, newName: validation.sanitized });
+    } catch (err) {
+      logger.error('Failed to rename build:', { error: err });
+      setError(err.message || 'Failed to rename build');
+    }
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -443,6 +550,11 @@ const SavedBuildsPanel = ({
             <Save className="w-5 h-5" />
             <span>Saved Builds</span>
           </h3>
+          {!loading && savedBuilds.length > 0 && (
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              ({savedBuilds.length})
+            </span>
+          )}
           {allowSavingBuilds && (
             <button
               onClick={(e) => {
@@ -629,13 +741,30 @@ const SavedBuildsPanel = ({
                       </div>
                     )}
 
-                  <button
-                    onClick={() => deleteBuild(build.id)}
-                    className="flex-shrink-0 p-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                    title="Delete build"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <button
+                        onClick={() => renameBuild(build)}
+                        className="p-2 text-gray-600 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900/20 rounded-lg transition-colors"
+                        title="Rename build"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      {/* <button
+                        onClick={() => duplicateBuild(build)}
+                        className="p-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                        title="Duplicate build"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button> */}
+                      <button
+                        onClick={() => deleteBuild(build.id)}
+                        className="p-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                        title="Delete build"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                 </div>
                 );
               })}

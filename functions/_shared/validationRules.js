@@ -102,7 +102,7 @@ export const VALIDATION_PATTERNS = {
   // Alphanumeric with hyphens, underscores (common for IDs)
   ID_PATTERN: /^[a-zA-Z0-9_-]+$/,
   // Alphanumeric with spaces and basic punctuation (for names)
-  NAME_PATTERN: /^[a-zA-Z0-9\s\-_.']+$/,
+  NAME_PATTERN: /^[a-zA-Z0-9\s\-_.'()]+$/,
   // GitHub username pattern
   GITHUB_USERNAME: /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$/,
 };
