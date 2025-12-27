@@ -149,7 +149,8 @@
       "Bash(Select-String -Pattern \"drastically|Expected|Received\" -Context 2,2)",
       "Bash(Test-Path \"C:\\\\Projects\\\\slayerlegend\\\\wiki\\\\public\\\\data\\\\soul-weapon-engravings.json\")",
       "Bash(Select-Object -Last 50)",
-      "Bash(git -C \"C:\\\\Projects\\\\slayerlegend\\\\wiki\" status --short)"
+      "Bash(git -C \"C:\\\\Projects\\\\slayerlegend\\\\wiki\" status --short)",
+      "Bash(Select-String -Pattern \"Highscore|GitHub API|Octokit|401|Unauthorized|auth\" -Context 1,1)"
     ]
   }
 }

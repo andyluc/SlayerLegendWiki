@@ -820,11 +820,16 @@ async function handleSaveUserSnapshot(octokit, { owner, repo, username, snapshot
 }
 
 /**
- * Helper: Hash IP address for privacy
+ * Helper: Hash IP address or email for privacy
+ * IMPORTANT: When hashing emails, normalizes them (lowercase + trim) for consistency
+ * @param {string} value - IP address or email to hash
+ * @param {boolean} isEmail - If true, normalizes the value before hashing (default: false)
  */
-async function hashIP(ip) {
+async function hashIP(value, isEmail = false) {
   const encoder = new TextEncoder();
-  const data = encoder.encode(ip);
+  // Normalize emails for consistent hashing (must match client-side and GitHub Actions)
+  const normalizedValue = isEmail ? value.toLowerCase().trim() : value;
+  const data = encoder.encode(normalizedValue);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
@@ -1338,7 +1343,8 @@ async function handleCreateAnonymousPR(adapter, configAdapter, cryptoAdapter, oc
     const filePath = `public/content/${section}/${pageId}.md`;
 
     // Hash email BEFORE masking for tracking purposes
-    const emailHash = await hashIP(email);
+    // CRITICAL: Pass isEmail=true to normalize email for consistent hashing
+    const emailHash = await hashIP(email, true);
 
     // Use maximum hash length that fits in label if consent given (50 char limit - 4 char prefix = 46 chars)
     // Use truncated hash if no consent (16 chars for basic tracking)
@@ -1353,6 +1359,7 @@ async function handleCreateAnonymousPR(adapter, configAdapter, cryptoAdapter, oc
 
 Anonymous contribution by: ${displayName}
 Email: ${maskedEmail} (verified ✓)
+Email-Hash: ${emailHash}
 ${reason ? `Reason: ${reason}` : ''}
 
 Submitted: ${new Date(timestamp).toISOString()}

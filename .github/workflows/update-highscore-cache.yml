@@ -142,19 +142,46 @@ jobs:
 
             /**
              * Parse anonymous contribution from bot commit message
-             * Returns { name, email, verified } or null if not anonymous/verified
+             * Returns { name, emailHash, verified } or null if not anonymous/verified
+             *
+             * NEW FORMAT (with Email-Hash line):
+             *   Anonymous contribution by: Display Name
+             *   Email: m****d@example.com (verified ✓)
+             *   Email-Hash: abc123def456...
+             *
+             * OLD FORMAT (without Email-Hash, must re-hash):
+             *   Anonymous contribution by: Display Name
+             *   Email: m****d@example.com (verified ✓)
              */
             function parseAnonymousContribution(commitMessage) {
               // Check for verified anonymous contribution
               const nameMatch = commitMessage.match(/Anonymous contribution by:\s*(.+)/);
-              const emailMatch = commitMessage.match(/Email:\s*(.+?)\s*\(verified\s*✓\)/);
+              const emailHashMatch = commitMessage.match(/Email-Hash:\s*([a-f0-9]+)/);
 
-              if (nameMatch && emailMatch) {
-                return {
-                  name: nameMatch[1].trim(),
-                  email: emailMatch[1].trim(),
-                  verified: true
-                };
+              if (nameMatch) {
+                // NEW FORMAT: Use email hash directly from commit message
+                if (emailHashMatch) {
+                  return {
+                    name: nameMatch[1].trim(),
+                    emailHash: emailHashMatch[1].trim(),
+                    verified: true
+                  };
+                }
+
+                // OLD FORMAT: Extract masked email and hash it
+                // This is a fallback for old commits before Email-Hash was added
+                const emailMatch = commitMessage.match(/Email:\s*(.+?)\s*\(verified\s*✓\)/);
+                if (emailMatch) {
+                  // Hash the masked email (this will cause separate entries for same email
+                  // due to random masking, but we can't do better for old commits)
+                  const maskedEmail = emailMatch[1].trim();
+                  return {
+                    name: nameMatch[1].trim(),
+                    // Will be hashed by caller using hashEmail()
+                    email: maskedEmail,
+                    verified: true
+                  };
+                }
               }
 
               return null;
@@ -312,7 +339,8 @@ jobs:
 
                       const anonData = parseAnonymousContribution(detailedCommit.commit.message);
                       if (anonData && anonData.verified) {
-                        const emailHash = hashEmail(anonData.email);
+                        // Use emailHash directly if available (new format), otherwise hash the email (old format)
+                        const emailHash = anonData.emailHash || hashEmail(anonData.email);
 
                         if (anonymousMap.has(emailHash)) {
                           const anon = anonymousMap.get(emailHash);
@@ -629,7 +657,8 @@ jobs:
 
                     const anonData = parseAnonymousContribution(detailedCommit.commit.message);
                     if (anonData && anonData.verified) {
-                      const emailHash = hashEmail(anonData.email);
+                      // Use emailHash directly if available (new format), otherwise hash the email (old format)
+                      const emailHash = anonData.emailHash || hashEmail(anonData.email);
 
                       if (anonymousMap.has(emailHash)) {
                         const anon = anonymousMap.get(emailHash);

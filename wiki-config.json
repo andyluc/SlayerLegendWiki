@@ -24,6 +24,12 @@
     },
     "tools": [
       {
+        "title": "Battle Loadouts",
+        "path": "/battle-loadouts",
+        "icon": "📖",
+        "description": "Configure and save complete battle loadouts"
+      },
+      {
         "title": "Skill Builder",
         "path": "/skill-builder",
         "icon": "⚔️",
@@ -34,12 +40,6 @@
         "path": "/spirit-builder",
         "icon": "🔮",
         "description": "Build and share spirit configurations"
-      },
-      {
-        "title": "Battle Loadouts",
-        "path": "/battle-loadouts",
-        "icon": "📖",
-        "description": "Configure and save complete battle loadouts"
       },
       {
         "title": "Soul Weapon",
@@ -235,6 +235,11 @@
       "order": 11,
       "pages": [
         {
+          "title": "Battle Loadouts",
+          "path": "/battle-loadouts",
+          "icon": "📖"
+        },
+        {
           "title": "Skill Builder",
           "path": "/skill-builder",
           "icon": "⚔️"
@@ -243,11 +248,6 @@
           "title": "Spirit Builder",
           "path": "/spirit-builder",
           "icon": "🔮"
-        },
-        {
-          "title": "Battle Loadouts",
-          "path": "/battle-loadouts",
-          "icon": "📖"
         },
         {
           "title": "Soul Weapon",
