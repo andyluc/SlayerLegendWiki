@@ -151,7 +151,8 @@
       "Bash(Select-Object -Last 50)",
       "Bash(git -C \"C:\\\\Projects\\\\slayerlegend\\\\wiki\" status --short)",
       "Bash(Select-String -Pattern \"Highscore|GitHub API|Octokit|401|Unauthorized|auth\" -Context 1,1)",
-      "Bash(Get-Content \"C:\\\\Users\\\\dolb9\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Projects-slayerlegend-wiki\\\\tasks\\\\b7cd7fa.output\" -Tail 50)"
+      "Bash(Get-Content \"C:\\\\Users\\\\dolb9\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Projects-slayerlegend-wiki\\\\tasks\\\\b7cd7fa.output\" -Tail 50)",
+      "Bash(git config:*)"
     ]
   }
 }
