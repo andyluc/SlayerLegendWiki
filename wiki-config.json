@@ -79,7 +79,7 @@
       "title": "Guides",
       "icon": "📚",
       "order": 4,
-      "sections": ["guides", "database"]
+      "sections": ["guides", "database", "andy"]
     },
     {
       "id": "community",
@@ -208,6 +208,15 @@
       "showInHeader": false,
       "allowContributions": true,
       "order": 10
+    },
+    {
+      "id": "andy",
+      "title": "Andy",
+      "path": "andy",
+      "icon": "📖",
+      "showInHeader": false,
+      "allowContributions": true,
+      "order": 10.1
     },
     {
       "id": "community",

@@ -1863,18 +1863,22 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
 
     setGridType(submission.gridType);
 
-    // Check if weapon has completion effect data (takes precedence over submission)
-    if (weaponHasCompletionEffect()) {
+    // Prioritize submission data over weapon data (community corrections take precedence)
+    if (submission.completionEffect && submission.completionEffect.atk !== undefined && submission.completionEffect.hp !== undefined) {
+      setCompletionAtk(typeof submission.completionEffect.atk === 'number' ? `${submission.completionEffect.atk}%` : submission.completionEffect.atk);
+      setCompletionHp(typeof submission.completionEffect.hp === 'number' ? `${submission.completionEffect.hp}%` : submission.completionEffect.hp);
+      logger.debug('Using submission completion effect (community data)', submission.completionEffect);
+    } else if (weaponHasCompletionEffect()) {
+      // Fall back to weapon data if submission has no completion effect
       const atk = selectedWeapon.completionEffect.atk;
       const hp = selectedWeapon.completionEffect.hp;
       setCompletionAtk(typeof atk === 'number' ? `${atk}%` : atk);
       setCompletionHp(typeof hp === 'number' ? `${hp}%` : hp);
-      logger.debug('Using weapon completion effect (official data)', { atk, hp });
+      logger.debug('Using weapon completion effect (official data fallback)', { atk, hp });
     } else {
-      // Fall back to submission completion effect
-      setCompletionAtk(typeof submission.completionEffect.atk === 'number' ? `${submission.completionEffect.atk}%` : submission.completionEffect.atk);
-      setCompletionHp(typeof submission.completionEffect.hp === 'number' ? `${submission.completionEffect.hp}%` : submission.completionEffect.hp);
-      logger.debug('Using submission completion effect', submission.completionEffect);
+      // No data available
+      setCompletionAtk('');
+      setCompletionHp('');
     }
 
     // Initialize grid from submission
@@ -3704,6 +3708,12 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
 
   const getCompletionBonus = () => {
     if (!selectedWeapon || !isGridComplete()) return null;
+
+    // Prioritize submission data over weapon data (community corrections take precedence)
+    if (currentSubmissionMeta && currentSubmissionMeta.completionEffect) {
+      return currentSubmissionMeta.completionEffect;
+    }
+
     return selectedWeapon.completionEffect;
   };
 
@@ -4266,10 +4276,11 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
             gridLogger.trace(`   ✅ Found ${solutions.length} solutions (${samePieceSolutions.length} same-piece) - Base: ${solutions.length + samePieceBonus}, Tier: +${tierBonus} = Score: ${score.toFixed(1)}`);
 
             // Enrich weapon object with grid data if it doesn't have it
+            // Prioritize community submission data over weapon data (community corrections take precedence)
             const enrichedWeapon = {
               ...weapon,
               gridType: weapon.gridType || weaponGridData.gridType,
-              completionEffect: weapon.completionEffect || weaponGridData.completionEffect
+              completionEffect: weaponGridData.completionEffect || weapon.completionEffect
             };
 
             results.push({
@@ -5301,11 +5312,10 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
                 showCounter={false}
                 validateOnBlur={false}
                 className="w-full"
-                disabled={weaponHasCompletionEffect()}
               />
               {weaponHasCompletionEffect() && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Pre-filled from official data (read-only)
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                  Pre-filled from official data (editable for corrections)
                 </p>
               )}
             </div>
@@ -5321,11 +5331,10 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
                 showCounter={false}
                 validateOnBlur={false}
                 className="w-full"
-                disabled={weaponHasCompletionEffect()}
               />
               {weaponHasCompletionEffect() && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Pre-filled from official data (read-only)
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                  Pre-filled from official data (editable for corrections)
                 </p>
               )}
             </div>
