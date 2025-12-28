@@ -19,6 +19,7 @@ order: 0
 
 dasfbsdfgisldfg
 
+{{battle-loadout:1935706:battle-loadouts-1766399063157-yzovrzleg:advanced}}
 
 
-{{battle-loadout:battle-loadouts-1766399063157-yzovrzleg:advanced}}
+{{skill-build:1935706:skill-builds-1766821946497-o0rgoqe45:detailed}}
