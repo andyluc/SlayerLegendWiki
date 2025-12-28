@@ -18,3 +18,7 @@ order: 0
 {{contribution-banner:ai-generated}} <!-- DELETE ME when you update this page -->
 
 dasfbsdfgisldfg
+
+
+
+{{battle-loadout:battle-loadouts-1766399063157-yzovrzleg:advanced}}
