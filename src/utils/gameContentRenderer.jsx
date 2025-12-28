@@ -6,6 +6,7 @@ import SpiritCard from '../components/SpiritCard';
 import ContributionBanner from '../components/ContributionBanner';
 import Emoticon from '../components/Emoticon';
 import BattleLoadoutCard from '../components/BattleLoadoutCard';
+import SkillBuildCard from '../components/SkillBuildCard';
 import { VideoGuideCard } from '../../wiki-framework/src/components/contentCreators';
 
 /**
@@ -150,17 +151,55 @@ export const processGameSyntax = (content) => {
   });
 
   // Process {{battle-loadout:...}} format
-  // Syntax: {{battle-loadout:IDENTIFIER:MODE}}
-  // Examples: {{battle-loadout:loadout-123:detailed}}, {{battle-loadout:abc123:compact}}
-  processed = processed.replace(/\{\{\s*battle-loadout:\s*([^:}]+?)\s*(?::\s*(\w+?)\s*)?\}\}/gi, (match, identifier, mode) => {
-    const modeStr = mode || 'detailed';
-    return `{{BATTLE_LOADOUT:${identifier}:${modeStr}}}`;
+  // Syntax: {{battle-loadout:userId:loadoutId:mode}} or {{battle-loadout:checksum:mode}}
+  // Examples: {{battle-loadout:1935706:battle-loadouts-123:detailed}}, {{battle-loadout:abc123:compact}}
+  processed = processed.replace(/\{\{\s*battle-loadout:\s*(.+?)\s*\}\}/gi, (match, content) => {
+    const parts = content.split(':').map(p => p.trim());
+    const validModes = ['compact', 'detailed', 'advanced'];
+
+    let identifier, mode;
+    const lastPart = parts[parts.length - 1];
+
+    if (validModes.includes(lastPart)) {
+      // Last part is the mode
+      mode = lastPart;
+      identifier = parts.slice(0, -1).join(':');
+    } else {
+      // No mode specified
+      identifier = content.trim();
+      mode = 'detailed';
+    }
+
+    return `{{BATTLE_LOADOUT:${identifier}:${mode}}}`;
   });
 
   // Process <!-- battle-loadout:... --> format (legacy)
   processed = processed.replace(/<!--\s*battle-loadout:\s*([^:]+?)(?::(\w+?))?\s*-->/gi, (match, identifier, mode) => {
     const modeStr = mode || 'detailed';
     return `{{BATTLE_LOADOUT:${identifier}:${modeStr}}}`;
+  });
+
+  // Process {{skill-build:...}} format
+  // Syntax: {{skill-build:userId:buildId:mode}}
+  // Examples: {{skill-build:1935706:skill-builds-123:detailed}}, {{skill-build:1935706:skill-builds-456:compact}}
+  processed = processed.replace(/\{\{\s*skill-build:\s*(.+?)\s*\}\}/gi, (match, content) => {
+    const parts = content.split(':').map(p => p.trim());
+    const validModes = ['compact', 'detailed', 'advanced'];
+
+    let identifier, mode;
+    const lastPart = parts[parts.length - 1];
+
+    if (validModes.includes(lastPart)) {
+      // Last part is the mode
+      mode = lastPart;
+      identifier = parts.slice(0, -1).join(':');
+    } else {
+      // No mode specified
+      identifier = content.trim();
+      mode = 'detailed';
+    }
+
+    return `{{SKILL_BUILD:${identifier}:${mode}}}`;
   });
 
   // Process {{emoticon:...}} format
@@ -328,7 +367,7 @@ export const CustomParagraph = ({ node, children, ...props }) => {
   if (bannerMatch) {
     const type = bannerMatch[1].trim();
     return (
-      <div>
+      <div className="my-6">
         <ContributionBanner type={type} />
       </div>
     );
@@ -343,7 +382,7 @@ export const CustomParagraph = ({ node, children, ...props }) => {
     const isId = /^[a-z0-9-]+$/.test(identifier);
 
     return (
-      <div>
+      <div className="my-6">
         <VideoGuideCard
           identifier={identifier}
           findBy={isId ? 'id' : 'title'}
@@ -355,14 +394,59 @@ export const CustomParagraph = ({ node, children, ...props }) => {
   }
 
   // Check for standalone battle loadout marker
-  const loadoutMatch = content.match(/^\{\{BATTLE_LOADOUT:([^:]+?)(?::(\w+?))?\}\}$/);
+  // Match format: {{BATTLE_LOADOUT:userId:loadoutId:mode}} or {{BATTLE_LOADOUT:checksum:mode}}
+  const loadoutMatch = content.match(/^\{\{BATTLE_LOADOUT:(.+)\}\}$/);
   if (loadoutMatch) {
-    const identifier = loadoutMatch[1].trim();
-    const mode = loadoutMatch[2] || 'detailed';
+    const fullIdentifier = loadoutMatch[1].trim();
+
+    // Split and check if last part is a valid mode
+    const parts = fullIdentifier.split(':');
+    const lastPart = parts[parts.length - 1];
+    const validModes = ['compact', 'detailed', 'advanced'];
+
+    let identifier, mode;
+    if (validModes.includes(lastPart)) {
+      // Last part is the mode, everything else is the identifier
+      mode = lastPart;
+      identifier = parts.slice(0, -1).join(':');
+    } else {
+      // No mode specified, entire thing is the identifier
+      identifier = fullIdentifier;
+      mode = 'detailed';
+    }
 
     return (
-      <div>
+      <div className="my-6">
         <BattleLoadoutCard identifier={identifier} mode={mode} />
+      </div>
+    );
+  }
+
+  // Check for standalone skill build marker
+  // Match format: {{SKILL_BUILD:userId:buildId:mode}} or {{SKILL_BUILD:checksum:mode}}
+  const skillBuildMatch = content.match(/^\{\{SKILL_BUILD:(.+)\}\}$/);
+  if (skillBuildMatch) {
+    const fullIdentifier = skillBuildMatch[1].trim();
+
+    // Split and check if last part is a valid mode
+    const parts = fullIdentifier.split(':');
+    const lastPart = parts[parts.length - 1];
+    const validModes = ['compact', 'detailed', 'advanced'];
+
+    let identifier, mode;
+    if (validModes.includes(lastPart)) {
+      // Last part is the mode, everything else is the identifier
+      mode = lastPart;
+      identifier = parts.slice(0, -1).join(':');
+    } else {
+      // No mode specified, entire thing is the identifier
+      identifier = fullIdentifier;
+      mode = 'detailed';
+    }
+
+    return (
+      <div className="my-6">
+        <SkillBuildCard identifier={identifier} mode={mode} />
       </div>
     );
   }

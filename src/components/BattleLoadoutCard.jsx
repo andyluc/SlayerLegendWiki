@@ -16,6 +16,7 @@ import {
 import { getSaveDataEndpoint, getLoadDataEndpoint } from '../utils/apiEndpoints';
 import { getSkillGradeColor } from '../config/rarityColors';
 import { createLogger } from '../utils/logger';
+import { getCache, setCache } from '../utils/buildCache';
 
 const logger = createLogger('BattleLoadoutCard');
 
@@ -95,32 +96,65 @@ const BattleLoadoutCard = ({ identifier, mode = 'detailed', showActions = true }
     loadGameData();
   }, []);
 
-  // Load user's builds and spirits (if authenticated)
+  // State to track the loadout owner's userId
+  const [loadoutOwnerId, setLoadoutOwnerId] = useState(null);
+
+  // Load loadout owner's builds and spirits
   useEffect(() => {
-    if (!isAuthenticated || !user) return;
+    if (!loadoutOwnerId) return;
 
     const loadUserData = async () => {
       try {
+        // Check cache first
+        const cachedSkillBuilds = getCache('skill_builds', loadoutOwnerId);
+        const cachedSpiritBuilds = getCache('spirit_builds', loadoutOwnerId);
+        const cachedSpirits = getCache('my_spirits', loadoutOwnerId);
+
+        if (cachedSkillBuilds && cachedSpiritBuilds && cachedSpirits) {
+          logger.debug('Using cached loadout owner data', { ownerId: loadoutOwnerId });
+          setAllSkillBuilds(cachedSkillBuilds);
+          setAllSpiritBuilds(cachedSpiritBuilds);
+          setMySpirits(cachedSpirits);
+          return;
+        }
+
+        // Load from API
         const [skillBuildsRes, spiritBuildsRes, mySpiritsRes] = await Promise.all([
-          fetch(getLoadDataEndpoint() + '?type=skill-builds&userId=' + user.id),
-          fetch(getLoadDataEndpoint() + '?type=spirit-builds&userId=' + user.id),
-          fetch(getLoadDataEndpoint() + '?type=my-spirits&userId=' + user.id)
+          fetch(getLoadDataEndpoint() + '?type=skill-builds&userId=' + loadoutOwnerId),
+          fetch(getLoadDataEndpoint() + '?type=spirit-builds&userId=' + loadoutOwnerId),
+          fetch(getLoadDataEndpoint() + '?type=my-spirits&userId=' + loadoutOwnerId)
         ]);
 
         const skillBuildsData = await skillBuildsRes.json();
         const spiritBuildsData = await spiritBuildsRes.json();
         const mySpiritsData = await mySpiritsRes.json();
 
-        setAllSkillBuilds(skillBuildsData.builds || []);
-        setAllSpiritBuilds(spiritBuildsData.builds || []);
-        setMySpirits(mySpiritsData.spirits || []);
+        const skillBuilds = skillBuildsData.builds || [];
+        const spiritBuilds = spiritBuildsData.builds || [];
+        const spirits = mySpiritsData.spirits || [];
+
+        setAllSkillBuilds(skillBuilds);
+        setAllSpiritBuilds(spiritBuilds);
+        setMySpirits(spirits);
+
+        // Cache the data
+        setCache('skill_builds', loadoutOwnerId, skillBuilds);
+        setCache('spirit_builds', loadoutOwnerId, spiritBuilds);
+        setCache('my_spirits', loadoutOwnerId, spirits);
+
+        logger.debug('Loaded and cached loadout owner data', {
+          ownerId: loadoutOwnerId,
+          skillBuilds: skillBuilds.length,
+          spiritBuilds: spiritBuilds.length,
+          spirits: spirits.length
+        });
       } catch (err) {
-        logger.error('Failed to load user data', { error: err });
+        logger.error('Failed to load loadout owner data', { error: err, ownerId: loadoutOwnerId });
       }
     };
 
     loadUserData();
-  }, [isAuthenticated, user]);
+  }, [loadoutOwnerId]);
 
   // Load loadout data
   useEffect(() => {
@@ -133,14 +167,33 @@ const BattleLoadoutCard = ({ identifier, mode = 'detailed', showActions = true }
       try {
         let loadoutData = null;
 
-        if (isLoadoutId(identifier)) {
-          // Load by ID (requires auth)
-          if (!isAuthenticated || !user) {
-            throw new Error('You must be logged in to view saved loadouts');
-          }
+        // Check if identifier is in format "userId:loadoutId" or just "loadoutId"
+        let targetUserId, targetLoadoutId;
 
+        // Check if entire identifier is a loadout ID (old format)
+        if (isLoadoutId(identifier)) {
+          // Old format: just loadoutId (use current user's data)
+          targetUserId = user?.id;
+          targetLoadoutId = identifier;
+        } else {
+          // New format: userId:loadoutId (loadoutId may contain hyphens/numbers)
+          // Split only on first colon
+          const colonIndex = identifier.indexOf(':');
+          if (colonIndex !== -1) {
+            targetUserId = identifier.substring(0, colonIndex);
+            targetLoadoutId = identifier.substring(colonIndex + 1);
+
+            // Verify the loadout ID part looks valid (if not, fall through to checksum loading)
+            if (!isLoadoutId(targetLoadoutId)) {
+              targetLoadoutId = null; // Will trigger checksum loading below
+            }
+          }
+        }
+
+        if (targetLoadoutId) {
+          // Load by ID from specific user's loadouts
           const response = await fetch(
-            getLoadDataEndpoint() + `?type=battle-loadouts&userId=${user.id}`
+            getLoadDataEndpoint() + `?type=battle-loadouts&userId=${targetUserId}`
           );
 
           if (!response.ok) {
@@ -148,13 +201,16 @@ const BattleLoadoutCard = ({ identifier, mode = 'detailed', showActions = true }
           }
 
           const data = await response.json();
-          const found = data.loadouts?.find(l => l.id === identifier);
+          const found = data.loadouts?.find(l => l.id === targetLoadoutId);
 
           if (!found) {
             throw new Error('Loadout not found. It may have been deleted.');
           }
 
           loadoutData = found;
+
+          // Set owner ID for loading related builds
+          setLoadoutOwnerId(targetUserId);
         } else {
           // Load by checksum (public)
           const config = await fetch('/wiki-config.json').then(r => r.json());
@@ -165,6 +221,11 @@ const BattleLoadoutCard = ({ identifier, mode = 'detailed', showActions = true }
 
           if (!loadoutData) {
             throw new Error('Shared loadout not found');
+          }
+
+          // For shared builds, extract userId from loadout data if available
+          if (loadoutData.userId) {
+            setLoadoutOwnerId(loadoutData.userId);
           }
         }
 

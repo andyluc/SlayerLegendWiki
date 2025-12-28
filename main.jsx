@@ -6,7 +6,7 @@ import AppWrapper from './src/components/AppWrapper.jsx';
 import ErrorBoundary from './wiki-framework/src/components/common/ErrorBoundary.jsx';
 import './wiki-framework/src/styles/index.css';
 import './src/styles/custom.css';
-import { Ghost, Sparkles, Sword, Video, Swords } from 'lucide-react';
+import { Ghost, Sparkles, Sword, Video, Swords, Book } from 'lucide-react';
 
 // Initialize bot token for comment system (prevents users from closing comment issues)
 import { initializeBotOctokit } from './wiki-framework/src/services/github/api.js';
@@ -35,7 +35,9 @@ import SpiritPicker from './src/components/SpiritPicker.jsx';
 import SkillPicker from './src/components/SkillPicker.jsx';
 import EquipmentPicker from './src/components/EquipmentPicker.jsx';
 import BattleLoadoutPicker from './src/components/BattleLoadoutPicker.jsx';
-import { VideoGuidePicker } from './wiki-framework/src/components/contentCreators/index.js';
+import VideoGuidePicker from './src/components/VideoGuidePicker.jsx';
+import SkillBuildPicker from './src/components/SkillBuildPicker.jsx';
+import { handleSkillSelect, handleEquipmentSelect, handleSpiritSelect, handleBattleLoadoutSelect, handleSkillBuildSelect } from './src/utils/pickerHandlers.js';
 
 // Register custom markdown processors for skill/equipment cards and data injection
 registerContentProcessor(processGameSyntax);
@@ -43,24 +45,12 @@ registerCustomComponents(getGameComponents());
 registerSkillPreview(renderSkillPreview);
 registerEquipmentPreview(renderEquipmentPreview);
 registerDataSelector(DataSelector);
-registerPicker('spirit', SpiritPicker, { icon: Ghost, label: 'Spirit' });
-registerPicker('skill', SkillPicker, { icon: Sparkles, label: 'Skill' });
-registerPicker('equipment', EquipmentPicker, { icon: Sword, label: 'Equipment' });
-registerPicker('battle-loadout', BattleLoadoutPicker, { icon: Swords, label: 'Battle Loadout' });
-
-// Video guide picker is conditionally registered based on config
-// This is done after config loads to check features.contentCreators.enabled
-const registerVideoGuidePicker = () => {
-  fetch('/wiki-config.json')
-    .then(res => res.json())
-    .then(config => {
-      if (config?.features?.contentCreators?.enabled && config?.features?.contentCreators?.videoGuides?.enabled) {
-        registerPicker('video-guide', VideoGuidePicker, { icon: Video, label: 'Video Guide' });
-      }
-    })
-    .catch(err => console.error('Failed to load config for video guide picker:', err));
-};
-registerVideoGuidePicker();
+registerPicker('spirit', SpiritPicker, { icon: Ghost, label: 'Spirit', handler: handleSpiritSelect });
+registerPicker('skill', SkillPicker, { icon: Sparkles, label: 'Skill', handler: handleSkillSelect, renderPreview: renderSkillPreview });
+registerPicker('equipment', EquipmentPicker, { icon: Sword, label: 'Equipment', handler: handleEquipmentSelect, renderPreview: renderEquipmentPreview });
+registerPicker('battle-loadout', BattleLoadoutPicker, { icon: Swords, label: 'Battle Loadout', handler: handleBattleLoadoutSelect });
+registerPicker('skill-build', SkillBuildPicker, { icon: Book, label: 'Skill Build', handler: handleSkillBuildSelect });
+registerPicker('video-guide', VideoGuidePicker, { icon: Video, label: 'Video Guide' });
 
 registerDataAutocompleteSearch(searchDataForAutocomplete);
 

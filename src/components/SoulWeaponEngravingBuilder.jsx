@@ -14,7 +14,7 @@ import CustomDropdown from './CustomDropdown';
 import ValidatedInput from './ValidatedInput';
 import SavedBuildsPanel from './SavedBuildsPanel';
 import { getSaveDataEndpoint, getLoadDataEndpoint } from '../utils/apiEndpoints.js';
-import { validateBuildName, validateCompletionEffect, STRING_LIMITS } from '../utils/validation';
+import { validateBuildName, validateCompletionEffect, validateWeaponName, STRING_LIMITS } from '../utils/validation';
 import { setCache } from '../utils/buildCache';
 import { createLogger } from '../utils/logger';
 
@@ -209,6 +209,7 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
   const [forceDesignMode, setForceDesignMode] = useState(false); // Force design mode even when submissions exist
   const [designerGrid, setDesignerGrid] = useState([]); // Grid for designer mode (toggle cells)
   const [gridType, setGridType] = useState('4x4'); // Grid size selection
+  const [weaponNameOverride, setWeaponNameOverride] = useState(''); // Custom weapon name (for translation corrections)
   const [completionAtk, setCompletionAtk] = useState(''); // ATK completion effect %
   const [completionHp, setCompletionHp] = useState(''); // HP completion effect %
   const [submitting, setSubmitting] = useState(false); // Submission in progress
@@ -1439,6 +1440,16 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
     return hasCompletionEffect;
   };
 
+  // Get effective weapon name (prioritizes submission override)
+  const getEffectiveWeaponName = () => {
+    if (!selectedWeapon) return '';
+    // Prioritize submission name override over original name
+    if (currentSubmissionMeta && currentSubmissionMeta.weaponNameOverride) {
+      return currentSubmissionMeta.weaponNameOverride;
+    }
+    return selectedWeapon.name;
+  };
+
   // Get grid data for any weapon (from official data or community submissions)
   // Returns: { gridType, activeSlots, hasData, source, submittedBy } or null if no data available
   const getWeaponGridData = async (weapon) => {
@@ -1593,6 +1604,9 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
     );
     setDesignerGrid(grid);
 
+    // Pre-fill weapon name with original name (empty = use original)
+    setWeaponNameOverride('');
+
     // Pre-fill completion effect fields if they exist in weapon data
     if (selectedWeapon && weaponHasCompletionEffect()) {
       const atk = selectedWeapon.completionEffect.atk;
@@ -1672,7 +1686,7 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
 
     const owner = wikiConfig.wiki.repository.owner;
     const repo = wikiConfig.wiki.repository.repo;
-    const weaponName = selectedWeapon.name;
+    const weaponName = getEffectiveWeaponName();
 
     // Clean expired cache entries
     cleanExpiredCache();
@@ -1858,10 +1872,19 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
     logger.debug('loadSubmissionIntoDesigner - Loading submission', {
       gridType: submission.gridType,
       activeSlots: submission.totalActiveSlots,
-      completionEffect: submission.completionEffect
+      completionEffect: submission.completionEffect,
+      weaponNameOverride: submission.weaponNameOverride
     });
 
     setGridType(submission.gridType);
+
+    // Load weapon name override if present in submission
+    if (submission.weaponNameOverride) {
+      setWeaponNameOverride(submission.weaponNameOverride);
+      logger.debug('Using submission weapon name override', { name: submission.weaponNameOverride });
+    } else {
+      setWeaponNameOverride('');
+    }
 
     // Prioritize submission data over weapon data (community corrections take precedence)
     if (submission.completionEffect && submission.completionEffect.atk !== undefined && submission.completionEffect.hp !== undefined) {
@@ -1989,6 +2012,15 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
       return;
     }
 
+    // Validate weapon name override (optional, but if provided must be valid)
+    if (weaponNameOverride && weaponNameOverride.trim().length > 0) {
+      const nameValidation = validateWeaponName(weaponNameOverride.trim());
+      if (!nameValidation.valid) {
+        alert(`Invalid weapon name: ${nameValidation.error}`);
+        return;
+      }
+    }
+
     // Count active slots
     const activeSlots = [];
     designerGrid.forEach((row, rIdx) => {
@@ -2018,7 +2050,7 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
       // Create submission data using validated values
       const submission = {
         weaponId: String(selectedWeapon.id), // Ensure ID is a string
-        weaponName: selectedWeapon.name,
+        weaponName: getEffectiveWeaponName(),
         gridType: gridType,
         completionEffect: {
           atk: atkValidation.sanitized, // Use validated numeric value
@@ -2027,6 +2059,11 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
         activeSlots: activeSlots,
         totalActiveSlots: activeSlots.length
       };
+
+      // Include weapon name override if provided (for translation corrections)
+      if (weaponNameOverride && weaponNameOverride.trim().length > 0) {
+        submission.weaponNameOverride = weaponNameOverride.trim();
+      }
 
       logger.debug('submitGridLayout - Final submission object', { submission });
 
@@ -5034,7 +5071,7 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
                 }
                 return {
                   value: selectedWeapon.id,
-                  label: selectedWeapon.name,
+                  label: getEffectiveWeaponName(),
                   image: selectedWeapon.image,
                   description: description
                 };
@@ -5149,7 +5186,7 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
                 Grid Designer Unavailable
               </h4>
               <p className="text-sm text-yellow-800 dark:text-yellow-300">
-                <strong>{selectedWeapon.name}</strong> doesn't have completion effect data (HP/ATK bonuses) yet.
+                <strong>{getEffectiveWeaponName()}</strong> doesn't have completion effect data (HP/ATK bonuses) yet.
                 Grid editing is only available for weapons with completion effect values.
               </p>
             </div>
@@ -5180,7 +5217,7 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
               </h3>
             </div>
             <p className="text-sm text-gray-700 dark:text-gray-300">
-              <strong>{selectedWeapon.name}</strong> doesn't have grid layout data yet.
+              <strong>{getEffectiveWeaponName()}</strong> doesn't have grid layout data yet.
               Click cells to toggle active slots, enter completion effects, and submit the layout.
             </p>
             <p className="text-sm text-blue-700 dark:text-blue-300 mt-2 italic">
@@ -5296,6 +5333,28 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
                 Active Slots: {designerGrid.flat().filter(c => c.active).length}
               </div>
             </div>
+          </div>
+
+          {/* Weapon Name Override (optional) */}
+          <div className="mb-4">
+            <ValidatedInput
+              label="Weapon Name (optional - for translation corrections)"
+              value={weaponNameOverride}
+              onChange={(e) => setWeaponNameOverride(e.target.value)}
+              validator={(value) => {
+                if (!value || value.trim().length === 0) return { valid: true, sanitized: '' };
+                return validateWeaponName(value);
+              }}
+              placeholder={`Leave empty to use original name: ${selectedWeapon?.name || ''}`}
+              maxLength={STRING_LIMITS.WEAPON_NAME_MAX}
+              required={false}
+              showCounter={true}
+              validateOnBlur={false}
+              className="w-full"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Only fill this if the weapon name has a translation error. Empty = use original name "{selectedWeapon?.name || ''}"
+            </p>
           </div>
 
           {/* Completion Effects */}

@@ -155,7 +155,8 @@
       "Bash(git config:*)",
       "Bash(if not exist \"C:\\\\Projects\\\\slayerlegend\\\\wiki\\\\public\\\\images\\\\equipment\\\\soul-weapons\" mkdir \"C:\\\\Projects\\\\slayerlegend\\\\wiki\\\\public\\\\images\\\\equipment\\\\soul-weapons\")",
       "WebFetch(domain:namu.wiki)",
-      "Bash(bash scripts/download-soul-weapons.sh:*)"
+      "Bash(bash scripts/download-soul-weapons.sh:*)",
+      "Bash(Select-String -Pattern \"error|Error|ERROR|VideoGuide|video-guide|picker\" -Context 2,2)"
     ]
   }
 }

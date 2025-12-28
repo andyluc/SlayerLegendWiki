@@ -152,11 +152,95 @@ export async function handleSaveData(adapter, configAdapter) {
 }
 
 /**
+ * Check text for profanity using OpenAI Moderation API (primary) with leo-profanity fallback
+ * Imported from github-bot handler pattern
+ * @param {PlatformAdapter} adapter - Platform adapter instance
+ * @param {string} text - Text to check
+ * @returns {Promise<{containsProfanity: boolean, method: string, categories?: object}>}
+ */
+async function checkProfanity(adapter, text) {
+  const openaiApiKey = adapter.getEnv("OPENAI_API_KEY");
+
+  // Try OpenAI Moderation API first (if configured)
+  if (openaiApiKey) {
+    try {
+      logger.debug('Checking with OpenAI Moderation API for text:', text);
+      const response = await fetch(
+        'https://api.openai.com/v1/moderations',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openaiApiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            input: text
+          })
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        const result = data.results[0];
+
+        // OpenAI returns flagged=true if content violates policies
+        // Categories: hate, harassment, self-harm, sexual, violence
+        const containsProfanity = result.flagged;
+
+        logger.debug('OpenAI Moderation result', {
+          flagged: result.flagged,
+          categories: result.categories,
+          category_scores: result.category_scores
+        });
+
+        return {
+          containsProfanity,
+          method: 'openai-moderation',
+          categories: result.categories,
+          scores: result.category_scores
+        };
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.warn('[Profanity] OpenAI API request failed:', response.status, errorData, 'falling back to basic check');
+      }
+    } catch (error) {
+      console.warn('[Profanity] OpenAI API error:', error.message, 'falling back to basic check');
+    }
+  } else {
+    logger.debug('OPENAI_API_KEY not configured, using basic profanity check');
+  }
+
+  // Fallback: basic check for common profanity
+  // This is a minimal fallback since leo-profanity isn't available in serverless context
+  const commonProfanity = ['fuck', 'shit', 'bitch', 'ass', 'damn', 'hell', 'crap', 'bastard', 'dick', 'cock', 'pussy'];
+  const lowerText = text.toLowerCase();
+  const containsProfanity = commonProfanity.some(word => lowerText.includes(word));
+
+  logger.debug('Basic profanity check result:', containsProfanity);
+  return { containsProfanity, method: 'basic-check' };
+}
+
+/**
  * Handle grid submission (weapon-centric)
  * Grid submissions are stored per weapon, not per user
  */
 async function handleGridSubmission(adapter, storage, config, data, username, replace) {
   try {
+    // Check weapon name override for profanity (if provided)
+    if (data.weaponNameOverride) {
+      const profanityCheck = await checkProfanity(adapter, data.weaponNameOverride);
+      if (profanityCheck.containsProfanity) {
+        logger.warn('Grid submission rejected: weapon name contains inappropriate content', {
+          weaponNameOverride: data.weaponNameOverride,
+          method: profanityCheck.method,
+          categories: profanityCheck.categories
+        });
+        return adapter.createJsonResponse(400, {
+          error: 'Weapon name override contains inappropriate content and cannot be submitted.',
+        });
+      }
+    }
+
     const weaponId = data.weaponId;
 
     // For replace mode, we need to load existing submissions and update the first one

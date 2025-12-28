@@ -740,6 +740,17 @@ export function validateGridSubmission(data) {
   const weaponNameResult = validateWeaponName(data.weaponName);
   if (!weaponNameResult.valid) return weaponNameResult;
 
+  // Validate weapon name override (optional)
+  if (data.weaponNameOverride) {
+    const overrideResult = validateWeaponName(data.weaponNameOverride);
+    if (!overrideResult.valid) {
+      return {
+        valid: false,
+        error: `Weapon name override: ${overrideResult.error}`,
+      };
+    }
+  }
+
   // Validate grid type
   const gridTypeResult = validateGridType(data.gridType);
   if (!gridTypeResult.valid) return gridTypeResult;

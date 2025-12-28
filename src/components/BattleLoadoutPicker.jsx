@@ -72,15 +72,18 @@ const BattleLoadoutPicker = ({ isOpen, onClose, onSelect, renderPreview = null }
         setLoading(true);
         setError(null);
 
-        if (!isAuthenticated || !user) {
-          setError('Please log in to access your saved loadouts');
-          setLoading(false);
-          return;
+        let response;
+        if (isAuthenticated && user) {
+          // Load user's own loadouts
+          response = await fetch(
+            getLoadDataEndpoint() + `?type=battle-loadouts&userId=${user.id}`
+          );
+        } else {
+          // Load public loadouts from all users
+          response = await fetch(
+            getLoadDataEndpoint() + `?type=battle-loadouts&public=true`
+          );
         }
-
-        const response = await fetch(
-          getLoadDataEndpoint() + `?type=battle-loadouts&userId=${user.id}`
-        );
 
         if (!response.ok) {
           throw new Error('Failed to load loadouts');
@@ -91,7 +94,8 @@ const BattleLoadoutPicker = ({ isOpen, onClose, onSelect, renderPreview = null }
         setLoading(false);
 
         logger.debug('Loaded battle loadouts', {
-          count: data.loadouts?.length || 0
+          count: data.loadouts?.length || 0,
+          mode: isAuthenticated ? 'user' : 'public'
         });
       } catch (err) {
         logger.error('Failed to load loadouts', { error: err });
@@ -114,7 +118,8 @@ const BattleLoadoutPicker = ({ isOpen, onClose, onSelect, renderPreview = null }
 
   // Filter loadouts by search term
   const filteredLoadouts = loadouts.filter(loadout => {
-    const matchesSearch = loadout.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = loadout.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      loadout.username?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
   }).sort((a, b) => {
     // Sort by most recently updated
@@ -135,7 +140,10 @@ const BattleLoadoutPicker = ({ isOpen, onClose, onSelect, renderPreview = null }
   const handleInsert = () => {
     if (!selectedLoadout) return;
 
-    const syntax = `{{battle-loadout:${selectedLoadout.id}:${displayMode}}}`;
+    // Include userId in syntax for efficient loading
+    // Format: {{battle-loadout:userId:loadoutId:mode}}
+    const userId = selectedLoadout.userId || (user ? user.id : null);
+    const syntax = `{{battle-loadout:${userId}:${selectedLoadout.id}:${displayMode}}}`;
 
     onSelect({
       loadout: selectedLoadout,
@@ -145,6 +153,7 @@ const BattleLoadoutPicker = ({ isOpen, onClose, onSelect, renderPreview = null }
 
     logger.info('Inserted battle loadout', {
       loadoutName: selectedLoadout.name,
+      userId,
       mode: displayMode
     });
 
@@ -239,13 +248,15 @@ const BattleLoadoutPicker = ({ isOpen, onClose, onSelect, renderPreview = null }
           ) : loadouts.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-600 dark:text-gray-400 mb-4">
-                You don't have any saved battle loadouts yet.
+                {isAuthenticated
+                  ? "You don't have any saved battle loadouts yet."
+                  : "No public battle loadouts found. Be the first to create one!"}
               </p>
               <button
                 onClick={() => (window.location.href = '#/battle-loadouts')}
                 className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
               >
-                Create Your First Loadout
+                {isAuthenticated ? 'Create Your First Loadout' : 'Go to Battle Loadouts'}
               </button>
             </div>
           ) : (
@@ -254,7 +265,7 @@ const BattleLoadoutPicker = ({ isOpen, onClose, onSelect, renderPreview = null }
               <div className="mb-6">
                 <input
                   type="text"
-                  placeholder="Search loadouts..."
+                  placeholder={isAuthenticated ? "Search loadouts..." : "Search by loadout name or username..."}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -287,7 +298,17 @@ const BattleLoadoutPicker = ({ isOpen, onClose, onSelect, renderPreview = null }
                             <h3 className="font-semibold text-gray-900 dark:text-white truncate">
                               {loadout.name}
                             </h3>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {loadout.username && (
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                by {loadout.username}
+                                {user && loadout.userId === user.id && (
+                                  <span className="ml-1 text-blue-600 dark:text-blue-400 font-medium">
+                                    (You)
+                                  </span>
+                                )}
+                              </p>
+                            )}
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
                               {loadout.updatedAt
                                 ? `Updated ${new Date(loadout.updatedAt).toLocaleDateString()}`
                                 : `Created ${new Date(loadout.createdAt).toLocaleDateString()}`}

@@ -29,12 +29,19 @@ export async function handleLoadData(adapter, configAdapter) {
   try {
     // Parse query parameters
     const params = adapter.getQueryParams();
-    const { type, userId } = params;
+    const { type, userId, public: isPublic } = params;
 
     // Validate required fields
-    if (!type || !userId) {
+    if (!type) {
       return adapter.createJsonResponse(400, {
-        error: 'Missing required parameters: type, userId'
+        error: 'Missing required parameter: type'
+      });
+    }
+
+    // Require userId unless loading public data
+    if (!userId && isPublic !== 'true') {
+      return adapter.createJsonResponse(400, {
+        error: 'Missing required parameter: userId (or use public=true)'
       });
     }
 
@@ -70,9 +77,16 @@ export async function handleLoadData(adapter, configAdapter) {
     const storage = createWikiStorage(storageConfig, { WIKI_BOT_TOKEN: botToken });
 
     // Load items
-    const items = await storage.load(type, userId);
-
-    logger.debug(`Loaded ${items.length} ${config.itemsName} for user ${userId}`);
+    let items;
+    if (isPublic === 'true') {
+      // Load public data from all users
+      items = await storage.loadPublic(type);
+      logger.debug(`Loaded ${items.length} public ${config.itemsName}`);
+    } else {
+      // Load data for specific user
+      items = await storage.load(type, userId);
+      logger.debug(`Loaded ${items.length} ${config.itemsName} for user ${userId}`);
+    }
 
     // Return response with dynamic key names
     const response = {

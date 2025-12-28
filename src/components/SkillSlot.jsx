@@ -95,7 +95,7 @@ const SkillSlot = ({
           <img
             src="/images/skills/skill_baseSlot_Wide.png"
             alt="Locked Slot"
-            className="w-full h-full object-contain opacity-50"
+            className="not-prose w-full h-full object-contain opacity-50 m-0"
           />
 
           {/* Lock Icon */}
@@ -167,21 +167,21 @@ const SkillSlot = ({
           <img
             src={skill.icon || '/images/skills/skill_deam.png'}
             alt={skill.name}
-            className="w-full h-full object-cover"
+            className="not-prose block w-full h-full object-contain m-0"
             onError={(e) => {
               e.target.src = '/images/skills/skill_deam.png';
             }}
           />
-
-          {/* Element Icon Overlay */}
-          {getElementIcon(skill.attribute) && (
-            <img
-              src={getElementIcon(skill.attribute)}
-              alt={skill.attribute}
-              className="absolute -top-0.5 -left-0.5 w-5 h-5 sm:w-5 sm:h-5 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
-            />
-          )}
         </div>
+
+        {/* Element Icon Overlay - positioned outside overflow-hidden container */}
+        {getElementIcon(skill.attribute) && (
+          <img
+            src={getElementIcon(skill.attribute)}
+            alt={skill.attribute}
+            className="not-prose block absolute -top-0.5 -left-0.5 w-5 h-5 sm:w-5 sm:h-5 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] pointer-events-none m-0"
+          />
+        )}
 
         {/* Hover indicator */}
         {!readOnly && (
@@ -211,7 +211,7 @@ const SkillSlot = ({
       {/* Level Badge - Top Center */}
       <div
         ref={levelBadgeRef}
-        className="absolute top-[1px] left-8 transform -translate-x-1/2 -translate-y-1/2 bg-gray-900 text-white text-[9px] font-bold rounded px-1 py-0.5 border border-gray-700 cursor-pointer hover:scale-110 transition-transform z-20 shadow-md"
+        className="absolute top-[1px] left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gray-900 text-white text-[9px] font-bold rounded px-1 py-0.5 border border-gray-700 cursor-pointer hover:scale-110 transition-transform z-20 shadow-md"
         onClick={(e) => {
           e.stopPropagation();
           setShowLevelInput(!showLevelInput);
