@@ -55,3 +55,7 @@ external/backups/excluded-images/
 /coverage/
 /test-output.txt
 /.env.test
+
+# Issue backup files (keep directory structure, ignore daily JSON files)
+backups/issues/*.json
+!backups/issues/README.md
