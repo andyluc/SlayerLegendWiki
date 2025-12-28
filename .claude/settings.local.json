@@ -152,7 +152,10 @@
       "Bash(git -C \"C:\\\\Projects\\\\slayerlegend\\\\wiki\" status --short)",
       "Bash(Select-String -Pattern \"Highscore|GitHub API|Octokit|401|Unauthorized|auth\" -Context 1,1)",
       "Bash(Get-Content \"C:\\\\Users\\\\dolb9\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Projects-slayerlegend-wiki\\\\tasks\\\\b7cd7fa.output\" -Tail 50)",
-      "Bash(git config:*)"
+      "Bash(git config:*)",
+      "Bash(if not exist \"C:\\\\Projects\\\\slayerlegend\\\\wiki\\\\public\\\\images\\\\equipment\\\\soul-weapons\" mkdir \"C:\\\\Projects\\\\slayerlegend\\\\wiki\\\\public\\\\images\\\\equipment\\\\soul-weapons\")",
+      "WebFetch(domain:namu.wiki)",
+      "Bash(bash scripts/download-soul-weapons.sh:*)"
     ]
   }
 }

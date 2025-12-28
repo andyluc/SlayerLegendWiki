@@ -131,7 +131,7 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
   const [gridState, setGridState] = useState([]); // Grid with placed pieces
   const [inventory, setInventory] = useState(Array(INVENTORY_SIZE).fill(null)); // Inventory slots
   const [lockedInventoryIndices, setLockedInventoryIndices] = useState([]); // Tracks which inventory pieces are placed
-  const [highestUnlockedWeapon, setHighestUnlockedWeapon] = useState(57); // Highest weapon ID unlocked (default: all)
+  const [highestUnlockedWeapon, setHighestUnlockedWeapon] = useState(999); // Highest weapon ID unlocked (default: all)
 
   // Drag and placement states
   const [draggingPiece, setDraggingPiece] = useState(null);
@@ -794,10 +794,8 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
   useEffect(() => {
     const key = configName('soul_weapon_highest');
     const saved = getItem(key);
-    if (saved && typeof saved === 'number') {
-      if (saved >= 1 && saved <= 57) {
-        setHighestUnlockedWeapon(saved);
-      }
+    if (saved && typeof saved === 'number' && saved >= 1) {
+      setHighestUnlockedWeapon(saved);
     }
   }, []);
 
@@ -872,6 +870,13 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
     // Skip if loading shared build, no weapon, weapon has official grid data, or grid already populated
     if (loadingSharedBuild || !selectedWeapon || weaponHasGridData() || hasPlacedPieces) {
       logger.trace('Skipping mode switch - loading shared build, has official data, or grid already populated');
+      return;
+    }
+
+    // Check if weapon allows designer mode (must have completion effect data)
+    if (!weaponAllowsDesignerMode()) {
+      logger.debug('Weapon does not allow designer mode - no completion effect data');
+      setIsGridDesigner(false);
       return;
     }
 
@@ -1408,8 +1413,30 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
   // Check if selectedWeapon has grid data
   const weaponHasGridData = () => {
     if (!selectedWeapon) return false;
-    // Check if weapon has activeSlots array (indicates it has grid data)
-    return selectedWeapon.activeSlots && Array.isArray(selectedWeapon.activeSlots);
+    // Check if weapon has activeSlots array with actual slots (not empty)
+    return selectedWeapon.activeSlots &&
+           Array.isArray(selectedWeapon.activeSlots) &&
+           selectedWeapon.activeSlots.length > 0;
+  };
+
+  // Check if selectedWeapon has completion effect data (HP/ATK values)
+  // This determines if designer mode is allowed
+  const weaponHasCompletionEffect = () => {
+    if (!selectedWeapon) return false;
+    return selectedWeapon.completionEffect &&
+           typeof selectedWeapon.completionEffect.atk === 'number' &&
+           typeof selectedWeapon.completionEffect.hp === 'number';
+  };
+
+  // Check if weapon allows designer mode (has completion effect but no/empty active slots)
+  const weaponAllowsDesignerMode = () => {
+    if (!selectedWeapon) return false;
+    const hasCompletionEffect = weaponHasCompletionEffect();
+    const hasActiveSlots = selectedWeapon.activeSlots &&
+                          Array.isArray(selectedWeapon.activeSlots) &&
+                          selectedWeapon.activeSlots.length > 0;
+    // Allow designer mode if has completion effect (regardless of active slots)
+    return hasCompletionEffect;
   };
 
   // Get grid data for any weapon (from official data or community submissions)
@@ -1490,12 +1517,30 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
     if (!selectedWeapon) return;
 
     const hasGridData = weaponHasGridData();
+    const allowsDesignerMode = weaponAllowsDesignerMode();
 
     // Clear submission metadata and errors when weapon changes
     setCurrentSubmissionMeta(null);
     setSubmissionLoadError(null);
 
     if (!hasGridData) {
+      // Check if weapon allows designer mode before proceeding
+      if (!allowsDesignerMode) {
+        logger.debug('Weapon does not allow designer mode - no completion effect data');
+        setIsGridDesigner(false);
+        setForceDesignMode(false);
+        // Initialize empty grid in non-designer mode
+        const gridSize = selectedWeapon.gridType === '4x4' ? 4 : 5;
+        const grid = Array(gridSize).fill(null).map(() =>
+          Array(gridSize).fill(null).map(() => ({
+            active: false,
+            piece: null
+          }))
+        );
+        setGridState(grid);
+        return;
+      }
+
       // Reset design mode state when weapon changes
       setForceDesignMode(false);
 
@@ -1532,13 +1577,34 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
 
   // Initialize designer grid with all cells inactive
   const initializeDesignerGrid = (newGridType) => {
-    // Use provided gridType or fall back to state
-    const typeToUse = newGridType || gridType;
+    // Use provided gridType or fall back to weapon's gridType or state
+    let typeToUse = newGridType || gridType;
+
+    // If weapon has a gridType defined, use it as default
+    if (selectedWeapon && selectedWeapon.gridType && !newGridType) {
+      typeToUse = selectedWeapon.gridType;
+      setGridType(selectedWeapon.gridType);
+      logger.debug('Using weapon gridType', { gridType: selectedWeapon.gridType });
+    }
+
     const size = typeToUse === '4x4' ? 4 : 5;
     const grid = Array(size).fill(null).map(() =>
       Array(size).fill(null).map(() => ({ active: false }))
     );
     setDesignerGrid(grid);
+
+    // Pre-fill completion effect fields if they exist in weapon data
+    if (selectedWeapon && weaponHasCompletionEffect()) {
+      const atk = selectedWeapon.completionEffect.atk;
+      const hp = selectedWeapon.completionEffect.hp;
+      setCompletionAtk(typeof atk === 'number' ? `${atk}%` : atk);
+      setCompletionHp(typeof hp === 'number' ? `${hp}%` : hp);
+      logger.debug('Pre-filled completion effect from weapon data', { atk, hp });
+    } else {
+      // Clear fields if no completion effect data
+      setCompletionAtk('');
+      setCompletionHp('');
+    }
   };
 
   // Load all weapons with submissions (for dropdown display)
@@ -1796,9 +1862,20 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
     });
 
     setGridType(submission.gridType);
-    // Convert float values to strings with % for display in input fields
-    setCompletionAtk(typeof submission.completionEffect.atk === 'number' ? `${submission.completionEffect.atk}%` : submission.completionEffect.atk);
-    setCompletionHp(typeof submission.completionEffect.hp === 'number' ? `${submission.completionEffect.hp}%` : submission.completionEffect.hp);
+
+    // Check if weapon has completion effect data (takes precedence over submission)
+    if (weaponHasCompletionEffect()) {
+      const atk = selectedWeapon.completionEffect.atk;
+      const hp = selectedWeapon.completionEffect.hp;
+      setCompletionAtk(typeof atk === 'number' ? `${atk}%` : atk);
+      setCompletionHp(typeof hp === 'number' ? `${hp}%` : hp);
+      logger.debug('Using weapon completion effect (official data)', { atk, hp });
+    } else {
+      // Fall back to submission completion effect
+      setCompletionAtk(typeof submission.completionEffect.atk === 'number' ? `${submission.completionEffect.atk}%` : submission.completionEffect.atk);
+      setCompletionHp(typeof submission.completionEffect.hp === 'number' ? `${submission.completionEffect.hp}%` : submission.completionEffect.hp);
+      logger.debug('Using submission completion effect', submission.completionEffect);
+    }
 
     // Initialize grid from submission
     const size = submission.gridType === '4x4' ? 4 : 5;
@@ -5013,7 +5090,10 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
                 }))}
               />
               <button
-                onClick={() => setHighestUnlockedWeapon(57)}
+                onClick={() => {
+                  const maxWeaponId = Math.max(...allWeapons.map(w => w.id));
+                  setHighestUnlockedWeapon(maxWeaponId);
+                }}
                 className="px-3 py-3 md:py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-lg text-sm md:text-sm font-medium transition-colors whitespace-nowrap shadow-sm touch-manipulation min-h-[44px]"
                 title="Unlock all weapons"
               >
@@ -5040,6 +5120,26 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
               </p>
               <p className="text-xs text-blue-700 dark:text-blue-300 mt-0.5">
                 Fetching grid layout data from community contributions
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Warning: No Completion Effect Data */}
+      {selectedWeapon && !weaponHasGridData() && !weaponHasCompletionEffect() && (
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-300 dark:border-yellow-700 rounded-lg p-4 mb-4">
+          <div className="flex items-start gap-3">
+            <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div className="flex-1">
+              <h4 className="font-bold text-yellow-900 dark:text-yellow-200 mb-1">
+                Grid Designer Unavailable
+              </h4>
+              <p className="text-sm text-yellow-800 dark:text-yellow-300">
+                <strong>{selectedWeapon.name}</strong> doesn't have completion effect data (HP/ATK bonuses) yet.
+                Grid editing is only available for weapons with completion effect values.
               </p>
             </div>
           </div>
@@ -5201,7 +5301,13 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
                 showCounter={false}
                 validateOnBlur={false}
                 className="w-full"
+                disabled={weaponHasCompletionEffect()}
               />
+              {weaponHasCompletionEffect() && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Pre-filled from official data (read-only)
+                </p>
+              )}
             </div>
             <div>
               <ValidatedInput
@@ -5215,7 +5321,13 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
                 showCounter={false}
                 validateOnBlur={false}
                 className="w-full"
+                disabled={weaponHasCompletionEffect()}
               />
+              {weaponHasCompletionEffect() && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Pre-filled from official data (read-only)
+                </p>
+              )}
             </div>
           </div>
 
