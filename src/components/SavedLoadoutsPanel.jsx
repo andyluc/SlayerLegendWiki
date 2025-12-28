@@ -291,7 +291,7 @@ const SavedLoadoutsPanel = ({ currentLoadout, onLoadLoadout, currentLoadedLoadou
       }
 
       const data = await response.json();
-      const sortedLoadouts = data.loadouts.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      const sortedLoadouts = (data.loadouts || []).sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
 
       setInternalSavedLoadouts(sortedLoadouts);
 

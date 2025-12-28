@@ -268,7 +268,7 @@ const SavedBuildsPanel = ({
       }
 
       const data = await response.json();
-      const sortedBuilds = data.builds.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      const sortedBuilds = (data.builds || []).sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
 
       setInternalSavedBuilds(sortedBuilds);
 
