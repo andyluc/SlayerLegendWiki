@@ -558,8 +558,8 @@ const SavedSpiritBuildsPanel = ({
                                 {build.name || 'Unnamed Build'}
                               </div>
                               {isCurrentlyLoaded && (
-                                <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full flex-shrink-0">
-                                  Loaded
+                                <span className="hidden sm:inline text-xs font-medium text-blue-600 dark:text-blue-400 flex-shrink-0">
+                                  (Loaded)
                                 </span>
                               )}
                             </div>

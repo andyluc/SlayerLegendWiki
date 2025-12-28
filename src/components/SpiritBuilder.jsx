@@ -448,41 +448,105 @@ const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave
       const currentSlot = currentSerialized.slots[i];
       const savedSlot = savedSerialized.slots[i];
 
-      // Compare type (collection vs base)
-      if (currentSlot.type !== savedSlot.type) {
-        logger.debug(`buildsMatch: slot ${i} type mismatch`, { current: currentSlot.type, saved: savedSlot.type });
+      // Helper to resolve underlying spiritId for both collection and base types
+      const getSpiritId = (slot) => {
+        if (slot.type === 'collection' && slot.mySpiritId) {
+          const mySpirit = mySpirits.find(s => s.id === slot.mySpiritId);
+          return mySpirit?.spiritId || null;
+        }
+        return slot.spiritId || null;
+      };
+
+      // Compare underlying spirit IDs (handles both collection and base types)
+      const currentSpiritId = getSpiritId(currentSlot);
+      const savedSpiritId = getSpiritId(savedSlot);
+
+      if (currentSpiritId !== savedSpiritId) {
+        logger.debug(`buildsMatch: slot ${i} spirit mismatch`, {
+          currentType: currentSlot.type,
+          currentSpiritId,
+          savedType: savedSlot.type,
+          savedSpiritId
+        });
         return false;
       }
 
-      // For collection spirits, compare mySpiritId
-      if (currentSlot.type === 'collection') {
+      // If both are collection spirits, compare mySpiritId to ensure same collection entry
+      if (currentSlot.type === 'collection' && savedSlot.type === 'collection') {
         if (currentSlot.mySpiritId !== savedSlot.mySpiritId) {
-          logger.debug(`buildsMatch: slot ${i} mySpiritId mismatch`, { current: currentSlot.mySpiritId, saved: savedSlot.mySpiritId });
+          logger.debug(`buildsMatch: slot ${i} mySpiritId mismatch`, {
+            current: currentSlot.mySpiritId,
+            saved: savedSlot.mySpiritId
+          });
           return false;
         }
         // Collection spirits don't need level/awakening comparison since those are stored in my-spirits
         continue;
       }
 
-      // For base spirits, compare spiritId and stats
-      if (currentSlot.spiritId !== savedSlot.spiritId) {
-        logger.debug(`buildsMatch: slot ${i} spiritId mismatch`, { current: currentSlot.spiritId, saved: savedSlot.spiritId });
+      // If both are base spirits, compare stats
+      if (currentSlot.type === 'base' && savedSlot.type === 'base') {
+        if (currentSlot.level !== savedSlot.level) {
+          logger.debug(`buildsMatch: slot ${i} level mismatch`, { current: currentSlot.level, saved: savedSlot.level });
+          return false;
+        }
+        if (currentSlot.awakeningLevel !== savedSlot.awakeningLevel) {
+          logger.debug(`buildsMatch: slot ${i} awakeningLevel mismatch`, { current: currentSlot.awakeningLevel, saved: savedSlot.awakeningLevel });
+          return false;
+        }
+        if (currentSlot.evolutionLevel !== savedSlot.evolutionLevel) {
+          logger.debug(`buildsMatch: slot ${i} evolutionLevel mismatch`, { current: currentSlot.evolutionLevel, saved: savedSlot.evolutionLevel });
+          return false;
+        }
+        if (currentSlot.skillEnhancementLevel !== savedSlot.skillEnhancementLevel) {
+          logger.debug(`buildsMatch: slot ${i} skillEnhancementLevel mismatch`, { current: currentSlot.skillEnhancementLevel, saved: savedSlot.skillEnhancementLevel });
+          return false;
+        }
+        continue;
+      }
+
+      // One is collection, one is base - they match on spiritId, but need to compare levels
+      // For collection spirit, get levels from mySpirits
+      const getCurrentLevels = (slot) => {
+        if (slot.type === 'collection' && slot.mySpiritId) {
+          const mySpirit = mySpirits.find(s => s.id === slot.mySpiritId);
+          return mySpirit ? {
+            level: mySpirit.level,
+            awakeningLevel: mySpirit.awakeningLevel,
+            evolutionLevel: mySpirit.evolutionLevel,
+            skillEnhancementLevel: mySpirit.skillEnhancementLevel
+          } : null;
+        }
+        return {
+          level: slot.level,
+          awakeningLevel: slot.awakeningLevel,
+          evolutionLevel: slot.evolutionLevel,
+          skillEnhancementLevel: slot.skillEnhancementLevel
+        };
+      };
+
+      const currentLevels = getCurrentLevels(currentSlot);
+      const savedLevels = getCurrentLevels(savedSlot);
+
+      if (!currentLevels || !savedLevels) {
+        logger.debug(`buildsMatch: slot ${i} missing level data`);
         return false;
       }
-      if (currentSlot.level !== savedSlot.level) {
-        logger.debug(`buildsMatch: slot ${i} level mismatch`, { current: currentSlot.level, saved: savedSlot.level });
+
+      if (currentLevels.level !== savedLevels.level) {
+        logger.debug(`buildsMatch: slot ${i} level mismatch`, { current: currentLevels.level, saved: savedLevels.level });
         return false;
       }
-      if (currentSlot.awakeningLevel !== savedSlot.awakeningLevel) {
-        logger.debug(`buildsMatch: slot ${i} awakeningLevel mismatch`, { current: currentSlot.awakeningLevel, saved: savedSlot.awakeningLevel });
+      if (currentLevels.awakeningLevel !== savedLevels.awakeningLevel) {
+        logger.debug(`buildsMatch: slot ${i} awakeningLevel mismatch`, { current: currentLevels.awakeningLevel, saved: savedLevels.awakeningLevel });
         return false;
       }
-      if (currentSlot.evolutionLevel !== savedSlot.evolutionLevel) {
-        logger.debug(`buildsMatch: slot ${i} evolutionLevel mismatch`, { current: currentSlot.evolutionLevel, saved: savedSlot.evolutionLevel });
+      if (currentLevels.evolutionLevel !== savedLevels.evolutionLevel) {
+        logger.debug(`buildsMatch: slot ${i} evolutionLevel mismatch`, { current: currentLevels.evolutionLevel, saved: savedLevels.evolutionLevel });
         return false;
       }
-      if (currentSlot.skillEnhancementLevel !== savedSlot.skillEnhancementLevel) {
-        logger.debug(`buildsMatch: slot ${i} skillEnhancementLevel mismatch`, { current: currentSlot.skillEnhancementLevel, saved: savedSlot.skillEnhancementLevel });
+      if (currentLevels.skillEnhancementLevel !== savedLevels.skillEnhancementLevel) {
+        logger.debug(`buildsMatch: slot ${i} skillEnhancementLevel mismatch`, { current: currentLevels.skillEnhancementLevel, saved: savedLevels.skillEnhancementLevel });
         return false;
       }
     }
@@ -523,15 +587,22 @@ const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave
 
     if (matchingBuild) {
       logger.debug('useEffect: MATCH FOUND', { buildId: matchingBuild.id });
-      setCurrentLoadedBuildId(matchingBuild.id);
+      // Only update if it's different from current value
+      if (currentLoadedBuildId !== matchingBuild.id) {
+        setCurrentLoadedBuildId(matchingBuild.id);
+      }
     } else {
-      logger.debug('useEffect: NO MATCH - setting currentLoadedBuildId to null');
-      setCurrentLoadedBuildId(null);
+      logger.debug('useEffect: NO MATCH - clearing currentLoadedBuildId');
+      // Only clear if there's actually a loaded build ID set
+      // This prevents clearing the ID immediately after loading
+      if (currentLoadedBuildId !== null) {
+        setCurrentLoadedBuildId(null);
+      }
       if (hasContent && !hasUnsavedChanges) {
         setHasUnsavedChanges(true);
       }
     }
-  }, [buildName, build, savedBuilds, isAuthenticated, hasUnsavedChanges]);
+  }, [buildName, build, savedBuilds, isAuthenticated]);
 
   // Handle slot actions
   const handleSelectSlot = (index) => {
