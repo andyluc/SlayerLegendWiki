@@ -37,7 +37,25 @@ import EquipmentPicker from './src/components/EquipmentPicker.jsx';
 import BattleLoadoutPicker from './src/components/BattleLoadoutPicker.jsx';
 import VideoGuidePicker from './src/components/VideoGuidePicker.jsx';
 import SkillBuildPicker from './src/components/SkillBuildPicker.jsx';
-import { handleSkillSelect, handleEquipmentSelect, handleSpiritSelect, handleBattleLoadoutSelect, handleSkillBuildSelect } from './src/utils/pickerHandlers.js';
+import SpiritBuildPicker from './src/components/SpiritBuildPicker.jsx';
+import SkillBuildCard from './src/components/SkillBuildCard.jsx';
+import SpiritBuildCard from './src/components/SpiritBuildCard.jsx';
+import { handleSkillSelect, handleEquipmentSelect, handleSpiritSelect, handleBattleLoadoutSelect, handleSkillBuildSelect, handleSpiritBuildSelect } from './src/utils/pickerHandlers.js';
+
+// Render preview functions for build pickers
+const renderSkillBuildPreview = ({ build, mode }) => {
+  // Create identifier in the format userId:buildId for loading
+  const identifier = build.userId ? `${build.userId}:${build.id}` : build.id;
+  // Use key with mode to force re-render when mode changes
+  return <SkillBuildCard key={`${identifier}-${mode}`} identifier={identifier} mode={mode} showActions={false} />;
+};
+
+const renderSpiritBuildPreview = ({ build, mode }) => {
+  // Create identifier in the format userId:buildId for loading
+  const identifier = build.userId ? `${build.userId}:${build.id}` : build.id;
+  // Use key with mode to force re-render when mode changes
+  return <SpiritBuildCard key={`${identifier}-${mode}`} identifier={identifier} mode={mode} showActions={false} />;
+};
 
 // Register custom markdown processors for skill/equipment cards and data injection
 registerContentProcessor(processGameSyntax);
@@ -49,7 +67,8 @@ registerPicker('spirit', SpiritPicker, { icon: Ghost, label: 'Spirit', handler: 
 registerPicker('skill', SkillPicker, { icon: Sparkles, label: 'Skill', handler: handleSkillSelect, renderPreview: renderSkillPreview });
 registerPicker('equipment', EquipmentPicker, { icon: Sword, label: 'Equipment', handler: handleEquipmentSelect, renderPreview: renderEquipmentPreview });
 registerPicker('battle-loadout', BattleLoadoutPicker, { icon: Swords, label: 'Battle Loadout', handler: handleBattleLoadoutSelect });
-registerPicker('skill-build', SkillBuildPicker, { icon: Book, label: 'Skill Build', handler: handleSkillBuildSelect });
+registerPicker('skill-build', SkillBuildPicker, { icon: Book, label: 'Skill Build', handler: handleSkillBuildSelect, renderPreview: renderSkillBuildPreview });
+registerPicker('spirit-build', SpiritBuildPicker, { icon: Ghost, label: 'Spirit Build', handler: handleSpiritBuildSelect, renderPreview: renderSpiritBuildPreview });
 registerPicker('video-guide', VideoGuidePicker, { icon: Video, label: 'Video Guide' });
 
 registerDataAutocompleteSearch(searchDataForAutocomplete);

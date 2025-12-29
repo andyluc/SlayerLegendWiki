@@ -102,3 +102,12 @@ export const handleSkillBuildSelect = (data, editorApi) => {
   // Format: {{skill-build:userId:buildId:mode}}
   editorApi.insertAtCursor(`\n\n${syntax}  \n\n`);
 };
+
+// Handle spirit build selection from picker
+export const handleSpiritBuildSelect = (data, editorApi) => {
+  const { syntax } = data;
+
+  // Insert spirit build syntax into content
+  // Format: {{spirit-build:userId:buildId:mode}}
+  editorApi.insertAtCursor(`\n\n${syntax}  \n\n`);
+};

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Share2, Copy, Loader, AlertCircle } from 'lucide-react';
+import { Share2, Copy, Loader, Check, AlertCircle } from 'lucide-react';
 import SkillSlot from './SkillSlot';
 import { useAuthStore } from '../../wiki-framework/src/store/authStore';
 import { loadBuild, saveBuild, generateShareUrl } from '../../wiki-framework/src/services/github/buildShare';
@@ -50,6 +50,9 @@ const SkillBuildCard = ({ identifier, mode = 'detailed', showActions = true }) =
   // Share state
   const [sharing, setSharing] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Display mode state (for preview toggle)
+  const [currentMode, setCurrentMode] = useState(mode);
 
   // Load skills data
   useEffect(() => {
@@ -229,6 +232,17 @@ const SkillBuildCard = ({ identifier, mode = 'detailed', showActions = true }) =
     }
   };
 
+  // Get element icon
+  const getElementIcon = (element) => {
+    const icons = {
+      Fire: '/images/icons/typeicon_fire_1.png',
+      Water: '/images/icons/typeicon_water_1.png',
+      Wind: '/images/icons/typeicon_wind_1.png',
+      Earth: '/images/icons/typeicon_earth s_1.png'
+    };
+    return icons[element];
+  };
+
   // Calculate build stats
   const getEquippedSkillsCount = () => {
     if (!build) return 0;
@@ -240,8 +254,11 @@ const SkillBuildCard = ({ identifier, mode = 'detailed', showActions = true }) =
     const distribution = {};
     build.slots.forEach(slot => {
       if (slot.skill) {
-        const element = slot.skill.element || 'Unknown';
-        distribution[element] = (distribution[element] || 0) + 1;
+        const attr = slot.skill.attribute;
+        // Only count skills with valid element types (exclude null, undefined, or empty string)
+        if (attr && attr !== '') {
+          distribution[attr] = (distribution[attr] || 0) + 1;
+        }
       }
     });
     return distribution;
@@ -266,7 +283,7 @@ const SkillBuildCard = ({ identifier, mode = 'detailed', showActions = true }) =
   };
 
   // Scale factor for compact mode
-  const scaleClass = mode === 'compact' ? 'scale-75' : '';
+  const scaleClass = currentMode === 'compact' ? 'scale-75' : '';
 
   // Loading state
   if (loading) {
@@ -361,6 +378,52 @@ const SkillBuildCard = ({ identifier, mode = 'detailed', showActions = true }) =
             />
           ))}
         </div>
+
+        {/* Stats Panel - Detailed Mode */}
+        {currentMode === 'detailed' && (
+          <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <div className="flex items-center gap-4 text-sm flex-wrap">
+              {/* Element Distribution with Icons */}
+              {Object.entries(getElementDistribution()).map(([element, count]) => (
+                <div key={element} className="flex items-center gap-1.5" title={element}>
+                  <img
+                    src={getElementIcon(element)}
+                    alt={element}
+                    className="w-4 h-4"
+                  />
+                  <span className="font-semibold text-gray-900 dark:text-white">{count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Stats Panel - Advanced Mode */}
+        {currentMode === 'advanced' && (
+          <div className="mt-4 space-y-3">
+            <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div className="flex items-center gap-4 text-sm flex-wrap">
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400">Total MP:</span>
+                  <span className="ml-2 font-semibold text-gray-900 dark:text-white">
+                    {getTotalMpCost()}
+                  </span>
+                </div>
+                {/* Element Distribution with Icons */}
+                {Object.entries(getElementDistribution()).map(([element, count]) => (
+                  <div key={element} className="flex items-center gap-1.5" title={element}>
+                    <img
+                      src={getElementIcon(element)}
+                      alt={element}
+                      className="w-4 h-4"
+                    />
+                    <span className="font-semibold text-gray-900 dark:text-white">{count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

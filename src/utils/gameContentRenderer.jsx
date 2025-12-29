@@ -7,6 +7,7 @@ import ContributionBanner from '../components/ContributionBanner';
 import Emoticon from '../components/Emoticon';
 import BattleLoadoutCard from '../components/BattleLoadoutCard';
 import SkillBuildCard from '../components/SkillBuildCard';
+import SpiritBuildCard from '../components/SpiritBuildCard';
 import { VideoGuideCard } from '../../wiki-framework/src/components/contentCreators';
 
 /**
@@ -200,6 +201,29 @@ export const processGameSyntax = (content) => {
     }
 
     return `{{SKILL_BUILD:${identifier}:${mode}}}`;
+  });
+
+  // Process {{spirit-build:...}} format
+  // Syntax: {{spirit-build:userId:buildId:mode}}
+  // Examples: {{spirit-build:1935706:spirit-builds-123:detailed}}, {{spirit-build:1935706:spirit-builds-456:compact}}
+  processed = processed.replace(/\{\{\s*spirit-build:\s*(.+?)\s*\}\}/gi, (match, content) => {
+    const parts = content.split(':').map(p => p.trim());
+    const validModes = ['compact', 'detailed', 'advanced'];
+
+    let identifier, mode;
+    const lastPart = parts[parts.length - 1];
+
+    if (validModes.includes(lastPart)) {
+      // Last part is the mode
+      mode = lastPart;
+      identifier = parts.slice(0, -1).join(':');
+    } else {
+      // No mode specified
+      identifier = content.trim();
+      mode = 'detailed';
+    }
+
+    return `{{SPIRIT_BUILD:${identifier}:${mode}}}`;
   });
 
   // Process {{emoticon:...}} format
@@ -447,6 +471,35 @@ export const CustomParagraph = ({ node, children, ...props }) => {
     return (
       <div className="my-6">
         <SkillBuildCard identifier={identifier} mode={mode} />
+      </div>
+    );
+  }
+
+  // Check for standalone spirit build marker
+  // Match format: {{SPIRIT_BUILD:userId:buildId:mode}} or {{SPIRIT_BUILD:checksum:mode}}
+  const spiritBuildMatch = content.match(/^\{\{SPIRIT_BUILD:(.+)\}\}$/);
+  if (spiritBuildMatch) {
+    const fullIdentifier = spiritBuildMatch[1].trim();
+
+    // Split and check if last part is a valid mode
+    const parts = fullIdentifier.split(':');
+    const lastPart = parts[parts.length - 1];
+    const validModes = ['compact', 'detailed', 'advanced'];
+
+    let identifier, mode;
+    if (validModes.includes(lastPart)) {
+      // Last part is the mode, everything else is the identifier
+      mode = lastPart;
+      identifier = parts.slice(0, -1).join(':');
+    } else {
+      // No mode specified, entire thing is the identifier
+      identifier = fullIdentifier;
+      mode = 'detailed';
+    }
+
+    return (
+      <div className="my-6">
+        <SpiritBuildCard identifier={identifier} mode={mode} />
       </div>
     );
   }
