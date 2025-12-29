@@ -60,3 +60,6 @@
 
   # Target Vite dev server
   targetPort = 5173
+
+  # Don't automatically open browser
+  autoLaunch = false

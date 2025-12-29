@@ -156,7 +156,10 @@
       "Bash(if not exist \"C:\\\\Projects\\\\slayerlegend\\\\wiki\\\\public\\\\images\\\\equipment\\\\soul-weapons\" mkdir \"C:\\\\Projects\\\\slayerlegend\\\\wiki\\\\public\\\\images\\\\equipment\\\\soul-weapons\")",
       "WebFetch(domain:namu.wiki)",
       "Bash(bash scripts/download-soul-weapons.sh:*)",
-      "Bash(Select-String -Pattern \"error|Error|ERROR|VideoGuide|video-guide|picker\" -Context 2,2)"
+      "Bash(Select-String -Pattern \"error|Error|ERROR|VideoGuide|video-guide|picker\" -Context 2,2)",
+      "Bash(Get-Content \"C:\\\\Users\\\\dolb9\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Projects-slayerlegend-wiki\\\\tasks\\\\b12a233.output\" -Tail 50)",
+      "Bash(Start-Sleep -Seconds 15)",
+      "Bash(Get-Content \"C:\\\\Users\\\\dolb9\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Projects-slayerlegend-wiki\\\\tasks\\\\b073b13.output\" -Tail 30)"
     ]
   }
 }

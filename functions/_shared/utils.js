@@ -6,7 +6,7 @@
 /**
  * Valid data types supported by the system
  */
-export const VALID_DATA_TYPES = ['skill-builds', 'battle-loadouts', 'my-spirits', 'spirit-builds', 'engraving-builds', 'skill-stone-builds', 'grid-submission'];
+export const VALID_DATA_TYPES = ['skill-builds', 'battle-loadouts', 'my-spirits', 'spirit-builds', 'engraving-builds', 'skill-stone-builds', 'grid-submission', 'display-names'];
 
 /**
  * Configuration for each data type
@@ -53,6 +53,12 @@ export const DATA_TYPE_CONFIGS = {
     titlePrefix: '[Soul Weapon Grid]',
     itemsName: 'submissions',
     maxItems: null, // No limit - stored as comments
+  },
+  'display-names': {
+    label: 'display-names',
+    titlePrefix: '[Display Names]',
+    itemsName: 'displayNames',
+    maxItems: null, // Single registry issue for all display names
   },
 };
 
