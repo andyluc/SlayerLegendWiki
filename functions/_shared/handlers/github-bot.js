@@ -477,8 +477,9 @@ async function handleGetComment(adapter, octokit, { owner, repo, commentId }) {
  * Create a comment issue (public comments)
  * Required: title, body, labels
  * Optional: requestedBy, requestedByUserId (for server-side ban checking)
+ * Optional: preventDuplicates (if true, checks for existing issue with same labels before creating)
  */
-async function handleCreateCommentIssue(adapter, octokit, { owner, repo, title, body, labels, requestedBy, requestedByUserId }) {
+async function handleCreateCommentIssue(adapter, octokit, { owner, repo, title, body, labels, requestedBy, requestedByUserId, preventDuplicates = false }) {
   if (!title || !body || !labels) {
     return adapter.createJsonResponse(400, { error: 'Missing required fields: title, body, labels' });
   }
@@ -499,6 +500,43 @@ async function handleCreateCommentIssue(adapter, octokit, { owner, repo, title, 
   const labelsResult = validateLabels(labels);
   if (!labelsResult.valid) {
     return adapter.createJsonResponse(400, { error: labelsResult.error });
+  }
+
+  // Check for existing issue if preventDuplicates is enabled
+  if (preventDuplicates) {
+    const botUsername = adapter.getEnv('WIKI_BOT_USERNAME');
+    const labelsArray = Array.isArray(labels) ? labels : [labels];
+
+    // Search for existing issue with the same labels
+    const { data: existingIssues } = await octokit.rest.issues.listForRepo({
+      owner,
+      repo,
+      labels: labelsArray.join(','),
+      state: 'open',
+      per_page: 100,
+    });
+
+    // Filter to only bot-created issues
+    const botIssues = existingIssues.filter(issue => issue.user.login === botUsername);
+
+    // If issue already exists, return it instead of creating duplicate
+    if (botIssues.length > 0) {
+      const existingIssue = botIssues[0];
+      logger.info(`Issue already exists with labels ${labelsArray.join(', ')}, returning existing issue #${existingIssue.number}`);
+
+      return adapter.createJsonResponse(200, {
+        issue: {
+          number: existingIssue.number,
+          title: existingIssue.title,
+          url: existingIssue.html_url,
+          body: existingIssue.body,
+          labels: existingIssue.labels,
+          created_at: existingIssue.created_at,
+          state: existingIssue.state,
+        },
+        wasExisting: true, // Indicate this was an existing issue
+      });
+    }
   }
 
   // TODO: Add ban checking here if requestedBy/requestedByUserId provided

@@ -418,5 +418,17 @@
     "bossATKFactor": 4.0,
     "bossScale": 18,
     "type": 3
+  },
+  {
+    "id": 21,
+    "name": "Eisenhart"
+  },
+  {
+    "id": 22,
+    "name": "Diadust"
+  },
+  {
+    "id": 23,
+    "name": "Eldenwood"
   }
 ]
