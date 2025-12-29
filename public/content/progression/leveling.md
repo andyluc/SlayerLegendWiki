@@ -16,9 +16,3 @@ order: 0
 # Leveling Guide
 
 {{contribution-banner:ai-generated}} <!-- DELETE ME when you update this page -->
-
-dasfbsdfgisldfg
-
-{{battle-loadout:1935706:battle-loadouts-1766399063157-yzovrzleg:advanced}}
-
-{{skill-build:1935706:skill-builds-1766821946497-o0rgoqe45:detailed}}
