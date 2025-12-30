@@ -229,6 +229,9 @@ jobs:
 
               // First, fetch linked anonymous PRs to build a set of commit SHAs to exclude
               console.log('🔍 Pre-fetching linked anonymous PRs to avoid double-counting...');
+              if (releaseDate) {
+                console.log(`   📅 Filtering PRs merged after: ${releaseDate.toISOString()}`);
+              }
               const linkedPRCommitSHAs = new Set();
               let prPage = 1;
               const prPerPage = 100;
@@ -249,6 +252,12 @@ jobs:
                 for (const pr of prs) {
                   // Skip if not merged
                   if (!pr.merged_at) continue;
+
+                  // Filter by release date
+                  if (releaseDate) {
+                    const mergeDate = new Date(pr.merged_at);
+                    if (mergeDate < releaseDate) continue;
+                  }
 
                   // Check for user-id label
                   const userIdLabel = pr.labels.find(label => {
@@ -387,6 +396,9 @@ jobs:
 
               // Fetch linked anonymous PRs (PRs with user-id labels)
               console.log('🔍 Fetching linked anonymous PRs...');
+              if (releaseDate) {
+                console.log(`   📅 Filtering PRs merged after: ${releaseDate.toISOString()}`);
+              }
               let linkedPRCount = 0;
               prPage = 1;  // Reset page counter (already declared above)
               // prPerPage already declared above, reusing same value (100)
@@ -407,6 +419,12 @@ jobs:
                 for (const pr of prs) {
                   // Skip if not merged
                   if (!pr.merged_at) continue;
+
+                  // Filter by release date
+                  if (releaseDate) {
+                    const mergeDate = new Date(pr.merged_at);
+                    if (mergeDate < releaseDate) continue;
+                  }
 
                   // Check for user-id label
                   const userIdLabel = pr.labels.find(label => {
@@ -687,29 +705,28 @@ jobs:
                   }
 
                   // Regular contributor (not bot)
-                    // Use user ID as key (permanent), fallback to login
-                    const key = userId ? userId.toString() : `legacy:${login}`;
+                  // Use user ID as key (permanent), fallback to login
+                  const key = userId ? userId.toString() : `legacy:${login}`;
 
-                    if (contributorMap.has(key)) {
-                      const existing = contributorMap.get(key);
-                      existing.contributions++;
-                      existing.additions += additions;
-                      existing.deletions += deletions;
-                      // Update login in case username changed
-                      existing.login = login;
-                    } else {
-                      contributorMap.set(key, {
-                        userId: userId || null,
-                        login: login,
-                        avatarUrl: author.avatar_url,
-                        contributions: 1,
-                        additions,
-                        deletions,
-                        profileUrl: author.html_url,
-                        prestige: 0,
-                        type: author.type || 'User',
-                      });
-                    }
+                  if (contributorMap.has(key)) {
+                    const existing = contributorMap.get(key);
+                    existing.contributions++;
+                    existing.additions += additions;
+                    existing.deletions += deletions;
+                    // Update login in case username changed
+                    existing.login = login;
+                  } else {
+                    contributorMap.set(key, {
+                      userId: userId || null,
+                      login: login,
+                      avatarUrl: author.avatar_url,
+                      contributions: 1,
+                      additions,
+                      deletions,
+                      profileUrl: author.html_url,
+                      prestige: 0,
+                      type: author.type || 'User',
+                    });
                   }
                 } catch (error) {
                   console.warn(`⚠️ Failed to fetch details for commit ${commit.sha.substring(0, 7)}:`, error.message);
@@ -718,6 +735,9 @@ jobs:
 
               // Fetch linked anonymous PRs within date range (PRs with user-id labels)
               console.log('🔍 Fetching linked anonymous PRs within date range...');
+              if (releaseDate) {
+                console.log(`   📅 Filtering PRs merged after: ${releaseDate.toISOString()}`);
+              }
               let linkedPRCount = 0;
               let prPage = 1;
               const prPerPage = 100;
@@ -739,11 +759,16 @@ jobs:
                   // Skip if not merged
                   if (!pr.merged_at) continue;
 
-                  // Check if PR is within date range
-                  const prDate = new Date(pr.created_at);
+                  // Check if PR merge date is within date range (use merged_at, not created_at)
+                  const prDate = new Date(pr.merged_at);
                   const sinceDate = new Date(since);
                   const untilDate = new Date(until);
                   if (prDate < sinceDate || prDate > untilDate) continue;
+
+                  // Filter by release date
+                  if (releaseDate) {
+                    if (prDate < releaseDate) continue;
+                  }
 
                   // Check for user-id label
                   const userIdLabel = pr.labels.find(label => {
