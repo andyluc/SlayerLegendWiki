@@ -16,11 +16,11 @@ Here are the promotions currently available.
 
 ## <span class="text-gray-600 dark:text-gray-400">STONE </span><img src="/images/promotions/0-stone.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 27px; height: 30px; margin:-10px 0 0 0;" data-inline="true" />
 
-## <span class="text-amber-600 dark:text-amber-400">BRONZE</span>
+## <span class="text-yellow-800 dark:text-yellow-600">BRONZE </span><img src="/images/promotions/1-bronze.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle; width: 32px; height: 30px; margin:-10px 0 0 0;" data-inline="true" />
 
-## <span class="text-gray-600 dark:text-gray-400">IRON</span>
+## <span class="text-gray-600 dark:text-gray-400">IRON </span><img src="/images/promotions/2-iron.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle; width: 25px; height: 29px; margin:-10px 0 0 0;" data-inline="true" />
 
-## <span class="text-gray-600 dark:text-gray-400">SILVER</span>
+## <span class="text-gray-300 dark:text-gray-400">SILVER</span>
 
 ## <span class="text-amber-600 dark:text-amber-400">GOLD</span>
 
