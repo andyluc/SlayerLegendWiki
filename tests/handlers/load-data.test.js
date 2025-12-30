@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { handleLoadData } from '../../functions/_shared/handlers/load-data.js';
-import { NetlifyAdapter, CloudflareAdapter } from '../../functions/_shared/adapters/PlatformAdapter.js';
+import { NetlifyAdapter, CloudflareAdapter } from '../../wiki-framework/serverless/shared/adapters/PlatformAdapter.js';
 import {
   createMockNetlifyEvent,
   createMockCloudflareContext,

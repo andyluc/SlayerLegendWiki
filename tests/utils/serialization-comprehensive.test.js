@@ -363,7 +363,7 @@ describe('Comprehensive Serialization Tests - Every Data Point', () => {
           evolutionLevel: 4,
           skillEnhancementLevel: 2
         };
-        const deserialized = deserializeSpiritSlot(serialized, mockSpirits, mockMySpirits);
+        const deserialized = deserializeSpiritSlot(serialized, mockSpirits, []); // Don't pass mySpirits to avoid auto-upgrade
 
         expect(deserialized.level).toBe(75);
       });
@@ -377,7 +377,7 @@ describe('Comprehensive Serialization Tests - Every Data Point', () => {
           evolutionLevel: 4,
           skillEnhancementLevel: 2
         };
-        const deserialized = deserializeSpiritSlot(serialized, mockSpirits, mockMySpirits);
+        const deserialized = deserializeSpiritSlot(serialized, mockSpirits, []); // Don't pass mySpirits to avoid auto-upgrade
 
         expect(deserialized.awakeningLevel).toBe(5);
       });
@@ -391,7 +391,7 @@ describe('Comprehensive Serialization Tests - Every Data Point', () => {
           evolutionLevel: 7,
           skillEnhancementLevel: 2
         };
-        const deserialized = deserializeSpiritSlot(serialized, mockSpirits, mockMySpirits);
+        const deserialized = deserializeSpiritSlot(serialized, mockSpirits, []); // Don't pass mySpirits to avoid auto-upgrade
 
         expect(deserialized.evolutionLevel).toBe(7);
       });
@@ -405,7 +405,7 @@ describe('Comprehensive Serialization Tests - Every Data Point', () => {
           evolutionLevel: 4,
           skillEnhancementLevel: 10
         };
-        const deserialized = deserializeSpiritSlot(serialized, mockSpirits, mockMySpirits);
+        const deserialized = deserializeSpiritSlot(serialized, mockSpirits, []); // Don't pass mySpirits to avoid auto-upgrade
 
         expect(deserialized.skillEnhancementLevel).toBe(10);
       });
@@ -418,7 +418,7 @@ describe('Comprehensive Serialization Tests - Every Data Point', () => {
           evolutionLevel: 4,
           skillEnhancementLevel: 2
         };
-        const deserialized = deserializeSpiritSlot(serialized, mockSpirits, mockMySpirits);
+        const deserialized = deserializeSpiritSlot(serialized, mockSpirits, []); // Don't pass mySpirits to avoid auto-upgrade
 
         expect(deserialized.level).toBe(1);
       });
@@ -431,7 +431,7 @@ describe('Comprehensive Serialization Tests - Every Data Point', () => {
           evolutionLevel: 4,
           skillEnhancementLevel: 2
         };
-        const deserialized = deserializeSpiritSlot(serialized, mockSpirits, mockMySpirits);
+        const deserialized = deserializeSpiritSlot(serialized, mockSpirits, []); // Don't pass mySpirits to avoid auto-upgrade
 
         expect(deserialized.awakeningLevel).toBe(0);
       });
@@ -457,7 +457,7 @@ describe('Comprehensive Serialization Tests - Every Data Point', () => {
           awakeningLevel: 3,
           evolutionLevel: 4
         };
-        const deserialized = deserializeSpiritSlot(serialized, mockSpirits, mockMySpirits);
+        const deserialized = deserializeSpiritSlot(serialized, mockSpirits, []); // Don't pass mySpirits to avoid auto-upgrade
 
         expect(deserialized.skillEnhancementLevel).toBe(0);
       });

@@ -5,6 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Quick Links
 
 - **[Repository Permissions](.claude/repository-permissions.md)** - Branch protection, bot setup, security configuration
+- **[Cloudflare Pages Deployment](.claude/cloudflare-pages-deployment.md)** - Build configuration, test execution, environment variables
 - **[CDN Repository Setup](.claude/plans/cdn-repo-setup.md)** - Video CDN repository setup with Git LFS
 - **[Deployment Platforms](.claude/deployment-platforms.md)** - Netlify vs Cloudflare comparison, video upload limits
 - **[Architecture Guide](.claude/architecture.md)** - Framework structure, submodules, what lives where
@@ -50,18 +51,23 @@ npm run dev:netlify      # Start Netlify dev + config watcher (http://localhost:
 npm run dev:vite         # Start Vite only + config watcher (http://localhost:5173)
 
 # Production build
-npm run build            # Build for production
-npm run build:cloudflare # Build for Cloudflare Pages specifically
+npm run build:cloudflare # Build for Cloudflare Pages (use this in CF dashboard)
+npm run build            # Build for Cloudflare Pages (shorthand)
+npm run build:netlify    # Build for Netlify (fallback)
 npm run build:search     # Rebuild search index after content changes
 
 # Framework updates
 cd wiki-framework && git pull origin main && cd ..
 git add wiki-framework && git commit -m "Update framework"
 
-# Skip tests on Cloudflare deployment
-# Include one of these markers in your commit message:
+# Tests & Deployment
+# Tests run automatically on production (main branch) Cloudflare deploys
+# Tests are skipped on preview deploys (other branches) for speed
+# To skip tests on main branch, use commit message markers:
 # [skip tests], [skip-tests], [no tests], [tests skip]
 git commit -m "Fix typo [skip tests]"
+
+# See .claude/cloudflare-pages-deployment.md for full deployment guide
 ```
 
 ## Video Upload System

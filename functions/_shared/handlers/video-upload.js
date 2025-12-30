@@ -256,6 +256,7 @@ async function handleVideoUpload(params) {
       uploadedBy,
       auth,
       config,
+      adapter,
     });
 
     logger.info('Content PR created', {
@@ -354,6 +355,7 @@ async function createContentPR(params) {
     uploadedBy,
     auth,
     config,
+    adapter,
   } = params;
 
   // Import GitHub services
@@ -362,8 +364,9 @@ async function createContentPR(params) {
   const { updateFileContent } = await import('../../../wiki-framework/src/services/github/content.js');
   const { createPullRequest } = await import('../../../wiki-framework/src/services/github/pullRequests.js');
 
-  const owner = config.wiki.repository.owner;
-  const repo = config.wiki.repository.repo;
+  // Get repository info from environment variables (adapter has access)
+  const owner = adapter.getEnv('WIKI_REPO_OWNER') || adapter.getEnv('VITE_WIKI_REPO_OWNER');
+  const repo = adapter.getEnv('WIKI_REPO_NAME') || adapter.getEnv('VITE_WIKI_REPO_NAME');
   const dataFile = config.features?.contentCreators?.videoGuides?.dataFile || 'public/data/video-guides.json';
 
   logger.debug('Creating content PR', { owner, repo, dataFile });

@@ -18,6 +18,8 @@ compatibility_flags = ["nodejs_compat"]
 port = 8788
 ip = "localhost"
 local_protocol = "http"
+# Watch framework submodule for changes
+watch_paths = ["functions", "wiki-framework/src"]
 
 # Note: Cloudflare Workers have a 100MB request body limit
 # This affects video uploads - files larger than 100MB cannot be uploaded

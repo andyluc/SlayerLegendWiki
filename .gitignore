@@ -62,3 +62,4 @@ backups/issues/*.json
 
 # Windows null file (created by incorrect shell redirects)
 nul
+.wrangler-dev/

@@ -33,15 +33,24 @@ async function getDonatorRegistry() {
 export async function handleAdminAction(adapter, configAdapter) {
   console.log('[Admin Actions] Request received');
 
-  // Get repository info from config
+  // Get repository info from environment variables (adapter has access)
+  const owner = adapter.getEnv('WIKI_REPO_OWNER') || adapter.getEnv('VITE_WIKI_REPO_OWNER');
+  const repo = adapter.getEnv('WIKI_REPO_NAME') || adapter.getEnv('VITE_WIKI_REPO_NAME');
+
+  if (!owner || !repo) {
+    console.error('[Admin Actions] Missing repository configuration');
+    return adapter.createJsonResponse(500, { error: 'Server configuration error' });
+  }
+
+  // Get config for other settings (features, etc.) - but NOT for repository info
   const config = configAdapter.getWikiConfig();
-  const { owner, repo } = config.wiki.repository;
 
   // Authentication check
   const token = adapter.getAuthToken();
+  console.log('[Admin Actions] Token check:', { hasToken: !!token, tokenLength: token?.length });
   if (!token) {
     console.error('[Admin Actions] No auth token provided');
-    return adapter.createJsonResponse({ error: 'Authentication required' }, 401);
+    return adapter.createJsonResponse(401, { error: 'Authentication required' });
   }
 
   // Set token for this request
@@ -60,28 +69,35 @@ export async function handleAdminAction(adapter, configAdapter) {
           console.log('[Admin Actions] Fetching admin list');
           const { getAdmins } = await getAdminModule();
           const admins = await getAdmins(owner, repo, config);
-          return adapter.createJsonResponse({ admins });
+          return adapter.createJsonResponse(200, { admins });
 
         case 'get-banned-users':
           console.log('[Admin Actions] Fetching banned users list');
           const { getBannedUsers } = await getAdminModule();
           const bannedUsers = await getBannedUsers(owner, repo, config);
-          return adapter.createJsonResponse({ bannedUsers });
+          return adapter.createJsonResponse(200, { bannedUsers });
 
         case 'get-admin-status':
           console.log('[Admin Actions] Checking current user admin status');
+          console.log('[Admin Actions] Environment check:', {
+            hasGithubToken: !!process.env.GITHUB_TOKEN,
+            tokenLength: process.env.GITHUB_TOKEN?.length,
+            owner,
+            repo
+          });
           const { getCurrentUserAdminStatus } = await getAdminModule();
           const status = await getCurrentUserAdminStatus(owner, repo, config);
-          return adapter.createJsonResponse(status);
+          console.log('[Admin Actions] Status result:', status);
+          return adapter.createJsonResponse(200, status);
 
         case 'get-all-donators':
           console.log('[Admin Actions] Fetching all donators');
           const { getAllDonators } = await getDonatorRegistry();
           const donators = await getAllDonators(owner, repo);
-          return adapter.createJsonResponse({ donators });
+          return adapter.createJsonResponse(200, { donators });
 
         default:
-          return adapter.createJsonResponse({ error: 'Invalid action' }, 400);
+          return adapter.createJsonResponse(400, { error: 'Invalid action' });
       }
     }
 
@@ -100,12 +116,12 @@ export async function handleAdminAction(adapter, configAdapter) {
       switch (action) {
         case 'add-admin':
           if (!username) {
-            return adapter.createJsonResponse({ error: 'Username required' }, 400);
+            return adapter.createJsonResponse(400, { error: 'Username required' });
           }
           console.log(`[Admin Actions] Adding admin: ${username} by ${currentUsername}`);
           const { addAdmin: addAdminService } = await getAdminModule();
           const updatedAdmins = await addAdminService(username, owner, repo, currentUsername, config);
-          return adapter.createJsonResponse({
+          return adapter.createJsonResponse(200, {
             success: true,
             message: `Successfully added ${username} as administrator`,
             admins: updatedAdmins
@@ -113,12 +129,12 @@ export async function handleAdminAction(adapter, configAdapter) {
 
         case 'remove-admin':
           if (!username) {
-            return adapter.createJsonResponse({ error: 'Username required' }, 400);
+            return adapter.createJsonResponse(400, { error: 'Username required' });
           }
           console.log(`[Admin Actions] Removing admin: ${username} by ${currentUsername}`);
           const { removeAdmin: removeAdminService } = await getAdminModule();
           const updatedAdminsAfterRemoval = await removeAdminService(username, owner, repo, currentUsername, config);
-          return adapter.createJsonResponse({
+          return adapter.createJsonResponse(200, {
             success: true,
             message: `Successfully removed ${username} from administrators`,
             admins: updatedAdminsAfterRemoval
@@ -126,12 +142,12 @@ export async function handleAdminAction(adapter, configAdapter) {
 
         case 'ban-user':
           if (!username || !reason) {
-            return adapter.createJsonResponse({ error: 'Username and reason required' }, 400);
+            return adapter.createJsonResponse(400, { error: 'Username and reason required' });
           }
           console.log(`[Admin Actions] Banning user: ${username} by ${currentUsername}`);
           const { banUser: banUserService } = await getAdminModule();
           const bannedUsers = await banUserService(username, reason, owner, repo, currentUsername, config);
-          return adapter.createJsonResponse({
+          return adapter.createJsonResponse(200, {
             success: true,
             message: `Successfully banned ${username}`,
             bannedUsers
@@ -139,12 +155,12 @@ export async function handleAdminAction(adapter, configAdapter) {
 
         case 'unban-user':
           if (!username) {
-            return adapter.createJsonResponse({ error: 'Username required' }, 400);
+            return adapter.createJsonResponse(400, { error: 'Username required' });
           }
           console.log(`[Admin Actions] Unbanning user: ${username} by ${currentUsername}`);
           const { unbanUser: unbanUserService } = await getAdminModule();
           const bannedUsersAfterUnban = await unbanUserService(username, owner, repo, currentUsername, config);
-          return adapter.createJsonResponse({
+          return adapter.createJsonResponse(200, {
             success: true,
             message: `Successfully unbanned ${username}`,
             bannedUsers: bannedUsersAfterUnban
@@ -152,7 +168,7 @@ export async function handleAdminAction(adapter, configAdapter) {
 
         case 'assign-donator-badge':
           if (!username) {
-            return adapter.createJsonResponse({ error: 'Username required' }, 400);
+            return adapter.createJsonResponse(400, { error: 'Username required' });
           }
           console.log(`[Admin Actions] Assigning donator badge: ${username} by ${currentUsername}`);
 
@@ -162,7 +178,7 @@ export async function handleAdminAction(adapter, configAdapter) {
             const { data: targetUser } = await octokit.rest.users.getByUsername({ username });
             userId = targetUser.id;
           } catch (error) {
-            return adapter.createJsonResponse({ error: `User not found: ${username}` }, 404);
+            return adapter.createJsonResponse(404, { error: `User not found: ${username}` });
           }
 
           // Create donator status
@@ -180,7 +196,7 @@ export async function handleAdminAction(adapter, configAdapter) {
           const { saveDonatorStatus } = await getDonatorRegistry();
           await saveDonatorStatus(owner, repo, username, userId, donatorStatus);
 
-          return adapter.createJsonResponse({
+          return adapter.createJsonResponse(200, {
             success: true,
             message: `Successfully assigned donator badge to ${username}`,
             donatorStatus
@@ -188,7 +204,7 @@ export async function handleAdminAction(adapter, configAdapter) {
 
         case 'remove-donator-badge':
           if (!username) {
-            return adapter.createJsonResponse({ error: 'Username required' }, 400);
+            return adapter.createJsonResponse(400, { error: 'Username required' });
           }
           console.log(`[Admin Actions] Removing donator badge: ${username} by ${currentUsername}`);
 
@@ -204,23 +220,23 @@ export async function handleAdminAction(adapter, configAdapter) {
           const { removeDonatorStatus } = await getDonatorRegistry();
           await removeDonatorStatus(owner, repo, username, userIdForRemoval);
 
-          return adapter.createJsonResponse({
+          return adapter.createJsonResponse(200, {
             success: true,
             message: `Successfully removed donator badge from ${username}`
           });
 
         default:
-          return adapter.createJsonResponse({ error: 'Invalid action' }, 400);
+          return adapter.createJsonResponse(400, { error: 'Invalid action' });
       }
     }
 
-    return adapter.createJsonResponse({ error: 'Method not allowed' }, 405);
+    return adapter.createJsonResponse(405, { error: 'Method not allowed' });
 
   } catch (error) {
     console.error('[Admin Actions] Error:', error);
-    return adapter.createJsonResponse({
+    return adapter.createJsonResponse(500, {
       error: error.message || 'Internal server error'
-    }, 500);
+    });
   } finally {
     // Clean up token
     delete process.env.GITHUB_TOKEN;

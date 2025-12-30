@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { NetlifyAdapter, CloudflareAdapter } from '../../functions/_shared/adapters/PlatformAdapter.js';
+import { NetlifyAdapter, CloudflareAdapter } from '../../wiki-framework/serverless/shared/adapters/PlatformAdapter.js';
 import {
   createMockNetlifyEvent,
   createMockCloudflareContext,
