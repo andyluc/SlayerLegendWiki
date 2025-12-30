@@ -17,58 +17,62 @@ order: 0
 ## <span class="text-gray-600 dark:text-gray-400">STONE </span><img src="/images/promotions/0-stone.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 27px; height: 30px; margin:-10px 0 0 0;" data-inline="true" />
 Insert text here...
 
-## <span class="text-yellow-800 dark:text-yellow-600">BRONZE </span><img src="/images/promotions/1-bronze.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle; width: 32px; height: 30px; margin:-10px 0 0 0;" data-inline="true" />
+## <span class="text-yellow-800 dark:text-yellow-600">BRONZE</span><img src="/images/promotions/1-bronze.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle; width: 32px; height: 30px; margin:-10px 0 0 0;" data-inline="true" />
 Insert text here...
 
-## <span class="text-gray-600 dark:text-gray-400">IRON </span><img src="/images/promotions/2-iron.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle; width: 25px; height: 29px; margin:-10px 0 0 0;" data-inline="true" />
+## <span class="text-gray-600 dark:text-gray-400">IRON</span><img src="/images/promotions/2-iron.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle; width: 25px; height: 29px; margin:-10px 0 0 0;" data-inline="true" />
 Insert text here...
 
-## <span class="text-gray-300 dark:text-gray-400">SILVER </span><img src="/images/promotions/3-silver.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle; width: 38px; height: 33px; margin:-10px 0 0 0;" data-inline="true" />
+## <span class="text-gray-300 dark:text-gray-400">SILVER</span><img src="/images/promotions/3-silver.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle; width: 38px; height: 33px; margin:-10px 0 0 0;" data-inline="true" />
 Insert text here...
 
-## <span class="text-yellow-500 dark:text-yellow-400">GOLD </span><img src="/images/promotions/4-gold.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 33px; height: 30px; margin:-10px 0 0 0;" data-inline="true" />
+## <span class="text-yellow-500 dark:text-yellow-400">GOLD</span><img src="/images/promotions/4-gold.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 33px; height: 30px; margin:-10px 0 0 0;" data-inline="true" />
 Insert text here...
 
-## <span class="text-cyan-400 dark:text-cyan-300">MITHRIL </span><img src="/images/promotions/5-mithril.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 31px; height: 30px; margin:-10px 0 0 0;" data-inline="true" />
+## <span class="text-cyan-400 dark:text-cyan-300">MITHRIL</span><img src="/images/promotions/5-mithril.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 31px; height: 30px; margin:-10px 0 0 0;" data-inline="true" />
 Insert text here...
 
-## <span class="text-purple-600 dark:text-purple-400">ORICHALCHUM </span><img src="/images/promotions/6-orichalcum.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 36px; height: 40px; margin:-10px 0 0 0;" data-inline="true" />
+## <span class="text-purple-600 dark:text-purple-400">ORICHALCHUM</span><img src="/images/promotions/6-orichalcum.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 36px; height: 40px; margin:-10px 0 0 0;" data-inline="true" />
 Insert text here...
 
-## <span class="text-amber-600 dark:text-amber-400">ARCANITE </span><img src="/images/promotions/7-arcanite.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 38px; height: 40px; margin:-10px 0 0 0;" data-inline="true" />
+## <span class="text-amber-600 dark:text-amber-400">ARCANITE</span><img src="/images/promotions/7-arcanite.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 38px; height: 40px; margin:-10px 0 0 0;" data-inline="true" />
 Insert text here...
 
-## <span class="text-red-700 dark:text-red-600">ADAMANT </span><img src="/images/promotions/8-adamant.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 38px; height: 40px; margin:-10px 0 0 0;" data-inline="true" />
+## <span class="text-red-700 dark:text-red-600">ADAMANT</span><img src="/images/promotions/8-adamant.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 38px; height: 40px; margin:-10px 0 0 0;" data-inline="true" />
 Insert text here...
 
-## ETHER <img src="/images/promotions/9-ether.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 45px; height: 44px; margin:-10px 0 0 0;" data-inline="true" />
+## ETHER<img src="/images/promotions/9-ether.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 45px; height: 44px; margin:-10px 0 0 0;" data-inline="true" />
 Insert text here...
 
-## <span class="text-green-700 dark:text-green-600">DEMON METAL </span><img src="/images/promotions/11-demonmetal.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 49px; height: 44px; margin:-10px 0 0 0;" data-inline="true" />
+## <span class="text-green-700 dark:text-green-600">DEMON METAL</span><img src="/images/promotions/11-demonmetal.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 49px; height: 44px; margin:-10px 0 0 0;" data-inline="true" />
 Insert text here...
 
-## <span class="text-yellow-300 dark:text-yellow-200">DRAGONOS </span><img src="/images/promotions/12-dragonos.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 46px; height: 52px; margin:-10px 0 0 0;" data-inline="true" />
+## <span class="text-yellow-300 dark:text-yellow-200">DRAGONOS</span><img src="/images/promotions/12-dragonos.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 46px; height: 52px; margin:-10px 0 0 0;" data-inline="true" />
 Insert text here...
 
 ## <span class="text-red-500 dark:text-red-400">RAGNABLOOD</span><img src="/images/promotions/13-ragnablood.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 52px; height: 52px; margin:-10px 0 0 0;" data-inline="true" />
 Insert text here...
 
-## <span class="text-gray-300 dark:text-gray-400">WARFROST </span><img src="/images/promotions/14-winterfrost.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 49px; height: 52px; margin:-10px 0 0 0;" data-inline="true" />
+## <span class="text-gray-300 dark:text-gray-400">WARFROST</span><img src="/images/promotions/14-winterfrost.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 49px; height: 52px; margin:-10px 0 0 0;" data-inline="true" />
 Insert text here...
 
-## <span class="text-purple-600 dark:text-purple-400">DARK NOX </span><img src="/images/promotions/15-darknox.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 52px; height: 52px; margin:-10px 0 0 0;" data-inline="true" />
+## <span class="text-purple-600 dark:text-purple-400">DARK NOX</span><img src="/images/promotions/15-darknox.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 52px; height: 52px; margin:-10px 0 0 0;" data-inline="true" />
 Insert text here...
 
-## <span class="text-blue-600 dark:text-blue-400">BLUE ABYSS </span><img src="/images/promotions/16-blueabyss.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 54px; height: 54px; margin:-10px 0 0 0;" data-inline="true" />
+## <span class="text-blue-600 dark:text-blue-400">BLUE ABYSS</span><img src="/images/promotions/16-blueabyss.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 54px; height: 54px; margin:-10px 0 0 0;" data-inline="true" />
 Insert text here...
 
-## INFINAUT
+## <span class="text-pink-600 dark:text-pink-400">INFINAUT</span><img src="/images/promotions/17-infinaut.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 56px; height: 56px; margin:-10px 0 0 0;" data-inline="true" />
+Insert text here...
 
-## CYCLOS
+## <span class="text-emerald-600 dark:text-emerald-400">CYCLOS</span><img src="/images/promotions/18-cyclos.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 56px; height: 56px; margin:-10px 0 0 0;" data-inline="true" />
+Insert text here...
 
-## ANCIENT CANINE
+## <span class="text-red-600 dark:text-red-400">ANCIENT CANINE</span><img src="/images/promotions/19-ancientcanine.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 56px; height: 56px; margin:-10px 0 0 0;" data-inline="true" />
+Insert text here...
 
-## GIGAROCK
+## <span class="text-amber-600 dark:text-amber-400">GIGAROCK</span><img src="/images/promotions/20-gigarock.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 56px; height: 56px; margin:-10px 0 0 0;" data-inline="true" />
+Insert text here...
 
 ## EISENHART
 
