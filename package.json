@@ -28,7 +28,7 @@
     "test:integration": "vitest run tests/integration --config vitest.config.integration.js",
     "test:ci": "npm run test:framework && npm run test:integration",
     "test:ci:optional": "npm run test:integration || echo 'Integration tests failed but continuing...'",
-    "prebuild:cloudflare": "node scripts/cloudflare-prebuild.js",
+    "prebuild:cloudflare": "node scripts/cloudflare-prebuild.cjs",
     "test:sendgrid": "node scripts/testSendGrid.js"
   },
   "dependencies": {
