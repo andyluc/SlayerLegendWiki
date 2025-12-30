@@ -65,6 +65,7 @@ const BattleLoadouts = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [currentLoadedLoadoutId, setCurrentLoadedLoadoutId] = useState(null);
+  const [originalLoadedName, setOriginalLoadedName] = useState(null); // Track original name for Save As behavior
   const [highlightNameField, setHighlightNameField] = useState(false);
   const [draggedSkillSlotIndex, setDraggedSkillSlotIndex] = useState(null);
   const [draggedSpiritSlotIndex, setDraggedSpiritSlotIndex] = useState(null);
@@ -1018,6 +1019,7 @@ const BattleLoadouts = () => {
 
     setCurrentLoadout(resolvedLoadout);
     setLoadoutName(resolvedLoadout.name || 'My Loadout');
+    setOriginalLoadedName(resolvedLoadout.name || 'My Loadout'); // Track original name for Save As behavior
     setHasUnsavedChanges(false); // Loaded from saved, no unsaved changes
     setCurrentLoadedLoadoutId(loadout.id); // Track which loadout is currently loaded
 
@@ -1167,6 +1169,19 @@ const BattleLoadouts = () => {
       };
       const loadoutData = serializeLoadoutForStorage(loadoutToSave);
 
+      // Save As behavior: If name changed from original, remove ID to create new entry
+      const nameChanged = originalLoadedName && loadoutName !== originalLoadedName;
+      if (nameChanged && loadoutData.id) {
+        logger.info('SAVE AS: Name changed from original, creating new loadout', {
+          originalName: originalLoadedName,
+          newName: loadoutName,
+          oldId: loadoutData.id
+        });
+        delete loadoutData.id;
+        delete loadoutData.createdAt;
+        delete loadoutData.updatedAt;
+      }
+
       logger.info('SAVE: Preparing to save battle loadout', {
         loadoutName: loadoutData.name,
         hasSkillStoneBuild: !!loadoutData.skillStoneBuild,
@@ -1197,12 +1212,14 @@ const BattleLoadouts = () => {
       // Cache the updated loadouts
       if (data.loadouts) {
         setCache('battle_loadouts', user.id, data.loadouts);
+        setSavedLoadouts(data.loadouts); // Update state so SavedLoadoutsPanel reflects changes immediately
       }
 
       // Find the saved loadout ID (it's the one with the matching name)
       const savedLoadout = data.loadouts?.find(l => l.name === loadoutName);
       if (savedLoadout) {
         setCurrentLoadedLoadoutId(savedLoadout.id);
+        setOriginalLoadedName(loadoutName); // Update original name to current saved name
         logger.info('SAVE: Loadout saved successfully', {
           loadoutId: savedLoadout.id,
           loadoutName: savedLoadout.name,
@@ -1428,6 +1445,8 @@ const BattleLoadouts = () => {
   const handleClearLoadout = () => {
     if (!confirm('Clear current loadout? This cannot be undone.')) return;
     setCurrentLoadout(createEmptyLoadout(loadoutName));
+    setCurrentLoadedLoadoutId(null); // Reset loaded ID
+    setOriginalLoadedName(null); // Reset original name
     clearDraft(); // Clear localStorage draft
   };
 

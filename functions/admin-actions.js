@@ -4,7 +4,7 @@
  * All actions are authenticated server-side
  */
 
-import { NetlifyAdapter } from './_shared/adapters/netlify.js';
+import { NetlifyAdapter } from 'github-wiki-framework/serverless/shared/adapters/PlatformAdapter.js';
 import { handleAdminAction } from './_shared/handlers/admin-actions.js';
 
 export default async (req, context) => {

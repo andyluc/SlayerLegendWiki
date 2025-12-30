@@ -58,6 +58,7 @@ const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [draggedSlotIndex, setDraggedSlotIndex] = useState(null);
   const [currentLoadedBuildId, setCurrentLoadedBuildId] = useState(null);
+  const [originalLoadedName, setOriginalLoadedName] = useState(null);
   const [savedBuilds, setSavedBuilds] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -179,6 +180,7 @@ const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave
             setBuildName(savedBuild.name || '');
             setBuild({ slots: normalizeSlots(deserializedBuild.slots) });
             setCurrentLoadedBuildId(buildId);
+            setOriginalLoadedName(savedBuild.name);
             setHasUnsavedChanges(false);
             setHasLoadedInitialData(true);
             logger.info('Saved build loaded successfully', { buildName: savedBuild.name });
@@ -1276,6 +1278,7 @@ const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave
     setBuildName('');
     setHasUnsavedChanges(false);
     setCurrentLoadedBuildId(null);
+    setOriginalLoadedName(null);
     clearDraft(); // Clear localStorage draft
   };
 
@@ -1307,6 +1310,7 @@ const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave
     setBuild({ slots: normalizeSlots(deserializedBuild.slots) });
     setHasUnsavedChanges(false); // Loaded from saved, no changes yet
     setCurrentLoadedBuildId(savedBuild.id);
+    setOriginalLoadedName(savedBuild.name);
 
     // Trigger donation prompt on successful load
     window.triggerDonationPrompt?.({
@@ -1334,6 +1338,19 @@ const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave
         name: serializedBuild.name,
         slots: serializedBuild.slots, // Only store { spiritId, level, awakeningLevel, etc. }
       };
+
+      // SAVE AS: If name changed, create new entry instead of updating
+      const nameChanged = originalLoadedName && buildName !== originalLoadedName;
+      if (nameChanged && buildData.id) {
+        logger.info('SAVE AS: Name changed, creating new spirit build', {
+          originalName: originalLoadedName,
+          newName: buildName,
+          oldId: buildData.id
+        });
+        delete buildData.id;
+        delete buildData.createdAt;
+        delete buildData.updatedAt;
+      }
 
       const token = useAuthStore.getState().getToken();
       const response = await fetch(getSaveDataEndpoint(), {
@@ -1371,6 +1388,8 @@ const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave
       } else {
         logger.warn('Could not find saved build with name', { buildName });
       }
+
+      setOriginalLoadedName(buildName); // Update original name after save
 
       // Cache the updated builds
       setCache('spirit_builds', user.id, sortedBuilds);

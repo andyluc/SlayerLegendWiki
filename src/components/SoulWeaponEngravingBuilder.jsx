@@ -155,6 +155,7 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
   // Saved builds state
   const [savedBuilds, setSavedBuilds] = useState([]);
   const [currentLoadedBuildId, setCurrentLoadedBuildId] = useState(null);
+  const [originalLoadedName, setOriginalLoadedName] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState(null);
@@ -766,6 +767,7 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
             setIsGridDesigner(false);
             setForceDesignMode(false);
             setCurrentLoadedBuildId(buildId);
+            setOriginalLoadedName(savedBuild.name);
             setHasUnsavedChanges(false);
             logger.info('Saved build loaded successfully', { buildName: savedBuild.name });
           } else {
@@ -2524,6 +2526,7 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
     setInventory(deserialized.inventory);
     setHasUnsavedChanges(false);
     setCurrentLoadedBuildId(savedBuild.id);
+    setOriginalLoadedName(savedBuild.name);
 
     // Update locked inventory indices
     updateLockedInventoryIndices(deserialized.inventory, deserialized.gridState);
@@ -2560,6 +2563,19 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
         inventory: serializedBuild.inventory
       };
 
+      // SAVE AS: If name changed, create new entry instead of updating
+      const nameChanged = originalLoadedName && buildName !== originalLoadedName;
+      if (nameChanged && buildData.id) {
+        logger.info('SAVE AS: Name changed, creating new engraving build', {
+          originalName: originalLoadedName,
+          newName: buildName,
+          oldId: buildData.id
+        });
+        delete buildData.id;
+        delete buildData.createdAt;
+        delete buildData.updatedAt;
+      }
+
       const token = useAuthStore.getState().getToken();
       const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
@@ -2590,6 +2606,7 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
 
       setSaveSuccess(true);
       setHasUnsavedChanges(false);
+      setOriginalLoadedName(buildName); // Update original name after save
 
       // Cache the updated builds
       setCache('engraving_builds', user.id, sortedBuilds);
@@ -3732,6 +3749,8 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
       initializeGrid();
       clearDraft();
       setHasUnsavedChanges(false);
+      setCurrentLoadedBuildId(null);
+      setOriginalLoadedName(null);
     }
   };
 

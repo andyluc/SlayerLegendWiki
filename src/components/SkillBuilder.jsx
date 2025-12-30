@@ -47,6 +47,7 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [draggedSlotIndex, setDraggedSlotIndex] = useState(null);
   const [currentLoadedBuildId, setCurrentLoadedBuildId] = useState(null);
+  const [originalLoadedName, setOriginalLoadedName] = useState(null);
   const [savedBuilds, setSavedBuilds] = useState([]);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -133,6 +134,7 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
             setAutoMaxLevel(savedBuild.autoMaxLevel || false);
             setBuild({ slots: deserializedBuild.slots });
             setCurrentLoadedBuildId(buildId);
+            setOriginalLoadedName(savedBuild.name);
             setHasUnsavedChanges(false);
             logger.info('Saved build loaded successfully', { buildName: savedBuild.name });
           } else {
@@ -600,6 +602,7 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
     setBuildName('');
     setHasUnsavedChanges(false); // No content after clearing
     setCurrentLoadedBuildId(null); // No loaded build after clearing
+    setOriginalLoadedName(null);
     clearDraft(); // Clear localStorage draft
   };
 
@@ -627,6 +630,7 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
     setBuild({ slots: deserializedBuild.slots });
     setHasUnsavedChanges(true); // Mark as having changes to block navigation
     setCurrentLoadedBuildId(savedBuild.id); // Track which build is currently loaded
+    setOriginalLoadedName(savedBuild.name);
 
     // Trigger donation prompt on successful load
     window.triggerDonationPrompt?.({
@@ -655,6 +659,19 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
         maxSlots: serializedBuild.maxSlots,
         slots: serializedBuild.slots, // Only store { skillId, level }
       };
+
+      // SAVE AS: If name changed, create new entry instead of updating
+      const nameChanged = originalLoadedName && buildName !== originalLoadedName;
+      if (nameChanged && buildData.id) {
+        logger.info('SAVE AS: Name changed, creating new skill build', {
+          originalName: originalLoadedName,
+          newName: buildName,
+          oldId: buildData.id
+        });
+        delete buildData.id;
+        delete buildData.createdAt;
+        delete buildData.updatedAt;
+      }
 
       const token = useAuthStore.getState().getToken();
       const response = await fetch(getSaveDataEndpoint(), {
@@ -686,6 +703,7 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
 
       setSaveSuccess(true);
       setHasUnsavedChanges(false); // Clear unsaved changes after successful save
+      setOriginalLoadedName(buildName); // Update original name after save
 
       // Cache the updated builds
       setCache('skill_builds', user.id, sortedBuilds);
