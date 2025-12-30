@@ -5,12 +5,14 @@
   "type": "module",
   "scripts": {
     "predev": "node scripts/killDevServer.js && node scripts/injectVersion.js",
-    "dev": "concurrently --kill-others --names \"CONFIG,NETLIFY\" --prefix-colors \"cyan,green\" \"npm:dev:watch\" \"npm:dev:server\"",
-    "dev:server": "netlify dev",
+    "dev": "concurrently --kill-others --names \"CONFIG,VITE,WRANGLER\" --prefix-colors \"cyan,blue,yellow\" \"npm:dev:watch\" \"npm:dev:vite-cf\" \"npm:dev:wrangler\"",
     "dev:watch": "node scripts/watchConfig.js",
+    "dev:vite-cf": "cross-env VITE_DEV_PLATFORM=cloudflare vite",
+    "dev:wrangler": "wrangler pages dev --live-reload --port 8788 --proxy 5173",
+    "dev:netlify": "concurrently --kill-others --names \"CONFIG,VITE,NETLIFY\" --prefix-colors \"cyan,blue,green\" \"npm:dev:watch\" \"npm:dev:netlify-vite\" \"npm:dev:netlify-server\"",
+    "dev:netlify-vite": "cross-env VITE_DEV_PLATFORM=netlify vite",
+    "dev:netlify-server": "netlify dev",
     "dev:vite": "concurrently --kill-others --names \"CONFIG,VITE\" --prefix-colors \"cyan,green\" \"npm:dev:watch\" \"vite\"",
-    "dev:cloudflare": "concurrently --kill-others --names \"CONFIG,BUILD\" --prefix-colors \"cyan,yellow\" \"npm:dev:watch\" \"vite build --watch\"",
-    "dev:cloudflare:serve": "npm run build:cloudflare && npx wrangler pages dev dist",
     "prebuild": "node scripts/checkCommitForCachePurge.js && node scripts/injectVersion.js && node scripts/buildSearchIndex.js && node scripts/generate-sitemap.js",
     "build": "vite build",
     "build:cloudflare": "cross-env VITE_PLATFORM=cloudflare VITE_CF_PAGES=1 npm run build",
@@ -73,6 +75,7 @@
     "tailwindcss": "^3.4.19",
     "vite": "^5.0.8",
     "vite-plugin-node-polyfills": "^0.24.0",
-    "vitest": "^4.0.16"
+    "vitest": "^4.0.16",
+    "wrangler": "^4.54.0"
   }
 }

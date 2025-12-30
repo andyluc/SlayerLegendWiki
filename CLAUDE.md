@@ -40,9 +40,18 @@ See **[Registry Patterns](.claude/registries.md)** for details.
 ## Quick Start
 
 ```bash
-# Development
-npm run dev              # Start Netlify dev + config watcher (http://localhost:8888)
+# Development (Cloudflare Pages Functions - DEFAULT)
+npm run dev              # Start Wrangler + Vite + config watcher (http://localhost:8788)
+
+# Alternative: Netlify Functions (fallback)
+npm run dev:netlify      # Start Netlify dev + config watcher (http://localhost:8888)
+
+# Direct Vite (no serverless functions)
+npm run dev:vite         # Start Vite only + config watcher (http://localhost:5173)
+
+# Production build
 npm run build            # Build for production
+npm run build:cloudflare # Build for Cloudflare Pages specifically
 npm run build:search     # Rebuild search index after content changes
 
 # Framework updates
