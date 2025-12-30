@@ -1,6 +1,14 @@
 import { createLogger } from '../../../src/utils/logger.js';
-import { saveDonatorStatus, removeDonatorStatus } from 'github-wiki-framework/src/services/github/donatorRegistry.js';
 const logger = createLogger('GithubBot');
+
+// Lazy-load donator registry to avoid top-level await issues
+let donatorRegistryModule = null;
+async function getDonatorRegistry() {
+  if (!donatorRegistryModule) {
+    donatorRegistryModule = await import('github-wiki-framework/src/services/github/donatorRegistry.js');
+  }
+  return donatorRegistryModule;
+}
 
 // Cache for loaded achievement deciders
 let achievementDecidersCache = null;
@@ -3735,6 +3743,7 @@ async function handleAssignDonatorBadge(adapter, octokit, { owner, repo, usernam
     if (reason) donatorStatus.reason = reason;
 
     // Save donator status
+    const { saveDonatorStatus } = await getDonatorRegistry();
     await saveDonatorStatus(owner, repo, username, targetUserId, donatorStatus);
 
     logger.info('Donator badge assigned via bot', { username, userId: targetUserId, assignedBy: adminUsername });
@@ -3801,6 +3810,7 @@ async function handleRemoveDonatorBadge(adapter, octokit, { owner, repo, usernam
     }
 
     // Remove donator status
+    const { removeDonatorStatus } = await getDonatorRegistry();
     await removeDonatorStatus(owner, repo, username, targetUserId);
 
     logger.info('Donator badge removed via bot', { username, userId: targetUserId, removedBy: adminUsername, reason });
