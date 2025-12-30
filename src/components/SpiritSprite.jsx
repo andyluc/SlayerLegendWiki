@@ -50,7 +50,7 @@ const loadAnimationCacheFromStorage = () => {
       }
 
       if (loaded > 0) {
-        logger.debug(`Loaded ${loaded} animation detection entries from localStorage`, { expired });
+        logger.debug('Loaded animation detection entries from localStorage', { loaded, expired });
       }
     }
   } catch (e) {
@@ -154,7 +154,7 @@ const cleanupCache = (cache, accessMap, maxSize) => {
     accessMap.delete(key);
   }
 
-  logger.debug(`Cache cleanup: removed ${toRemove} old entries`, { remaining: cache.size });
+  logger.debug('Cache cleanup removed old entries', { toRemove, remaining: cache.size });
 };
 
 // Utility function to clear all SpiritSprite caches (useful for debugging or memory management)
@@ -174,7 +174,7 @@ export const clearSpiritCaches = () => {
     logger.warn('Failed to clear localStorage caches', { error: e });
   }
 
-  logger.debug(`Cleared all caches`, { imageCount, animationCount });
+  logger.debug('Cleared all caches', { imageCount, animationCount });
   return { imageCount, animationCount };
 };
 
@@ -228,7 +228,7 @@ export const cleanupExpiredImages = () => {
     saveImageCacheMetaToStorage();
   }
 
-  logger.debug(`Cleaned up ${removed} expired images`);
+  logger.debug('Cleaned up expired images', { removed });
   return removed;
 };
 
@@ -248,7 +248,7 @@ const getCachedImage = (spiritId, level, frameNumber, framePath) => {
       return Promise.resolve(cached.img);
     } else {
       // Cache expired, remove it and fetch fresh
-      logger.debug(`Cache expired, re-fetching`, { cacheKey });
+      logger.debug('Cache expired, re-fetching', { cacheKey });
       imageCache.delete(cacheKey);
       imageCacheAccess.delete(cacheKey);
     }
@@ -420,7 +420,6 @@ const SpiritSprite = ({
       const cachedResults = animationDetectionCache.get(cacheKey);
 
       if (cachedResults) {
-        // console.log(`[SpiritSprite] Using cached animation types for spirit ${spiritId} level ${level}`);
         setAvailableAnimationTypes(cachedResults);
         detectionCompleteRef.current = true;
 
@@ -566,11 +565,11 @@ const SpiritSprite = ({
         for (let i = 0; i < toRemove; i++) {
           animationDetectionCache.delete(keys[i]);
         }
-        logger.debug(`Animation cache cleanup: removed ${toRemove} entries`);
+        logger.debug('Animation cache cleanup', { toRemove });
       }
 
       animationDetectionCache.set(cacheKey, results);
-      logger.debug(`Cached animation types for spirit ${spiritId} level ${level}`, { results });
+      logger.debug('Cached animation types', { spiritId, level, results });
 
       // Persist animation cache to localStorage
       saveAnimationCacheToStorage();

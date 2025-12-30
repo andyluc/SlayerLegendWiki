@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Loader, Trash2, Clock, CheckCircle2, LogIn, ChevronDown, ChevronUp, Copy, Pencil } from 'lucide-react';
-import { useAuthStore } from '../../wiki-framework/src/store/authStore';
+import { useAuthStore, getToken } from '../../wiki-framework/src/store/authStore';
 import { useWikiConfig } from '../../wiki-framework/src/hooks/useWikiConfig';
 import { useLoginFlow } from '../../wiki-framework/src/hooks/useLoginFlow';
 import LoginModal from '../../wiki-framework/src/components/auth/LoginModal';
@@ -272,15 +272,15 @@ const SavedLoadoutsPanel = ({ currentLoadout, onLoadLoadout, currentLoadedLoadou
     setError(null);
 
     try {
+      const token = getToken();
       const response = await fetch(getDeleteDataEndpoint(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           type: 'battle-loadouts',
-          username: user.login,
-          userId: user.id,
           itemId: loadoutId,
         }),
       });
@@ -322,15 +322,15 @@ const SavedLoadoutsPanel = ({ currentLoadout, onLoadLoadout, currentLoadedLoadou
       delete loadoutDataCopy.updatedAt;
       loadoutDataCopy.name = copyName;
 
+      const token = getToken();
       const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           type: 'battle-loadouts',
-          username: user.login,
-          userId: user.id,
           data: loadoutDataCopy,
         }),
       });
@@ -379,15 +379,15 @@ const SavedLoadoutsPanel = ({ currentLoadout, onLoadLoadout, currentLoadedLoadou
     try {
       const updatedLoadout = { ...loadout, name: validation.sanitized };
 
+      const token = getToken();
       const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           type: 'battle-loadouts',
-          username: user.login,
-          userId: user.id,
           data: updatedLoadout,
         }),
       });

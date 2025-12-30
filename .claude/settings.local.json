@@ -75,7 +75,7 @@
       "Bash(node scripts/generate-sitemap.js:*)",
       "Bash(npm run build:sitemap:*)",
       "Bash(for file in characters/latent-power.md equipment/relics.md equipment/soul-weapons.md equipment/fusion.md characters/enhancement.md characters/stats.md characters/training-log.md skills/skill-mechanics.md)",
-      "Bash(do sed -i 's/{{contribution-banner:ai-generated}}/{{contribution-banner:ai-generated}} <!-- DELETE_ME when you update this page -->/' \"$file\")",
+      "Bash(do sed -i 's/{{contribution-banner:auto-generated}}/{{contribution-banner:auto-generated}} <!-- DELETE_ME when you update this page -->/' \"$file\")",
       "Bash(dir \"C:\\\\Projects\\\\slayerlegend\\\\wiki\\\\wiki-framework\\\\src\\\\services\\\\storage\")",
       "Bash(python3:*)",
       "Bash(node migrate-logs.js:*)",
@@ -159,7 +159,8 @@
       "Bash(Select-String -Pattern \"error|Error|ERROR|VideoGuide|video-guide|picker\" -Context 2,2)",
       "Bash(Get-Content \"C:\\\\Users\\\\dolb9\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Projects-slayerlegend-wiki\\\\tasks\\\\b12a233.output\" -Tail 50)",
       "Bash(Start-Sleep -Seconds 15)",
-      "Bash(Get-Content \"C:\\\\Users\\\\dolb9\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Projects-slayerlegend-wiki\\\\tasks\\\\b073b13.output\" -Tail 30)"
+      "Bash(Get-Content \"C:\\\\Users\\\\dolb9\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Projects-slayerlegend-wiki\\\\tasks\\\\b073b13.output\" -Tail 30)",
+      "Bash(Get-ChildItem -Path \"functions\" -Filter \"*.js\" -File)"
     ]
   }
 }

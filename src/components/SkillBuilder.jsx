@@ -5,7 +5,7 @@ import SkillSelector from './SkillSelector';
 import SavedBuildsPanel from './SavedBuildsPanel';
 import ValidatedInput from './ValidatedInput';
 import { encodeBuild, decodeBuild } from '../../wiki-framework/src/components/wiki/BuildEncoder';
-import { useAuthStore } from '../../wiki-framework/src/store/authStore';
+import { useAuthStore, getToken } from '../../wiki-framework/src/store/authStore';
 import { setCache } from '../utils/buildCache';
 import { saveBuild as saveSharedBuild, loadBuild as loadSharedBuild, generateShareUrl } from '../../wiki-framework/src/services/github/buildShare';
 import { useDraftStorage } from '../../wiki-framework/src/hooks/useDraftStorage';
@@ -404,13 +404,15 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
             slots: serializedBuild.slots,
           };
 
+          const token = getToken();
           await fetch(getSaveDataEndpoint(), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
             body: JSON.stringify({
               type: 'skill-builds',
-              username: user.login,
-              userId: user.id,
               data: buildData,
             }),
           });
@@ -654,15 +656,15 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
         slots: serializedBuild.slots, // Only store { skillId, level }
       };
 
+      const token = getToken();
       const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           type: 'skill-builds',
-          username: user.login,
-          userId: user.id,
           data: buildData,
         }),
       });

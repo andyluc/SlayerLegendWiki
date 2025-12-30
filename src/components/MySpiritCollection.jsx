@@ -3,7 +3,7 @@ import { Plus, Trash2, Edit, Loader, CheckCircle2 } from 'lucide-react';
 import SpiritComponent from './SpiritComponent';
 import SpiritSlot from './SpiritSlot';
 import SpiritSelector from './SpiritSelector';
-import { useAuthStore } from '../../wiki-framework/src/store/authStore';
+import { useAuthStore, getToken } from '../../wiki-framework/src/store/authStore';
 import { useConfigStore } from '../../wiki-framework/src/store/configStore';
 import { getCache, setCache, clearCache } from '../utils/buildCache';
 import { getSaveDataEndpoint, getLoadDataEndpoint, getDeleteDataEndpoint } from '../utils/apiEndpoints.js';
@@ -133,13 +133,15 @@ const MySpiritCollection = () => {
       // Serialize spirit to only store ID (reduces storage and is resilient to data changes)
       const spiritData = serializeSpirit(editingSpirit);
 
+      const token = getToken();
       const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify({
           type: 'my-spirits',
-          username: user.login,
-          userId: user.id,
           data: spiritData,
           spiritId: editingSpirit.isNew ? undefined : editingSpirit.id
         })
@@ -261,13 +263,15 @@ const MySpiritCollection = () => {
     }
 
     try {
+      const token = getToken();
       const response = await fetch(getDeleteDataEndpoint(), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify({
           type: 'my-spirits',
-          username: user.login,
-          userId: user.id,
           spiritId: spiritId
         })
       });

@@ -12,7 +12,7 @@ import SkillStone from './SkillStone';
 import SavedLoadoutsPanel from './SavedLoadoutsPanel';
 import ValidatedInput from './ValidatedInput';
 import { encodeLoadout, decodeLoadout } from '../../wiki-framework/src/utils/battleLoadoutEncoder';
-import { useAuthStore } from '../../wiki-framework/src/store/authStore';
+import { useAuthStore, getToken } from '../../wiki-framework/src/store/authStore';
 import { setCache } from '../utils/buildCache';
 import { saveBuild, loadBuild, generateShareUrl } from '../../wiki-framework/src/services/github/buildShare';
 import { useDraftStorage } from '../../wiki-framework/src/hooks/useDraftStorage';
@@ -914,13 +914,15 @@ const BattleLoadouts = () => {
             }))
           };
 
+          const token = getToken();
           await fetch(getSaveDataEndpoint(), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
             body: JSON.stringify({
               type: 'skill-builds',
-              username: user.login,
-              userId: user.id,
               data: serializedBuild,
             }),
           });
@@ -980,13 +982,15 @@ const BattleLoadouts = () => {
           const serializedBuild = serializeBuild({ slots: newSlots });
           serializedBuild.name = currentLoadout.spiritBuild.name;
 
+          const token = getToken();
           await fetch(getSaveDataEndpoint(), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
             body: JSON.stringify({
               type: 'spirit-builds',
-              username: user.login,
-              userId: user.id,
               data: serializedBuild,
             }),
           });
@@ -1049,15 +1053,15 @@ const BattleLoadouts = () => {
       }))
     };
 
+    const token = getToken();
     const response = await fetch(getSaveDataEndpoint(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({
         type: 'skill-builds',
-        username: user.login,
-        userId: user.id,
         data: serializedBuild,
       }),
     });
@@ -1093,15 +1097,15 @@ const BattleLoadouts = () => {
     const serializedBuild = serializeBuild(spiritBuild);
     serializedBuild.name = buildName;
 
+    const token = getToken();
     const response = await fetch(getSaveDataEndpoint(), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({
         type: 'spirit-builds',
-        username: user.login,
-        userId: user.id,
         data: serializedBuild,
       }),
     });
@@ -1170,15 +1174,15 @@ const BattleLoadouts = () => {
         soulWeaponBuildSize: loadoutData.soulWeaponBuild ? JSON.stringify(loadoutData.soulWeaponBuild).length : 0
       });
 
+      const token = getToken();
       const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           type: 'battle-loadouts',
-          username: user.login,
-          userId: user.id,
           data: loadoutData,
         }),
       });

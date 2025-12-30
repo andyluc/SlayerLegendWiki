@@ -6,22 +6,24 @@ const logger = createLogger('DeleteData');
  * Handles deleting skill builds, battle loadouts, engraving builds, and spirit collection
  *
  * POST /api/delete-data
+ * Headers: {
+ *   Authorization: Bearer <github-token> (REQUIRED)
+ * }
  * Body: {
  *   type: 'skill-builds' | 'battle-loadouts' | 'my-spirits' | 'spirit-builds' | 'engraving-builds',
- *   username: string,
- *   userId: number,
  *   itemId: string (for skill-builds/battle-loadouts/spirit-builds/engraving-builds),
  *   spiritId: string (for my-spirits)
  * }
+ *
+ * SECURITY: Username and userId are now derived from the authenticated token, NOT from request body
  */
 
 import { createWikiStorage } from '../createWikiStorage.js';
 import { DATA_TYPE_CONFIGS } from '../utils.js';
 import {
-  validateUsername,
-  validateUserId,
   validateItemId,
 } from '../validation.js';
+import { Octokit } from '@octokit/rest';
 
 /**
  * Handle delete data request
@@ -37,13 +39,13 @@ export async function handleDeleteData(adapter, configAdapter) {
 
   try {
     // Parse request body
-    const { type, username, userId, itemId, spiritId } = await adapter.getJsonBody();
+    const { type, itemId, spiritId } = await adapter.getJsonBody();
 
     // Validate required fields
     const deleteId = type === 'my-spirits' ? spiritId : itemId;
-    if (!type || !username || !userId || !deleteId) {
+    if (!type || !deleteId) {
       return adapter.createJsonResponse(400, {
-        error: `Missing required fields: type, username, userId, ${type === 'my-spirits' ? 'spiritId' : 'itemId'}`
+        error: `Missing required fields: type, ${type === 'my-spirits' ? 'spiritId' : 'itemId'}`
       });
     }
 
@@ -55,23 +57,35 @@ export async function handleDeleteData(adapter, configAdapter) {
       });
     }
 
-    // Validate username
-    const usernameResult = validateUsername(username);
-    if (!usernameResult.valid) {
-      return adapter.createJsonResponse(400, { error: usernameResult.error });
-    }
-
-    // Validate userId
-    const userIdResult = validateUserId(userId);
-    if (!userIdResult.valid) {
-      return adapter.createJsonResponse(400, { error: userIdResult.error });
-    }
-
     // Validate deleteId (itemId or spiritId)
     const idFieldName = type === 'my-spirits' ? 'Spirit ID' : 'Item ID';
     const deleteIdResult = validateItemId(deleteId, idFieldName);
     if (!deleteIdResult.valid) {
       return adapter.createJsonResponse(400, { error: deleteIdResult.error });
+    }
+
+    // AUTHENTICATION: Extract token and verify with GitHub
+    const token = adapter.getAuthToken();
+    if (!token) {
+      logger.warn('No auth token provided for delete', { type });
+      return adapter.createJsonResponse(401, { error: 'Authentication required' });
+    }
+
+    // Verify token with GitHub and get authenticated user
+    let username;
+    let userId;
+    try {
+      const octokit = new Octokit({ auth: token });
+      const { data: user } = await octokit.rest.users.getAuthenticated();
+
+      // Use VERIFIED user identity from GitHub
+      username = user.login;
+      userId = user.id;
+
+      logger.debug('Authenticated user for delete', { username, userId, type, deleteId });
+    } catch (error) {
+      logger.error('Token verification failed', { error: error.message });
+      return adapter.createJsonResponse(401, { error: 'Invalid authentication token' });
     }
 
     // Get configuration

@@ -6,7 +6,7 @@ import SavedSpiritBuildsPanel from './SavedSpiritBuildsPanel';
 import SavedSpiritsGallery from './SavedSpiritsGallery';
 import ValidatedInput from './ValidatedInput';
 import { encodeBuild, decodeBuild } from '../../wiki-framework/src/components/wiki/BuildEncoder';
-import { useAuthStore } from '../../wiki-framework/src/store/authStore';
+import { useAuthStore, getToken } from '../../wiki-framework/src/store/authStore';
 import { useConfigStore } from '../../wiki-framework/src/store/configStore';
 import { setCache, getCache } from '../utils/buildCache';
 import { saveBuild as saveSharedBuild, loadBuild as loadSharedBuild, generateShareUrl } from '../../wiki-framework/src/services/github/buildShare';
@@ -709,7 +709,7 @@ const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave
    * Save a base spirit to the my-spirits collection
    */
   const handleSaveToCollection = async (slotIndex) => {
-    console.log('[SpiritBuilder] handleSaveToCollection called', { slotIndex, isAuthenticated, hasUser: !!user });
+    logger.debug('handleSaveToCollection called', { slotIndex, isAuthenticated, hasUser: !!user });
 
     if (!isAuthenticated || !user) {
       alert('Please sign in to save spirits to your collection.');
@@ -717,15 +717,15 @@ const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave
     }
 
     const slot = build.slots[slotIndex];
-    console.log('[SpiritBuilder] Slot data', { slot, hasSpirit: !!slot?.spirit, type: slot?.type });
+    logger.debug('Slot data', { slot, hasSpirit: !!slot?.spirit, type: slot?.type });
 
     if (!slot || !slot.spirit || slot.type === 'collection') {
-      console.log('[SpiritBuilder] Skipping save - invalid slot or already collection');
+      logger.debug('Skipping save - invalid slot or already collection');
       return; // Nothing to save or already a collection spirit
     }
 
     try {
-      console.log('[SpiritBuilder] Starting save process');
+      logger.debug('Starting save process');
       logger.info('Saving base spirit to collection', {
         spiritId: slot.spirit.id,
         level: slot.level
@@ -742,13 +742,15 @@ const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave
 
       // Save to my-spirits collection
       const endpoint = getSaveDataEndpoint();
+      const token = getToken();
       const response = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify({
           type: 'my-spirits',
-          username: user.login, // GitHub user object uses 'login' not 'username'
-          userId: user.id,
           data: spiritData
         })
       });
@@ -760,8 +762,7 @@ const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave
       }
 
       const responseData = await response.json();
-      console.log('[SpiritBuilder] Got save response', { responseData });
-      logger.debug('Save response', { responseData });
+      logger.debug('Got save response', { responseData });
 
       // The response should contain the saved spirits array
       // Find the newly saved spirit (it should be the one matching our spiritId)
@@ -777,15 +778,15 @@ const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave
 
       if (!savedSpirit || !savedSpirit.id) {
         // If we can't find it, just reload and use the most recent one
-        console.log('[SpiritBuilder] Could not find saved spirit, reloading collection');
+        logger.debug('Could not find saved spirit, reloading collection');
         await loadMySpirits();
         logger.warn('Could not find saved spirit in response, reloaded collection');
         alert(`${slot.spirit.name} has been saved to your spirit collection!`);
 
         // Queue achievements even on this path
-        console.log('[SpiritBuilder] [EARLY EXIT PATH] About to queue achievements');
+        logger.debug('[EARLY EXIT PATH] About to queue achievements');
         if (user?.id && user?.login && config?.wiki?.repository) {
-          console.log('[SpiritBuilder] [EARLY EXIT PATH] Conditions met, queueing');
+          logger.debug('[EARLY EXIT PATH] Conditions met, queueing');
           const spiritAchievements = ['spirit-collector', 'collector'];
           spiritAchievements.forEach(achievementId => {
             queueAchievementCheck(achievementId, {
@@ -801,7 +802,7 @@ const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave
             });
           });
         } else {
-          console.log('[SpiritBuilder] [EARLY EXIT PATH] Conditions NOT met', {
+          logger.debug('[EARLY EXIT PATH] Conditions NOT met', {
             hasUserId: !!user?.id,
             hasUsername: !!user?.login,
             hasConfig: !!config,
@@ -832,7 +833,7 @@ const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave
       alert(`${slot.spirit.name} has been saved to your spirit collection!`);
 
       // Queue spirit collection achievement checks
-      console.log('[SpiritBuilder] Checking achievement queue conditions', {
+      logger.debug('Checking achievement queue conditions', {
         hasUserId: !!user?.id,
         hasUsername: !!user?.login,
         hasConfig: !!config,
@@ -885,13 +886,15 @@ const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave
         skillEnhancementLevel: slot.skillEnhancementLevel
       };
 
+      const token = getToken();
       const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify({
           type: 'my-spirits',
-          username: user.login,
-          userId: user.id,
           data: spiritData,
           spiritId: slot.mySpiritId // Pass spiritId to update existing entry
         })
@@ -1078,13 +1081,15 @@ const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave
           const serializedBuild = serializeBuild({ slots: newSlots });
           serializedBuild.name = buildName;
 
+          const token = getToken();
           await fetch(getSaveDataEndpoint(), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
             body: JSON.stringify({
               type: 'spirit-builds',
-              username: user.login,
-              userId: user.id,
               data: serializedBuild,
             }),
           });
@@ -1330,15 +1335,15 @@ const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave
         slots: serializedBuild.slots, // Only store { spiritId, level, awakeningLevel, etc. }
       };
 
+      const token = getToken();
       const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           type: 'spirit-builds',
-          username: user.login,
-          userId: user.id,
           data: buildData,
         }),
       });

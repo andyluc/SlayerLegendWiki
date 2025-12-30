@@ -63,6 +63,6 @@ The wiki supports GitHub-flavored Markdown:
 
 ## Getting Help
 
-Need assistance? Check out our [Editing Guidelines](/meta/guidelines) or reach out through GitHub issues.
+Need assistance? Check out our [Editing Guidelines](/#/meta/guidelines) or reach out through GitHub issues.
 
 Thank you for contributing to the Slayer Legend community!

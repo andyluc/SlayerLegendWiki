@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronDown, ChevronUp, Trash2, Upload, AlertCircle, Tag, Copy, Pencil } from 'lucide-react';
 import SpiritSprite from './SpiritSprite';
-import { useAuthStore } from '../../wiki-framework/src/store/authStore';
+import { useAuthStore, getToken } from '../../wiki-framework/src/store/authStore';
 import { getCache, setCache, clearCache } from '../utils/buildCache';
 import { getSaveDataEndpoint, getLoadDataEndpoint, getDeleteDataEndpoint } from '../utils/apiEndpoints.js';
 import { getUserLoadouts } from '../services/battleLoadouts';
@@ -252,15 +252,15 @@ const SavedSpiritBuildsPanel = ({
     setDeletingId(buildId);
 
     try {
+      const token = getToken();
       const response = await fetch(getDeleteDataEndpoint(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           type: 'spirit-builds',
-          username: user.login,
-          userId: user.id,
           itemId: buildId,
         }),
       });
@@ -305,15 +305,15 @@ const SavedSpiritBuildsPanel = ({
       delete buildDataCopy.updatedAt;
       buildDataCopy.name = copyName;
 
+      const token = getToken();
       const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           type: 'spirit-builds',
-          username: user.login,
-          userId: user.id,
           data: buildDataCopy,
         }),
       });
@@ -364,15 +364,15 @@ const SavedSpiritBuildsPanel = ({
     try {
       const updatedBuild = { ...build, name: validation.sanitized };
 
+      const token = getToken();
       const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           type: 'spirit-builds',
-          username: user.login,
-          userId: user.id,
           data: updatedBuild,
         }),
       });

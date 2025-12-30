@@ -15,6 +15,6 @@ order: 0
 ---
 # Character Enhancement
 
-{{contribution-banner:ai-generated}} <!-- DELETE ME when you update this page -->
+{{contribution-banner:auto-generated}} <!-- DELETE ME when you update this page -->
 
 Test
