@@ -39,14 +39,28 @@ The project has TWO logging systems that should be monitored during development:
 - These are remote logs written by the client-side JavaScript
 - **Requirement:** Check `public/wiki-config.json` to confirm `enableRemoteLoggingInDev: true`
 - **When to check:** For frontend issues (React components, UI interactions, client-side logic)
-- **How to read:** `tail -f wiki-framework/logs/debug.log` (use `-f` to follow in real-time)
-- **Auto-cancellation:** If no activity for 3+ minutes, stop monitoring (user is AFK)
 
-**Example command:**
-```bash
-tail -50 wiki-framework/logs/debug.log  # Last 50 lines
-tail -f wiki-framework/logs/debug.log   # Follow in real-time
-```
+**How to monitor client logs:**
+
+1. **Stream logs in background** (Recommended for debugging):
+   ```bash
+   tail -f wiki-framework/logs/debug.log    # Run with run_in_background: true
+   ```
+   - Use `run_in_background: true` to keep monitoring while working
+   - Check output periodically with TaskOutput tool
+   - Kill the background task with KillShell when done
+   - **Auto-cancellation:** If no activity for 3+ minutes, stop monitoring (user is AFK)
+
+2. **Read recent logs directly**:
+   ```bash
+   tail -50 wiki-framework/logs/debug.log   # Last 50 lines
+   tail -100 wiki-framework/logs/debug.log  # Last 100 lines
+   ```
+
+3. **Search for specific errors**:
+   ```bash
+   grep -i "error\|failed" wiki-framework/logs/debug.log | tail -20
+   ```
 
 ### 2. Server-Side Logs (Wrangler/Cloudflare Functions)
 **Location:** `.wrangler/server.log`
@@ -61,17 +75,26 @@ tail -f wiki-framework/logs/debug.log   # Follow in real-time
   - Stack traces with file paths and line numbers
 - **When to check:** For backend/API issues (serverless functions, database operations, authentication)
 
-**How to monitor (TWO methods):**
+**How to monitor server logs:**
 
-**Method 1: Read log file directly (Claude can do this)**
-```bash
-tail -50 .wrangler/server.log   # Last 50 lines
-tail -f .wrangler/server.log    # Follow in real-time (use Ctrl+C to stop)
-npm run logs:wrangler           # Shortcut for tail -f
-```
+1. **Stream logs in background** (Recommended for debugging):
+   ```bash
+   tail -f .wrangler/server.log    # Run with run_in_background: true
+   ```
+   - Use `run_in_background: true` to keep monitoring while working
+   - Check output periodically with TaskOutput tool
+   - Kill the background task with KillShell when done
 
-**Method 2: Ask user for terminal output**
-- If log file doesn't exist or is empty, ask user to share terminal output
+2. **Read recent logs directly**:
+   ```bash
+   tail -50 .wrangler/server.log   # Last 50 lines
+   tail -100 .wrangler/server.log  # Last 100 lines
+   ```
+
+3. **Search for specific errors**:
+   ```bash
+   grep -i "error\|warning\|failed" .wrangler/server.log | tail -20
+   ```
 
 **Example Wrangler error format:**
 ```

@@ -103,7 +103,7 @@ export async function handleAdminAction(adapter, configAdapter) {
 
     if (method === 'POST') {
       // POST endpoints for mutations
-      const body = await adapter.getBody();
+      const body = await adapter.getJsonBody();
       const { action, username, reason, amount, addedBy, removedBy, bannedBy, unbannedBy } = body;
 
       // Verify authenticated user
@@ -194,7 +194,14 @@ export async function handleAdminAction(adapter, configAdapter) {
           if (reason) donatorStatus.reason = reason;
 
           const { saveDonatorStatus } = await getDonatorRegistry();
-          await saveDonatorStatus(owner, repo, username, userId, donatorStatus);
+
+          // Get bot token from environment
+          const botToken = adapter.getEnv('WIKI_BOT_TOKEN') || adapter.getEnv('VITE_WIKI_BOT_TOKEN');
+          if (!botToken) {
+            return adapter.createJsonResponse(500, { error: 'Bot token not configured' });
+          }
+
+          await saveDonatorStatus(owner, repo, username, userId, donatorStatus, botToken);
 
           return adapter.createJsonResponse(200, {
             success: true,
@@ -218,7 +225,14 @@ export async function handleAdminAction(adapter, configAdapter) {
           }
 
           const { removeDonatorStatus } = await getDonatorRegistry();
-          await removeDonatorStatus(owner, repo, username, userIdForRemoval);
+
+          // Get bot token from environment
+          const botTokenForRemoval = adapter.getEnv('WIKI_BOT_TOKEN') || adapter.getEnv('VITE_WIKI_BOT_TOKEN');
+          if (!botTokenForRemoval) {
+            return adapter.createJsonResponse(500, { error: 'Bot token not configured' });
+          }
+
+          await removeDonatorStatus(owner, repo, username, userIdForRemoval, botTokenForRemoval);
 
           return adapter.createJsonResponse(200, {
             success: true,
