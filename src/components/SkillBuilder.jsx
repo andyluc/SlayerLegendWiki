@@ -656,7 +656,7 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
         slots: serializedBuild.slots, // Only store { skillId, level }
       };
 
-      const token = getToken();
+      const token = useAuthStore.getState().getToken();
       const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
         headers: {
