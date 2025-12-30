@@ -115,6 +115,13 @@
         "icon": "✍️",
         "showInHeader": false,
         "position": "bottom"
+      },
+      {
+        "title": "Donate",
+        "path": "/donate",
+        "icon": "💝",
+        "showInHeader": false,
+        "position": "bottom"
       }
     ]
   },
