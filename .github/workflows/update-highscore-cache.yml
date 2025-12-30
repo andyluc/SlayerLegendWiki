@@ -635,13 +635,6 @@ jobs:
                 // Skip commits without a GitHub user (e.g., local git commits)
                 if (!login) continue;
 
-                // Skip bot account - will be processed as anonymous
-                if (login === BOT_USERNAME) {
-                  // Will be handled below
-                } else {
-                  // Continue with normal processing for non-bot users
-                }
-
                 try {
                   // repos.listCommits() doesn't include additions/deletions, need repos.getCommit()
                   const { data: detailedCommit } = await github.rest.repos.getCommit({
@@ -689,8 +682,11 @@ jobs:
                         });
                       }
                     }
-                  } else {
-                    // Regular contributor
+                    // CRITICAL: Always skip bot commits - don't add bot as regular contributor
+                    continue;
+                  }
+
+                  // Regular contributor (not bot)
                     // Use user ID as key (permanent), fallback to login
                     const key = userId ? userId.toString() : `legacy:${login}`;
 
