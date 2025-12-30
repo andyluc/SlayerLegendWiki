@@ -246,11 +246,11 @@ header a[href="#/"]:hover > div.relative > img {
 
 /* ===== Markdown Content Adjustments ===== */
 /* Reduce h1 margin-bottom by 40% on markdown pages */
-/* Override Tailwind prose styles with higher specificity */
-.prose h1,
-.prose-lg h1,
-.markdown-content h1,
-article h1,
-.page-content h1 {
-  margin-bottom: 0.9rem !important; /* Reduced from ~1.5rem (40% reduction) */
+/* Override Tailwind prose styles with !important */
+h1 {
+  margin-bottom: 0.9rem !important;
+}
+
+h2 {
+  margin-bottom: 0.64rem !important; /* Reduced from ~1.0666667em (40% reduction) */
 }
