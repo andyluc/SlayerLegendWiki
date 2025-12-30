@@ -85,22 +85,44 @@ async function verifyPayPalSignature(
  * @returns {string|null} GitHub username or null
  */
 function extractGitHubUsername(paymentResource, event) {
-  // Method 1: Orders API v2 - custom_id (from Smart Payment Buttons)
+  // Method 1: Orders API v2 - custom_id on resource (from Smart Payment Buttons)
   if (paymentResource.custom_id) {
     const username = paymentResource.custom_id;
     if (username && username !== 'anonymous') {
-      logger.debug('Found username in custom_id', { username });
+      logger.debug('Found username in resource.custom_id', { username });
       return username;
     }
   }
 
-  // Method 2: Purchase units custom_id (alternative location in Orders API)
+  // Method 2: Orders API v2 - custom_id in supplementary_data
+  if (paymentResource.supplementary_data?.related_ids?.custom_id) {
+    const username = paymentResource.supplementary_data.related_ids.custom_id;
+    if (username && username !== 'anonymous') {
+      logger.debug('Found username in supplementary_data.related_ids.custom_id', { username });
+      return username;
+    }
+  }
+
+  // Method 3: Purchase units custom_id (for order-level webhooks)
   if (paymentResource.purchase_units && Array.isArray(paymentResource.purchase_units)) {
     for (const unit of paymentResource.purchase_units) {
       if (unit.custom_id) {
         const username = unit.custom_id;
         if (username && username !== 'anonymous') {
-          logger.debug('Found username in purchase_units.custom_id', { username });
+          logger.debug('Found username in purchase_units[].custom_id', { username });
+          return username;
+        }
+      }
+    }
+  }
+
+  // Method 4: Check event-level purchase_units (for CHECKOUT.ORDER webhooks)
+  if (event.resource?.purchase_units && Array.isArray(event.resource.purchase_units)) {
+    for (const unit of event.resource.purchase_units) {
+      if (unit.custom_id) {
+        const username = unit.custom_id;
+        if (username && username !== 'anonymous') {
+          logger.debug('Found username in event.resource.purchase_units[].custom_id', { username });
           return username;
         }
       }
@@ -181,11 +203,12 @@ export async function handlePayPalWebhook(adapter, configAdapter) {
 
   try {
     // Get webhook headers
-    const transmissionId = adapter.getHeader('paypal-transmission-id');
-    const transmissionTime = adapter.getHeader('paypal-transmission-time');
-    const transmissionSig = adapter.getHeader('paypal-transmission-sig');
-    const certUrl = adapter.getHeader('paypal-cert-url');
-    const authAlgo = adapter.getHeader('paypal-auth-algo');
+    const headers = adapter.getHeaders();
+    const transmissionId = headers['paypal-transmission-id'];
+    const transmissionTime = headers['paypal-transmission-time'];
+    const transmissionSig = headers['paypal-transmission-sig'];
+    const certUrl = headers['paypal-cert-url'];
+    const authAlgo = headers['paypal-auth-algo'];
 
     // Get webhook ID from environment
     const webhookId = adapter.getEnv('PAYPAL_WEBHOOK_ID');
@@ -222,9 +245,22 @@ export async function handlePayPalWebhook(adapter, configAdapter) {
     const resource = event.resource;
 
     logger.info('Received PayPal webhook', { eventType, transmissionId });
+    logger.debug('Webhook event structure', {
+      eventType,
+      resourceKeys: Object.keys(resource || {}),
+      hasCustomId: !!resource.custom_id,
+      hasPurchaseUnits: !!resource.purchase_units,
+      supplementaryDataKeys: resource.supplementary_data ? Object.keys(resource.supplementary_data) : [],
+    });
 
-    // Only handle payment completion events
-    if (eventType !== 'PAYMENT.SALE.COMPLETED' && eventType !== 'PAYMENT.CAPTURE.COMPLETED') {
+    // Handle payment completion and order completion events
+    const validEventTypes = [
+      'PAYMENT.SALE.COMPLETED',     // Legacy Payments API
+      'PAYMENT.CAPTURE.COMPLETED',  // Orders API v2 - Capture
+      'CHECKOUT.ORDER.COMPLETED',   // Orders API v2 - Order (has full order data with custom_id)
+    ];
+
+    if (!validEventTypes.includes(eventType)) {
       logger.debug('Ignoring non-payment event', { eventType });
       return adapter.createJsonResponse(200, { success: true, message: 'Event ignored' });
     }
@@ -233,7 +269,17 @@ export async function handlePayPalWebhook(adapter, configAdapter) {
     const githubUsername = extractGitHubUsername(resource, event);
 
     if (!githubUsername) {
-      logger.warn('No GitHub username found in payment', { transmissionId });
+      logger.warn('No GitHub username found in payment', {
+        transmissionId,
+        eventType,
+        checkedFields: {
+          'resource.custom_id': resource.custom_id || 'NOT_FOUND',
+          'resource.supplementary_data': resource.supplementary_data ? 'EXISTS' : 'NOT_FOUND',
+          'resource.purchase_units': resource.purchase_units ? `ARRAY[${resource.purchase_units.length}]` : 'NOT_FOUND',
+          'resource.custom': resource.custom || 'NOT_FOUND',
+          'resource.note': resource.note || 'NOT_FOUND',
+        }
+      });
       // Still return 200 to acknowledge webhook (manual assignment can be done later)
       return adapter.createJsonResponse(200, {
         success: true,
