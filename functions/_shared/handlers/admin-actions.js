@@ -5,15 +5,15 @@
  */
 
 import { getOctokit } from '../../../wiki-framework/src/services/github/api.js';
-import {
-  addAdmin as addAdminService,
-  removeAdmin as removeAdminService,
-  banUser as banUserService,
-  unbanUser as unbanUserService,
-  getAdmins,
-  getBannedUsers,
-  getCurrentUserAdminStatus
-} from '../../../wiki-framework/src/services/github/admin.js';
+
+// Lazy-load admin module to avoid top-level await issues (admin.js imports botService.js)
+let adminModule = null;
+async function getAdminModule() {
+  if (!adminModule) {
+    adminModule = await import('../../../wiki-framework/src/services/github/admin.js');
+  }
+  return adminModule;
+}
 
 // Lazy-load donator registry to avoid top-level await issues
 let donatorRegistryModule = null;
@@ -58,16 +58,19 @@ export async function handleAdminAction(adapter, configAdapter) {
       switch (action) {
         case 'get-admins':
           console.log('[Admin Actions] Fetching admin list');
+          const { getAdmins } = await getAdminModule();
           const admins = await getAdmins(owner, repo, config);
           return adapter.createJsonResponse({ admins });
 
         case 'get-banned-users':
           console.log('[Admin Actions] Fetching banned users list');
+          const { getBannedUsers } = await getAdminModule();
           const bannedUsers = await getBannedUsers(owner, repo, config);
           return adapter.createJsonResponse({ bannedUsers });
 
         case 'get-admin-status':
           console.log('[Admin Actions] Checking current user admin status');
+          const { getCurrentUserAdminStatus } = await getAdminModule();
           const status = await getCurrentUserAdminStatus(owner, repo, config);
           return adapter.createJsonResponse(status);
 
@@ -100,6 +103,7 @@ export async function handleAdminAction(adapter, configAdapter) {
             return adapter.createJsonResponse({ error: 'Username required' }, 400);
           }
           console.log(`[Admin Actions] Adding admin: ${username} by ${currentUsername}`);
+          const { addAdmin: addAdminService } = await getAdminModule();
           const updatedAdmins = await addAdminService(username, owner, repo, currentUsername, config);
           return adapter.createJsonResponse({
             success: true,
@@ -112,6 +116,7 @@ export async function handleAdminAction(adapter, configAdapter) {
             return adapter.createJsonResponse({ error: 'Username required' }, 400);
           }
           console.log(`[Admin Actions] Removing admin: ${username} by ${currentUsername}`);
+          const { removeAdmin: removeAdminService } = await getAdminModule();
           const updatedAdminsAfterRemoval = await removeAdminService(username, owner, repo, currentUsername, config);
           return adapter.createJsonResponse({
             success: true,
@@ -124,6 +129,7 @@ export async function handleAdminAction(adapter, configAdapter) {
             return adapter.createJsonResponse({ error: 'Username and reason required' }, 400);
           }
           console.log(`[Admin Actions] Banning user: ${username} by ${currentUsername}`);
+          const { banUser: banUserService } = await getAdminModule();
           const bannedUsers = await banUserService(username, reason, owner, repo, currentUsername, config);
           return adapter.createJsonResponse({
             success: true,
@@ -136,6 +142,7 @@ export async function handleAdminAction(adapter, configAdapter) {
             return adapter.createJsonResponse({ error: 'Username required' }, 400);
           }
           console.log(`[Admin Actions] Unbanning user: ${username} by ${currentUsername}`);
+          const { unbanUser: unbanUserService } = await getAdminModule();
           const bannedUsersAfterUnban = await unbanUserService(username, owner, repo, currentUsername, config);
           return adapter.createJsonResponse({
             success: true,
