@@ -27,3 +27,35 @@ Here are the promotions currently available.
 ## Mithril
 
 ## Orichalchum
+
+## Arcanite
+
+## Adamant
+
+## Ether
+
+## Demon Metal
+
+## Dragonos
+
+## Ragnablood
+
+## Warfrost
+
+## Dark Nox
+
+## Blue Abyss
+
+## Infinaut
+
+## Cyclos
+
+## Ancient Canine
+
+## Gigarock
+
+## Eisenhart
+
+## Diadust
+
+## Eldenwood
