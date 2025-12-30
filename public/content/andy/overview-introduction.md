@@ -13,18 +13,13 @@ order: 0
 ## OVERVIEW
 Hello! Welcome to the Slayer Legend guide created by me (Andy). This guide is designed to break down how to progress efficiently in the game as a F2P player or a light spender (definitely not 🐳 status). While there are surely extreme min-max strategies out there, everything here comes from my own experience with characters on both Server 1 and Server 2. I’ve been playing Slayer Legend for about three years now, so I’d like to think I have a solid grasp of how things work. So without further ado, let’s dive into progression!
 
-### Table of Contents
-
-Add your introduction here. Explain what this page covers and why it's important.
+### TABLE OF CONTENTS
+ADDING STUFF HERE LATER
 
 ## INTRODUCTION
+So, you’ve created your character, huh? Don’t worry, you’ll be able to customize your Slayer Legend avatar as you obtain new outfits, and you can change your name once you reach level 100.
 
-Add the main content sections here. You can include:
-
-- Key concepts and definitions
-- Step-by-step guides or instructions
-- Important tips and best practices
-- Examples and use cases
+From this point on, I’ll be skipping ahead to stage 340 (Ether Promotion), which marks the beginning of mid game. Anything before that is considered early game and is generally easy to progress through without much trouble. If you need help during these stages, I recommend checking the main Slayer Legend discord. Here are some important considerations and unlocks during this period:
 
 ## Additional Information
 
