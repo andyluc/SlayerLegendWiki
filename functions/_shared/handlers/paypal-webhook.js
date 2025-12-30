@@ -392,7 +392,8 @@ export async function handlePayPalWebhook(adapter, configAdapter) {
       badge: badgeConfig.badge,
       color: badgeConfig.color,
       assignedBy: 'paypal-webhook',
-      transactionId: resource.id,
+      // Store only last 8 characters of transaction ID for privacy (issue is public)
+      transactionId: resource.id ? `...${resource.id.slice(-8)}` : undefined,
     };
 
     // Save donator status to registry (pass bot token from environment)
