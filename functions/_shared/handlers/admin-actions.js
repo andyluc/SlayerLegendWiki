@@ -14,11 +14,15 @@ import {
   getBannedUsers,
   getCurrentUserAdminStatus
 } from '../../../wiki-framework/src/services/github/admin.js';
-import {
-  getAllDonators,
-  saveDonatorStatus,
-  removeDonatorStatus
-} from '../../../wiki-framework/src/services/github/donatorRegistry.js';
+
+// Lazy-load donator registry to avoid top-level await issues
+let donatorRegistryModule = null;
+async function getDonatorRegistry() {
+  if (!donatorRegistryModule) {
+    donatorRegistryModule = await import('../../../wiki-framework/src/services/github/donatorRegistry.js');
+  }
+  return donatorRegistryModule;
+}
 
 /**
  * Handle admin action requests
@@ -69,6 +73,7 @@ export async function handleAdminAction(adapter, configAdapter) {
 
         case 'get-all-donators':
           console.log('[Admin Actions] Fetching all donators');
+          const { getAllDonators } = await getDonatorRegistry();
           const donators = await getAllDonators(owner, repo);
           return adapter.createJsonResponse({ donators });
 
@@ -165,6 +170,7 @@ export async function handleAdminAction(adapter, configAdapter) {
           if (amount) donatorStatus.amount = amount;
           if (reason) donatorStatus.reason = reason;
 
+          const { saveDonatorStatus } = await getDonatorRegistry();
           await saveDonatorStatus(owner, repo, username, userId, donatorStatus);
 
           return adapter.createJsonResponse({
@@ -188,6 +194,7 @@ export async function handleAdminAction(adapter, configAdapter) {
             console.warn(`[Admin Actions] Could not fetch user ID for ${username}, proceeding with username only`);
           }
 
+          const { removeDonatorStatus } = await getDonatorRegistry();
           await removeDonatorStatus(owner, repo, username, userIdForRemoval);
 
           return adapter.createJsonResponse({
