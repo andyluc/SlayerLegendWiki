@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { handleSaveData } from '../../functions/_shared/handlers/save-data.js';
-import { NetlifyAdapter, CloudflareAdapter } from '../../functions/_shared/adapters/PlatformAdapter.js';
+import { NetlifyAdapter, CloudflareAdapter } from '../../wiki-framework/serverless/shared/adapters/PlatformAdapter.js';
 import {
   createMockNetlifyEvent,
   createMockCloudflareContext,
@@ -14,12 +14,23 @@ import {
 } from '../helpers/adapterHelpers.js';
 import { createMockStorage } from '../mocks/storage.js';
 import { mockSkillBuild, mockGridSubmission, mockSpiritBuild, mockEngravingBuild } from '../fixtures/testData.js';
+import { createMockOctokit } from '../mocks/octokit.js';
 
 // Mock createWikiStorage - use factory to avoid hoisting issues
 vi.mock('../../functions/_shared/createWikiStorage.js', async () => {
   const { createMockStorage } = await import('../mocks/storage.js');
   return {
     createWikiStorage: vi.fn(() => createMockStorage())
+  };
+});
+
+// Mock Octokit for authentication
+vi.mock('@octokit/rest', async () => {
+  const { createMockOctokit } = await import('../mocks/octokit.js');
+  return {
+    Octokit: vi.fn(function() {
+      return createMockOctokit();
+    })
   };
 });
 
@@ -35,10 +46,11 @@ describe('handleSaveData', () => {
       it('should save new skill build successfully', async () => {
         const event = createMockNetlifyEvent({
           httpMethod: 'POST',
+          headers: {
+            authorization: 'Bearer github-token-123'
+          },
           body: JSON.stringify({
             type: 'skill-builds',
-            username: 'testuser',
-            userId: 12345,
             data: mockSkillBuild
           })
         });
@@ -56,10 +68,11 @@ describe('handleSaveData', () => {
         const existingBuild = { ...mockSkillBuild, id: 'existing-1' };
         const event = createMockNetlifyEvent({
           httpMethod: 'POST',
+          headers: {
+            authorization: 'Bearer github-token-123'
+          },
           body: JSON.stringify({
             type: 'skill-builds',
-            username: 'testuser',
-            userId: 12345,
             data: { ...existingBuild, description: 'Updated description' }
           })
         });
@@ -73,10 +86,11 @@ describe('handleSaveData', () => {
       it('should save engraving build successfully', async () => {
         const event = createMockNetlifyEvent({
           httpMethod: 'POST',
+          headers: {
+            authorization: 'Bearer github-token-123'
+          },
           body: JSON.stringify({
             type: 'engraving-builds',
-            username: 'testuser',
-            userId: 12345,
             data: mockEngravingBuild
           })
         });
@@ -87,29 +101,30 @@ describe('handleSaveData', () => {
         expect(response.statusCode).toBe(200);
       });
 
-      it('should validate required fields for user-centric data', async () => {
+      it('should require authentication', async () => {
         const event = createMockNetlifyEvent({
           httpMethod: 'POST',
           body: JSON.stringify({
             type: 'skill-builds',
             data: mockSkillBuild
-            // missing username and userId
+            // missing authorization header
           })
         });
         const adapter = new NetlifyAdapter(event);
 
         const response = await handleSaveData(adapter, configAdapter);
 
-        expect(response.statusCode).toBe(400);
+        expect(response.statusCode).toBe(401);
       });
 
       it('should validate engraving build structure', async () => {
         const event = createMockNetlifyEvent({
           httpMethod: 'POST',
+          headers: {
+            authorization: 'Bearer github-token-123'
+          },
           body: JSON.stringify({
             type: 'engraving-builds',
-            username: 'testuser',
-            userId: 12345,
             data: { invalid: 'data' } // Missing required fields
           })
         });
@@ -228,11 +243,12 @@ describe('handleSaveData', () => {
     it('should save skill build successfully', async () => {
       const context = createMockCloudflareContext({
         method: 'POST',
+        headers: {
+          authorization: 'Bearer github-token-123'
+        },
         env: createMockEnv(),
         body: JSON.stringify({
           type: 'skill-builds',
-          username: 'testuser',
-          userId: 12345,
           data: mockSkillBuild
         })
       });

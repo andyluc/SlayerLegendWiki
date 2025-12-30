@@ -272,15 +272,15 @@ const SavedLoadoutsPanel = ({ currentLoadout, onLoadLoadout, currentLoadedLoadou
     setError(null);
 
     try {
+      const token = useAuthStore.getState().getToken();
       const response = await fetch(getDeleteDataEndpoint(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           type: 'battle-loadouts',
-          username: user.login,
-          userId: user.id,
           itemId: loadoutId,
         }),
       });
@@ -322,15 +322,15 @@ const SavedLoadoutsPanel = ({ currentLoadout, onLoadLoadout, currentLoadedLoadou
       delete loadoutDataCopy.updatedAt;
       loadoutDataCopy.name = copyName;
 
+      const token = useAuthStore.getState().getToken();
       const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           type: 'battle-loadouts',
-          username: user.login,
-          userId: user.id,
           data: loadoutDataCopy,
         }),
       });
@@ -379,15 +379,15 @@ const SavedLoadoutsPanel = ({ currentLoadout, onLoadLoadout, currentLoadedLoadou
     try {
       const updatedLoadout = { ...loadout, name: validation.sanitized };
 
+      const token = useAuthStore.getState().getToken();
       const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           type: 'battle-loadouts',
-          username: user.login,
-          userId: user.id,
           data: updatedLoadout,
         }),
       });

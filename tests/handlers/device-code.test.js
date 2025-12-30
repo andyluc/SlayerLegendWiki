@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { handleDeviceCode } from '../../functions/_shared/handlers/device-code.js';
-import { NetlifyAdapter, CloudflareAdapter } from '../../functions/_shared/adapters/PlatformAdapter.js';
+import { NetlifyAdapter, CloudflareAdapter } from '../../wiki-framework/serverless/shared/adapters/PlatformAdapter.js';
 import {
   createMockNetlifyEvent,
   createMockCloudflareContext

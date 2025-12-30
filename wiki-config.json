@@ -115,6 +115,13 @@
         "icon": "✍️",
         "showInHeader": false,
         "position": "bottom"
+      },
+      {
+        "title": "Donate",
+        "path": "/donate",
+        "icon": "💝",
+        "showInHeader": false,
+        "position": "bottom"
       }
     ]
   },
@@ -418,6 +425,17 @@
         "minPagesViewed": 3,
         "daysUntilNextPrompt": 2
       },
+      "badge": {
+        "enabled": true,
+        "badge": "💎",
+        "color": "#ffd700",
+        "title": "Donator"
+      },
+      "paypal": {
+        "enabled": true,
+        "clientId": "",
+        "webhookUrl": "/api/paypal-webhook"
+      },
       "methods": {
         "stripe": {
           "enabled": false,
@@ -425,10 +443,12 @@
         },
         "paypal": {
           "enabled": true,
-          "url": "https://paypal.me/bendolus"
+          "fallbackUrl": "https://paypal.me/bendolus",
+          "disablePayLater": true
         },
         "kofi": {
-          "enabled": true,
+          "enabled": false,
+          "username": "bendol",
           "url": "https://ko-fi.com/bendol"
         }
       }

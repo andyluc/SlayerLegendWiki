@@ -15,4 +15,4 @@ order: 0
 ---
 # Leveling Guide
 
-{{contribution-banner:ai-generated}} <!-- DELETE ME when you update this page -->
+{{contribution-banner:auto-generated}} <!-- DELETE ME when you update this page -->

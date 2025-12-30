@@ -13,5 +13,5 @@ date: 2025-12-21
 
 # Character Stats
 
-{{contribution-banner:ai-generated}} <!-- DELETE ME when you update this page -->
+{{contribution-banner:auto-generated}} <!-- DELETE ME when you update this page -->
 

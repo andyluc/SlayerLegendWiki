@@ -10,10 +10,10 @@ import { Link } from 'react-router-dom';
 import FrameworkContributionBanner from '../../wiki-framework/src/components/common/ContributionBanner.jsx';
 import Emoticon from './Emoticon';
 
-const ContributionBanner = ({ type = 'ai-generated' }) => {
+const ContributionBanner = ({ type = 'auto-generated' }) => {
   // Game-specific messages
   const customMessages = {
-    'ai-generated': {
+    'auto-generated': {
       title: (
         <>
           <Emoticon id={1005} size="large" /> Community Contribution Opportunity
@@ -46,7 +46,7 @@ const ContributionBanner = ({ type = 'ai-generated' }) => {
     },
   };
 
-  const custom = customMessages[type] || customMessages['ai-generated'];
+  const custom = customMessages[type] || customMessages['auto-generated'];
 
   return (
     <FrameworkContributionBanner

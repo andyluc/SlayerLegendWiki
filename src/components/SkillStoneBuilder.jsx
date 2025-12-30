@@ -44,6 +44,7 @@ const SkillStoneBuilder = forwardRef(({ isModal = false, initialBuild = null, on
   const [copied, setCopied] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [currentLoadedBuildId, setCurrentLoadedBuildId] = useState(null);
+  const [originalLoadedName, setOriginalLoadedName] = useState(null);
   const [savedBuilds, setSavedBuilds] = useState([]);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -125,6 +126,7 @@ const SkillStoneBuilder = forwardRef(({ isModal = false, initialBuild = null, on
             setBuildName(savedBuild.name || '');
             setBuild({ slots: savedBuild.slots || createEmptySlots() });
             setCurrentLoadedBuildId(buildId);
+            setOriginalLoadedName(savedBuild.name);
             setHasUnsavedChanges(false);
             logger.info('Saved build loaded successfully', { buildName: savedBuild.name });
           } else {
@@ -423,6 +425,7 @@ const SkillStoneBuilder = forwardRef(({ isModal = false, initialBuild = null, on
     setBuildName('');
     setHasUnsavedChanges(false);
     setCurrentLoadedBuildId(null);
+    setOriginalLoadedName(null);
     clearDraft();
   };
 
@@ -444,6 +447,7 @@ const SkillStoneBuilder = forwardRef(({ isModal = false, initialBuild = null, on
     setBuild({ slots: savedBuild.slots || createEmptySlots() });
     setHasUnsavedChanges(true);
     setCurrentLoadedBuildId(savedBuild.id);
+    setOriginalLoadedName(savedBuild.name);
 
     window.triggerDonationPrompt?.({
       messages: [
@@ -466,15 +470,28 @@ const SkillStoneBuilder = forwardRef(({ isModal = false, initialBuild = null, on
     try {
       const serializedBuild = serializeBuild({ ...build, name: buildName });
 
+      // SAVE AS: If name changed, create new entry instead of updating
+      const nameChanged = originalLoadedName && buildName !== originalLoadedName;
+      if (nameChanged && serializedBuild.id) {
+        logger.info('SAVE AS: Name changed, creating new skill stone build', {
+          originalName: originalLoadedName,
+          newName: buildName,
+          oldId: serializedBuild.id
+        });
+        delete serializedBuild.id;
+        delete serializedBuild.createdAt;
+        delete serializedBuild.updatedAt;
+      }
+
+      const token = useAuthStore.getState().getToken();
       const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           type: 'skill-stone-builds',
-          username: user.login,
-          userId: user.id,
           data: serializedBuild,
         }),
       });
@@ -495,6 +512,7 @@ const SkillStoneBuilder = forwardRef(({ isModal = false, initialBuild = null, on
 
       setSaveSuccess(true);
       setHasUnsavedChanges(false);
+      setOriginalLoadedName(buildName); // Update original name after save
 
       setCache('skill_stone_builds', user.id, sortedBuilds);
       clearDraft();

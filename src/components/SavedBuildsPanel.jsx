@@ -170,15 +170,15 @@ const SavedBuildsPanel = ({
         slots: currentBuild.slots,
       };
 
+      const token = useAuthStore.getState().getToken();
       const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           type: buildType,
-          username: user.login,
-          userId: user.id,
           data: dataToSave,
         }),
       });
@@ -249,15 +249,15 @@ const SavedBuildsPanel = ({
       // Convert buildType to cache key (e.g., 'skill-builds' -> 'skill_builds')
       const cacheKey = buildType.replace(/-/g, '_');
 
+      const token = useAuthStore.getState().getToken();
       const response = await fetch(getDeleteDataEndpoint(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           type: buildType,
-          username: user.login,
-          userId: user.id,
           itemId: buildId,
         }),
       });
@@ -297,15 +297,15 @@ const SavedBuildsPanel = ({
       delete buildDataCopy.updatedAt;
       buildDataCopy.name = copyName;
 
+      const token = useAuthStore.getState().getToken();
       const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           type: buildType,
-          username: user.login,
-          userId: user.id,
           data: buildDataCopy,
         }),
       });
@@ -353,15 +353,15 @@ const SavedBuildsPanel = ({
     try {
       const updatedBuild = { ...build, name: validation.sanitized };
 
+      const token = useAuthStore.getState().getToken();
       const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           type: buildType,
-          username: user.login,
-          userId: user.id,
           data: updatedBuild,
         }),
       });

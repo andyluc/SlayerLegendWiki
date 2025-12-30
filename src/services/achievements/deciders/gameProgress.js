@@ -3,6 +3,10 @@
  * Slayer Legend specific deciders for builds and loadouts
  */
 
+import { createLogger } from '../../../utils/logger';
+
+const logger = createLogger('GameProgressDeciders');
+
 /**
  * Helper: Check game data count from GitHub Issues
  * @param {Object} octokit - Octokit instance
@@ -32,13 +36,13 @@ async function checkGameDataCount(octokit, owner, repo, userId, dataType, minCou
           totalCount += data.length;
         }
       } catch (error) {
-        console.error(`Failed to parse ${dataType} issue:`, error);
+        logger.error('Failed to parse data issue', { dataType, error });
       }
     }
 
     return totalCount >= minCount;
   } catch (error) {
-    console.error(`Failed to check ${dataType}:`, error);
+    logger.error('Failed to check data count', { dataType, error });
     return false;
   }
 }
@@ -105,13 +109,13 @@ async function getUserBuildsData(octokit, owner, repo, userId) {
           builds.push(...data);
         }
       } catch (error) {
-        console.error('Failed to parse builds issue:', error);
+        logger.error('Failed to parse builds issue', { error });
       }
     }
 
     return builds;
   } catch (error) {
-    console.error('Failed to get user builds:', error);
+    logger.error('Failed to get user builds', { error });
     return [];
   }
 }
@@ -137,13 +141,13 @@ async function getUserLoadoutsData(octokit, owner, repo, userId) {
           loadouts.push(...data);
         }
       } catch (error) {
-        console.error('Failed to parse loadouts issue:', error);
+        logger.error('Failed to parse loadouts issue', { error });
       }
     }
 
     return loadouts;
   } catch (error) {
-    console.error('Failed to get user loadouts:', error);
+    logger.error('Failed to get user loadouts', { error });
     return [];
   }
 }
@@ -169,13 +173,13 @@ async function getUserSpiritsData(octokit, owner, repo, userId) {
           spirits.push(...data);
         }
       } catch (error) {
-        console.error('Failed to parse my-spirits issue:', error);
+        logger.error('Failed to parse my-spirits issue', { error });
       }
     }
 
     return spirits;
   } catch (error) {
-    console.error('Failed to get user spirits:', error);
+    logger.error('Failed to get user spirits', { error });
     return [];
   }
 }
@@ -199,7 +203,7 @@ export async function spiritCollector(userData, context) {
 
     return uniqueSpirits.size >= 10;
   } catch (error) {
-    console.error('Failed to check spirit collection:', error);
+    logger.error('Failed to check spirit collection', { error });
     return false;
   }
 }
@@ -236,7 +240,7 @@ export async function skillTheorist(userData, context) {
     // At least 5 unique skill combinations
     return buildSignatures.size >= 5;
   } catch (error) {
-    console.error('Failed to check skill theorist:', error);
+    logger.error('Failed to check skill theorist', { error });
     return false;
   }
 }
@@ -282,7 +286,7 @@ export async function completionist(userData, context) {
     // At least 5 unique skill combinations
     return buildSignatures.size >= 5;
   } catch (error) {
-    console.error('Failed to check completionist:', error);
+    logger.error('Failed to check completionist', { error });
     return false;
   }
 }
@@ -315,7 +319,7 @@ export async function innovative(userData, context) {
 
     return false;
   } catch (error) {
-    console.error('Failed to check innovative:', error);
+    logger.error('Failed to check innovative', { error });
     return false;
   }
 }
@@ -343,7 +347,7 @@ export async function minMaxer(userData, context) {
 
     return false;
   } catch (error) {
-    console.error('Failed to check min-maxer:', error);
+    logger.error('Failed to check min-maxer', { error });
     return false;
   }
 }
@@ -375,7 +379,7 @@ export async function strategist(userData, context) {
 
     return false;
   } catch (error) {
-    console.error('Failed to check strategist:', error);
+    logger.error('Failed to check strategist', { error });
     return false;
   }
 }
@@ -395,7 +399,7 @@ export async function collector(userData, context) {
 
     const spiritDataResponse = await fetch(spiritDataUrl);
     if (!spiritDataResponse.ok) {
-      console.error('Failed to load spirit-characters.json', {
+      logger.error('Failed to load spirit-characters.json', {
         url: spiritDataUrl,
         status: spiritDataResponse.status
       });
@@ -421,7 +425,7 @@ export async function collector(userData, context) {
     // User must have collected all spirits
     return uniqueSpirits.size >= totalSpirits;
   } catch (error) {
-    console.error('Failed to check spirit collection:', error);
+    logger.error('Failed to check spirit collection', { error });
     return false;
   }
 }

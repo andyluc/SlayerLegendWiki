@@ -75,7 +75,7 @@
       "Bash(node scripts/generate-sitemap.js:*)",
       "Bash(npm run build:sitemap:*)",
       "Bash(for file in characters/latent-power.md equipment/relics.md equipment/soul-weapons.md equipment/fusion.md characters/enhancement.md characters/stats.md characters/training-log.md skills/skill-mechanics.md)",
-      "Bash(do sed -i 's/{{contribution-banner:ai-generated}}/{{contribution-banner:ai-generated}} <!-- DELETE_ME when you update this page -->/' \"$file\")",
+      "Bash(do sed -i 's/{{contribution-banner:auto-generated}}/{{contribution-banner:auto-generated}} <!-- DELETE_ME when you update this page -->/' \"$file\")",
       "Bash(dir \"C:\\\\Projects\\\\slayerlegend\\\\wiki\\\\wiki-framework\\\\src\\\\services\\\\storage\")",
       "Bash(python3:*)",
       "Bash(node migrate-logs.js:*)",
@@ -156,7 +156,21 @@
       "Bash(if not exist \"C:\\\\Projects\\\\slayerlegend\\\\wiki\\\\public\\\\images\\\\equipment\\\\soul-weapons\" mkdir \"C:\\\\Projects\\\\slayerlegend\\\\wiki\\\\public\\\\images\\\\equipment\\\\soul-weapons\")",
       "WebFetch(domain:namu.wiki)",
       "Bash(bash scripts/download-soul-weapons.sh:*)",
-      "Bash(Select-String -Pattern \"error|Error|ERROR|VideoGuide|video-guide|picker\" -Context 2,2)"
+      "Bash(Select-String -Pattern \"error|Error|ERROR|VideoGuide|video-guide|picker\" -Context 2,2)",
+      "Bash(Get-Content \"C:\\\\Users\\\\dolb9\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Projects-slayerlegend-wiki\\\\tasks\\\\b12a233.output\" -Tail 50)",
+      "Bash(Start-Sleep -Seconds 15)",
+      "Bash(Get-Content \"C:\\\\Users\\\\dolb9\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Projects-slayerlegend-wiki\\\\tasks\\\\b073b13.output\" -Tail 30)",
+      "Bash(Get-ChildItem -Path \"functions\" -Filter \"*.js\" -File)",
+      "Bash(Test-Path \"netlify\\\\functions\")",
+      "Bash(git diff:*)",
+      "Bash(Get-Content \"C:\\\\Projects\\\\slayerlegend\\\\wiki\\\\public\\\\data\\\\image-index.json\")",
+      "Bash(for file in *.js)",
+      "Bash(Remove-Item -Path \".netlify\\\\functions-serve\" -Recurse -Force -ErrorAction SilentlyContinue)",
+      "Bash(Remove-Item -Path \".netlify\\\\state\" -Recurse -Force -ErrorAction SilentlyContinue)",
+      "Bash(Write-Host \"Netlify caches cleared\")",
+      "Bash(netlify --version:*)",
+      "Bash(npx netlify:*)",
+      "Bash(Test-Path \"C:\\\\Projects\\\\slayerlegend\\\\wiki\\\\netlify\\\\functions\\\\package.json\")",
     ]
   }
 }

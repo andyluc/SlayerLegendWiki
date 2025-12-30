@@ -252,15 +252,15 @@ const SavedSpiritBuildsPanel = ({
     setDeletingId(buildId);
 
     try {
+      const token = useAuthStore.getState().getToken();
       const response = await fetch(getDeleteDataEndpoint(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           type: 'spirit-builds',
-          username: user.login,
-          userId: user.id,
           itemId: buildId,
         }),
       });
@@ -305,15 +305,15 @@ const SavedSpiritBuildsPanel = ({
       delete buildDataCopy.updatedAt;
       buildDataCopy.name = copyName;
 
+      const token = useAuthStore.getState().getToken();
       const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           type: 'spirit-builds',
-          username: user.login,
-          userId: user.id,
           data: buildDataCopy,
         }),
       });
@@ -364,15 +364,15 @@ const SavedSpiritBuildsPanel = ({
     try {
       const updatedBuild = { ...build, name: validation.sanitized };
 
+      const token = useAuthStore.getState().getToken();
       const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           type: 'spirit-builds',
-          username: user.login,
-          userId: user.id,
           data: updatedBuild,
         }),
       });

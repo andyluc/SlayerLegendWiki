@@ -59,3 +59,7 @@ external/backups/excluded-images/
 # Issue backup files (keep directory structure, ignore daily JSON files)
 backups/issues/*.json
 !backups/issues/README.md
+
+# Windows null file (created by incorrect shell redirects)
+nul
+.wrangler-dev/

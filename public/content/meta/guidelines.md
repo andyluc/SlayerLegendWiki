@@ -88,6 +88,60 @@ Use tables for structured data:
 [Official Discord](https://discord.gg/example)
 ```
 
+## Keyboard Shortcuts
+
+The page editor supports keyboard shortcuts to speed up your editing workflow. All shortcuts work when the markdown editor is focused.
+
+### Formatting Shortcuts
+
+| Shortcut | Action | Description |
+|----------|--------|-------------|
+| **Ctrl+B** | Bold | Make selected text bold |
+| **Ctrl+I** | Italic | Make selected text italic |
+| **Ctrl+E** | Code Block | Insert or wrap with code block |
+| **Ctrl+Q** | Quote | Insert or wrap with quote |
+
+### Structure Shortcuts
+
+| Shortcut | Action | Description |
+|----------|--------|-------------|
+| **Ctrl+1** | Heading 1 | Convert current line to H1 |
+| **Ctrl+2** | Heading 2 | Convert current line to H2 |
+| **Ctrl+Shift+L** | Bullet List | Create bullet list |
+| **Ctrl+Shift+O** | Numbered List | Create numbered list |
+
+### Insertion Shortcuts
+
+| Shortcut | Action | Description |
+|----------|--------|-------------|
+| **Ctrl+K** | Link | Open link insertion dialog |
+| **Ctrl+Shift+T** | Table | Insert markdown table |
+
+### Tips
+
+- **Shortcuts only work when editor is focused** - Click in the editor area first
+- **Mac users**: Use **Cmd** instead of **Ctrl**
+- **Selection-based shortcuts**: Select text first for bold, italic, code, and quote
+- **Line-based shortcuts**: Place cursor on line for heading conversions
+- **View shortcuts in tooltips**: Hover over toolbar buttons to see their shortcuts
+
+### Using Shortcuts Effectively
+
+**Format text quickly:**
+1. Select the text you want to format
+2. Press **Ctrl+B** for bold or **Ctrl+I** for italic
+3. No need to type markdown syntax manually
+
+**Create structure fast:**
+1. Type your heading text
+2. Press **Ctrl+1** or **Ctrl+2** to convert to heading
+3. The markdown `#` symbols are added automatically
+
+**Insert links efficiently:**
+1. Select link text (optional)
+2. Press **Ctrl+K**
+3. Enter URL and text in the dialog
+
 ## Data Injection System
 
 The wiki supports powerful data injection using the `{{...}}` syntax to automatically display game data like spirits, skills, and equipment.

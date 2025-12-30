@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { handleGithubBot } from '../../functions/_shared/handlers/github-bot.js';
-import { NetlifyAdapter } from '../../functions/_shared/adapters/PlatformAdapter.js';
+import { NetlifyAdapter } from '../../wiki-framework/serverless/shared/adapters/PlatformAdapter.js';
 import { CryptoAdapter } from '../../functions/_shared/adapters/CryptoAdapter.js';
 import {
   createMockNetlifyEvent,

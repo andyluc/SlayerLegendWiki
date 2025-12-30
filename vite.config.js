@@ -18,6 +18,13 @@ export default createWikiConfigSync({
   // Explicitly use parent project's public directory
   publicDir: './public',
 
+  // Define environment variables for client
+  define: {
+    'import.meta.env.VITE_DEV_PLATFORM': JSON.stringify(process.env.VITE_DEV_PLATFORM || 'cloudflare'),
+    'import.meta.env.VITE_PLATFORM': JSON.stringify(process.env.VITE_PLATFORM || 'cloudflare'),
+    'import.meta.env.VITE_CF_PAGES': JSON.stringify(process.env.VITE_CF_PAGES || '0'),
+  },
+
   // Additional plugins specific to your wiki
   plugins: [
     nodePolyfills({
@@ -42,6 +49,22 @@ export default createWikiConfigSync({
   // You can override any Vite settings here
   server: {
     port: 5173,
+    // Allow Vite to serve files from wiki-framework submodule
+    fs: {
+      allow: ['..'],
+    },
+    // Proxy API calls to Wrangler
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8788',
+        changeOrigin: true,
+      },
+      '/.netlify/functions': {
+        target: 'http://localhost:8788',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/.netlify\/functions/, '/api'),
+      },
+    },
     // SPA fallback: Always serve index.html for client-side routing
     historyApiFallback: true,
     watch: {
@@ -51,9 +74,10 @@ export default createWikiConfigSync({
         '**/public/images/**',
         '**/external/**',
         '**/node_modules/**',
-        '!**/node_modules/github-wiki-framework/**', // BUT watch the framework package
+        '!**/wiki-framework/**', // WATCH the framework submodule
         '**/dist/**',
         '**/.git/**',
+        '**/.wrangler/**',
       ],
     },
     // Improve HMR performance
@@ -75,7 +99,12 @@ export default createWikiConfigSync({
       'react-router-dom',
       'zustand',
     ],
+    // Force re-optimization on framework changes
+    force: false,
   },
+
+  // Clear cache on framework changes
+  cacheDir: 'node_modules/.vite',
 
   // Build optimizations
   build: {

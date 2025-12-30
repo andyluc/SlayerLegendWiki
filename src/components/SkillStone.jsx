@@ -1,6 +1,9 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
+import { createLogger } from '../utils/logger';
 import './SkillStone.css';
+
+const logger = createLogger('SkillStone');
 
 /**
  * SkillStone Component
@@ -25,7 +28,7 @@ const SkillStone = ({ stoneType, element, tier = 'A', data, size = 'medium', dis
       fetch('/data/skill_stones.json')
         .then(res => res.json())
         .then(setStoneData)
-        .catch(err => console.error('Failed to load skill stones data:', err));
+        .catch(err => logger.error('Failed to load skill stones data', { error: err }));
     }
   }, [data]);
 

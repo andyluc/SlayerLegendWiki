@@ -1,6 +1,15 @@
 import { createLogger } from '../../../src/utils/logger.js';
 const logger = createLogger('GithubBot');
 
+// Lazy-load donator registry to avoid top-level await issues
+let donatorRegistryModule = null;
+async function getDonatorRegistry() {
+  if (!donatorRegistryModule) {
+    donatorRegistryModule = await import('github-wiki-framework/src/services/github/donatorRegistry.js');
+  }
+  return donatorRegistryModule;
+}
+
 // Cache for loaded achievement deciders
 let achievementDecidersCache = null;
 
@@ -310,6 +319,8 @@ export async function handleGithubBot(adapter, configAdapter, cryptoAdapter) {
         return await handleCreateAdminIssue(adapter, octokit, body);
       case 'update-admin-issue':
         return await handleUpdateAdminIssue(adapter, octokit, body);
+      case 'create-issue-report':
+        return await handleCreateIssueReport(adapter, octokit, body);
       case 'save-user-snapshot':
         return await handleSaveUserSnapshot(adapter, octokit, body);
       case 'send-verification-email':
@@ -346,6 +357,10 @@ export async function handleGithubBot(adapter, configAdapter, cryptoAdapter) {
         return await handleDeleteVideoGuide(adapter, octokit, body);
       case 'get-pending-video-guide-deletions':
         return await handleGetPendingVideoGuideDeletions(adapter, octokit, body);
+      case 'assign-donator-badge':
+        return await handleAssignDonatorBadge(adapter, octokit, body, botToken);
+      case 'remove-donator-badge':
+        return await handleRemoveDonatorBadge(adapter, octokit, body, botToken);
       default:
         return adapter.createJsonResponse(400, { error: `Unknown action: ${action}` });
     }
@@ -720,6 +735,110 @@ async function handleUpdateAdminIssue(octokit, { owner, repo, issueNumber, body,
       },
     }),
   };
+}
+
+/**
+ * Create an issue report (bug report, suggestion, content issue, or other)
+ * Supports both anonymous and authenticated submissions
+ * Required: category, title, description, pageUrl
+ * Optional: email, includeSystemInfo, systemInfo, requestedBy
+ */
+async function handleCreateIssueReport(adapter, octokit, body) {
+  const {
+    owner,
+    repo,
+    category,
+    title,
+    description,
+    email,
+    pageUrl,
+    includeSystemInfo,
+    systemInfo,
+    requestedBy  // Username if authenticated, null if anonymous
+  } = body;
+
+  // Validate required fields
+  if (!category || !title || !description) {
+    return adapter.createJsonResponse(400, { error: 'Missing required fields: category, title, description' });
+  }
+
+  // Validate category
+  const allowedCategories = ['bug-report', 'suggestion', 'content-issue', 'other'];
+  if (!allowedCategories.includes(category)) {
+    return adapter.createJsonResponse(400, { error: 'Invalid category' });
+  }
+
+  // Validate title length
+  if (title.length < 10 || title.length > 100) {
+    return adapter.createJsonResponse(400, { error: 'Title must be between 10 and 100 characters' });
+  }
+
+  // Validate description length
+  if (description.length < 20 || description.length > 2000) {
+    return adapter.createJsonResponse(400, { error: 'Description must be between 20 and 2000 characters' });
+  }
+
+  // Validate email if provided
+  if (email) {
+    const emailResult = validateEmail(email);
+    if (!emailResult.valid) {
+      return adapter.createJsonResponse(400, { error: emailResult.error });
+    }
+  }
+
+  // Build issue title
+  const reporterName = requestedBy || 'Anonymous';
+  const issueTitle = `[Issue Report] ${reporterName} - ${title}`;
+
+  // Build issue body
+  const categoryDisplay = category.split('-').map(w =>
+    w.charAt(0).toUpperCase() + w.slice(1)
+  ).join(' ');
+
+  let issueBody = `**Category**: ${categoryDisplay}\n`;
+  issueBody += `**Submitted by**: ${reporterName}\n`;
+  if (email) {
+    issueBody += `**Email**: ${email}\n`;
+  }
+  issueBody += `**Page URL**: ${pageUrl}\n\n`;
+  issueBody += `## Description\n\n${description}\n\n`;
+
+  if (includeSystemInfo && systemInfo) {
+    issueBody += `---\n\n**System Information**\n`;
+    issueBody += `- **Browser**: ${systemInfo.browser}\n`;
+    issueBody += `- **OS**: ${systemInfo.os}\n`;
+    issueBody += `- **Screen**: ${systemInfo.screen}\n`;
+    issueBody += `- **Timestamp**: ${systemInfo.timestamp}\n`;
+  }
+
+  try {
+    // Create issue
+    const { data: issue } = await octokit.rest.issues.create({
+      owner,
+      repo,
+      title: issueTitle,
+      body: issueBody,
+      labels: ['user-report', category]
+    });
+
+    logger.info(`Created issue report #${issue.number}`, {
+      category,
+      reporter: reporterName,
+      anonymous: !requestedBy
+    });
+
+    return adapter.createJsonResponse(200, {
+      success: true,
+      issue: {
+        number: issue.number,
+        url: issue.html_url,
+        title: issue.title
+      }
+    });
+  } catch (error) {
+    logger.error('Failed to create issue report', { error: error.message });
+    return adapter.createJsonResponse(500, { error: 'Failed to create issue report' });
+  }
 }
 
 /**
@@ -3554,6 +3673,154 @@ async function handleGetPendingVideoGuideDeletions(adapter, octokit, { owner, re
     });
   } catch (error) {
     logger.error('Failed to fetch pending video guide deletions', { error: error.message });
+    return adapter.createJsonResponse(500, { error: error.message });
+  }
+}
+
+/**
+ * Assign donator badge to a user
+ * Required: owner, repo, username, userId, adminUsername, userToken
+ * Optional: amount, transactionId, reason
+ */
+async function handleAssignDonatorBadge(adapter, octokit, { owner, repo, username, userId, adminUsername, userToken, amount, transactionId, reason }, botToken) {
+  if (!owner || !repo || !username || !adminUsername || !userToken) {
+    return adapter.createJsonResponse(400, {
+      error: 'Missing required fields: owner, repo, username, adminUsername, userToken'
+    });
+  }
+
+  // Verify admin permissions
+  const userOctokit = new (await import('@octokit/rest')).Octokit({
+    auth: userToken,
+    userAgent: 'GitHub-Wiki-Bot/1.0'
+  });
+
+  try {
+    const { data: repoData } = await userOctokit.rest.repos.get({ owner, repo });
+    const { data: userData } = await userOctokit.rest.users.getAuthenticated();
+
+    const isOwner = repoData.owner.login === userData.login;
+    const { data: permData } = await userOctokit.rest.repos.getCollaboratorPermissionLevel({
+      owner,
+      repo,
+      username: userData.login,
+    });
+    const hasAdminPerm = permData.permission === 'admin';
+
+    if (!isOwner && !hasAdminPerm) {
+      return adapter.createJsonResponse(403, { error: 'Only repository owner and admins can assign donator badges' });
+    }
+  } catch (error) {
+    logger.error('Permission check failed for donator badge assignment', { error: error.message });
+    return adapter.createJsonResponse(403, { error: 'Permission verification failed' });
+  }
+
+  try {
+    // If userId not provided, fetch it from GitHub
+    let targetUserId = userId;
+    if (!targetUserId) {
+      try {
+        const { data: targetUser } = await octokit.rest.users.getByUsername({ username });
+        targetUserId = targetUser.id;
+      } catch (error) {
+        logger.error('Failed to fetch user ID', { username, error: error.message });
+        return adapter.createJsonResponse(404, { error: `User not found: ${username}` });
+      }
+    }
+
+    // Create donator status object
+    const donatorStatus = {
+      isDonator: true,
+      donatedAt: new Date().toISOString(),
+      badge: '💎',
+      color: '#ffd700',
+      assignedBy: `admin:${adminUsername}`,
+    };
+
+    // Add optional fields
+    if (amount) donatorStatus.amount = amount;
+    if (transactionId) donatorStatus.transactionId = transactionId;
+    if (reason) donatorStatus.reason = reason;
+
+    // Save donator status (pass bot token for serverless context)
+    const { saveDonatorStatus } = await getDonatorRegistry();
+    await saveDonatorStatus(owner, repo, username, targetUserId, donatorStatus, botToken);
+
+    logger.info('Donator badge assigned via bot', { username, userId: targetUserId, assignedBy: adminUsername });
+
+    return adapter.createJsonResponse(200, {
+      success: true,
+      message: `Donator badge assigned to ${username}`,
+      donatorStatus
+    });
+  } catch (error) {
+    logger.error('Failed to assign donator badge', { username, error: error.message });
+    return adapter.createJsonResponse(500, { error: error.message });
+  }
+}
+
+/**
+ * Remove donator badge from a user
+ * Required: owner, repo, username, adminUsername, userToken
+ * Optional: userId, reason
+ */
+async function handleRemoveDonatorBadge(adapter, octokit, { owner, repo, username, userId, adminUsername, userToken, reason }, botToken) {
+  if (!owner || !repo || !username || !adminUsername || !userToken) {
+    return adapter.createJsonResponse(400, {
+      error: 'Missing required fields: owner, repo, username, adminUsername, userToken'
+    });
+  }
+
+  // Verify admin permissions
+  const userOctokit = new (await import('@octokit/rest')).Octokit({
+    auth: userToken,
+    userAgent: 'GitHub-Wiki-Bot/1.0'
+  });
+
+  try {
+    const { data: repoData } = await userOctokit.rest.repos.get({ owner, repo });
+    const { data: userData } = await userOctokit.rest.users.getAuthenticated();
+
+    const isOwner = repoData.owner.login === userData.login;
+    const { data: permData } = await userOctokit.rest.repos.getCollaboratorPermissionLevel({
+      owner,
+      repo,
+      username: userData.login,
+    });
+    const hasAdminPerm = permData.permission === 'admin';
+
+    if (!isOwner && !hasAdminPerm) {
+      return adapter.createJsonResponse(403, { error: 'Only repository owner and admins can remove donator badges' });
+    }
+  } catch (error) {
+    logger.error('Permission check failed for donator badge removal', { error: error.message });
+    return adapter.createJsonResponse(403, { error: 'Permission verification failed' });
+  }
+
+  try {
+    // If userId not provided, fetch it from GitHub
+    let targetUserId = userId;
+    if (!targetUserId) {
+      try {
+        const { data: targetUser } = await octokit.rest.users.getByUsername({ username });
+        targetUserId = targetUser.id;
+      } catch (error) {
+        logger.warn('Failed to fetch user ID for removal, proceeding with username only', { username });
+      }
+    }
+
+    // Remove donator status (pass bot token for serverless context)
+    const { removeDonatorStatus } = await getDonatorRegistry();
+    await removeDonatorStatus(owner, repo, username, targetUserId, botToken);
+
+    logger.info('Donator badge removed via bot', { username, userId: targetUserId, removedBy: adminUsername, reason });
+
+    return adapter.createJsonResponse(200, {
+      success: true,
+      message: `Donator badge removed from ${username}`
+    });
+  } catch (error) {
+    logger.error('Failed to remove donator badge', { username, error: error.message });
     return adapter.createJsonResponse(500, { error: error.message });
   }
 }

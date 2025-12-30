@@ -3,18 +3,18 @@
  * Handles video file uploads to CDN and creates PRs for approval
  */
 
-const { createLogger } = require('../../../wiki-framework/src/utils/logger');
+import { createLogger } from '../../../wiki-framework/src/utils/logger.js';
 const logger = createLogger('VideoUploadHandler');
 
 // Import leo-profanity for content moderation
-const LeoProfanity = require('leo-profanity');
+import LeoProfanity from 'leo-profanity';
 
 // Import validation utilities
-const {
+import {
   validatePageTitle,
   validatePageContent,
   validateEmail,
-} = require('../validation');
+} from '../validation.js';
 
 /**
  * Handle video upload request (server-side only)
@@ -135,7 +135,7 @@ async function handleVideoUpload(params) {
       // Check rate limit (5 video uploads per email per 24 hours)
       const { hashEmail } = await import('../utils.js');
       const emailHash = await hashEmail(userEmail);
-      const { createWikiStorage } = require('../createWikiStorage.js');
+      const { createWikiStorage } = await import('../createWikiStorage.js');
       const storage = await createWikiStorage(adapter, config);
       const rateLimitKey = `video-upload-rate:${emailHash}`;
 
@@ -256,6 +256,7 @@ async function handleVideoUpload(params) {
       uploadedBy,
       auth,
       config,
+      adapter,
     });
 
     logger.info('Content PR created', {
@@ -354,6 +355,7 @@ async function createContentPR(params) {
     uploadedBy,
     auth,
     config,
+    adapter,
   } = params;
 
   // Import GitHub services
@@ -362,8 +364,9 @@ async function createContentPR(params) {
   const { updateFileContent } = await import('../../../wiki-framework/src/services/github/content.js');
   const { createPullRequest } = await import('../../../wiki-framework/src/services/github/pullRequests.js');
 
-  const owner = config.wiki.repository.owner;
-  const repo = config.wiki.repository.repo;
+  // Get repository info from environment variables (adapter has access)
+  const owner = adapter.getEnv('WIKI_REPO_OWNER') || adapter.getEnv('VITE_WIKI_REPO_OWNER');
+  const repo = adapter.getEnv('WIKI_REPO_NAME') || adapter.getEnv('VITE_WIKI_REPO_NAME');
   const dataFile = config.features?.contentCreators?.videoGuides?.dataFile || 'public/data/video-guides.json';
 
   logger.debug('Creating content PR', { owner, repo, dataFile });

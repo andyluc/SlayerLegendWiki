@@ -3,7 +3,7 @@
  * Auto-detects platform and provides unified interface
  */
 
-import { NetlifyAdapter, CloudflareAdapter } from './adapters/PlatformAdapter.js';
+import { NetlifyAdapter, CloudflareAdapter } from 'github-wiki-framework/serverless/shared/adapters/PlatformAdapter.js';
 
 /**
  * Create platform adapter based on event/context

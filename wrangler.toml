@@ -13,6 +13,14 @@ pages_build_output_dir = "dist"
 compatibility_date = "2024-12-01"
 compatibility_flags = ["nodejs_compat"]
 
+# Local development configuration
+[dev]
+port = 8788
+ip = "localhost"
+local_protocol = "http"
+# Watch framework submodule for changes
+watch_paths = ["functions", "wiki-framework/src"]
+
 # Note: Cloudflare Workers have a 100MB request body limit
 # This affects video uploads - files larger than 100MB cannot be uploaded
 # through Cloudflare Pages. For larger files, deploy to Netlify instead,

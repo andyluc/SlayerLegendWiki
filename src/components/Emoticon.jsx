@@ -21,6 +21,9 @@
 
 import React from 'react';
 import PropTypes from 'prop-types';
+import { createLogger } from '../utils/logger';
+
+const logger = createLogger('Emoticon');
 
 // Emoticon ID to name mapping
 export const EMOTICON_MAP = {
@@ -67,7 +70,7 @@ const Emoticon = ({ id, name, size = 'large', alt, className = '', style = {} })
 
   // Validate emoticon ID
   if (!emoticonId || !EMOTICON_MAP[emoticonId]) {
-    console.error(`[Emoticon] Invalid emoticon ID or name: ${id || name}`);
+    logger.error('Invalid emoticon ID or name', { id, name });
     return (
       <span
         className={`inline-block text-red-500 text-sm ${className}`}

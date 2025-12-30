@@ -14,5 +14,5 @@ date: 2025-12-16
 ---
 # Spirit Information
 
-{{contribution-banner:ai-generated}} <!-- DELETE ME when you update this page -->
+{{contribution-banner:auto-generated}} <!-- DELETE ME when you update this page -->
 

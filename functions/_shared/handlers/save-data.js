@@ -1,4 +1,4 @@
-const { createLogger } = require('../../../src/utils/logger');
+import { createLogger } from '../../../src/utils/logger.js';
 const logger = createLogger('SaveData');
 
 /**
@@ -6,14 +6,17 @@ const logger = createLogger('SaveData');
  * Handles saving skill builds, battle loadouts, engraving builds, spirit collection, and grid submissions
  *
  * POST /api/save-data
+ * Headers: {
+ *   Authorization: Bearer <github-token> (REQUIRED for user-centric types)
+ * }
  * Body: {
  *   type: 'skill-builds' | 'battle-loadouts' | 'my-spirits' | 'spirit-builds' | 'engraving-builds' | 'grid-submission',
- *   username: string,
- *   userId: number,
  *   data: object,
  *   spiritId?: string (For my-spirits updates),
  *   replace?: boolean (for grid-submission replace mode)
  * }
+ *
+ * SECURITY: Username and userId are now derived from the authenticated token, NOT from request body
  */
 
 import { createWikiStorage } from '../createWikiStorage.js';
@@ -22,12 +25,11 @@ import {
   VALID_DATA_TYPES,
 } from '../utils.js';
 import {
-  validateUsername,
-  validateUserId,
   validateBuildData,
   validateGridSubmission,
   validateRequestBodySize,
 } from '../validation.js';
+import { Octokit } from '@octokit/rest';
 
 /**
  * Handle save data request
@@ -52,16 +54,11 @@ export async function handleSaveData(adapter, configAdapter) {
     }
 
     // Parse request body
-    const { type, username, userId, data, spiritId, replace = false } = JSON.parse(body);
+    const { type, data, spiritId, replace = false } = JSON.parse(body);
 
     // Validate required fields
     if (!type || !data) {
       return adapter.createJsonResponse(400, { error: 'Missing required fields: type, data' });
-    }
-
-    // For user-centric types (not grid-submission), require username and userId
-    if (type !== 'grid-submission' && (!username || !userId)) {
-      return adapter.createJsonResponse(400, { error: 'Missing required fields: username, userId' });
     }
 
     // Validate type
@@ -71,16 +68,31 @@ export async function handleSaveData(adapter, configAdapter) {
       });
     }
 
-    // Validate username and userId (for user-centric types)
+    // AUTHENTICATION: For user-centric types, verify token and get authenticated user
+    let username = null;
+    let userId = null;
+
     if (type !== 'grid-submission') {
-      const usernameResult = validateUsername(username);
-      if (!usernameResult.valid) {
-        return adapter.createJsonResponse(400, { error: usernameResult.error });
+      // Extract auth token from Authorization header
+      const token = adapter.getAuthToken();
+      if (!token) {
+        logger.warn('No auth token provided for user-centric save', { type });
+        return adapter.createJsonResponse(401, { error: 'Authentication required' });
       }
 
-      const userIdResult = validateUserId(userId);
-      if (!userIdResult.valid) {
-        return adapter.createJsonResponse(400, { error: userIdResult.error });
+      // Verify token with GitHub and get authenticated user
+      try {
+        const octokit = new Octokit({ auth: token });
+        const { data: user } = await octokit.rest.users.getAuthenticated();
+
+        // Use VERIFIED user identity from GitHub
+        username = user.login;
+        userId = user.id;
+
+        logger.debug('Authenticated user for save', { username, userId, type });
+      } catch (error) {
+        logger.error('Token verification failed', { error: error.message });
+        return adapter.createJsonResponse(401, { error: 'Invalid authentication token' });
       }
     }
 

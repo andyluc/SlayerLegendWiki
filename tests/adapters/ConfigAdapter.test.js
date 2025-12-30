@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ConfigAdapter } from '../../functions/_shared/adapters/ConfigAdapter.js';
 import { createMockNetlifyEvent, createMockCloudflareContext, createMockEnv } from '../helpers/adapterHelpers.js';
-import { NetlifyAdapter, CloudflareAdapter } from '../../functions/_shared/adapters/PlatformAdapter.js';
+import { NetlifyAdapter, CloudflareAdapter } from '../../wiki-framework/serverless/shared/adapters/PlatformAdapter.js';
 
 describe('ConfigAdapter', () => {
   describe('Netlify Platform', () => {

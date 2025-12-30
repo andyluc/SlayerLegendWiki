@@ -336,13 +336,15 @@ const BattleLoadoutCard = ({ identifier, mode = 'detailed', showActions = true }
         serializedData: serialized
       });
 
+      const token = useAuthStore.getState().getToken();
       const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify({
           type: 'battle-loadouts',
-          username: user.login,
-          userId: user.id,
           data: serialized
         })
       });

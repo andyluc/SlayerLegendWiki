@@ -13,5 +13,5 @@ date: 2025-12-21
 
 # Skill Refinement
 
-{{contribution-banner:ai-generated}} <!-- DELETE ME when you update this page -->
+{{contribution-banner:auto-generated}} <!-- DELETE ME when you update this page -->
 
