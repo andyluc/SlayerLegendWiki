@@ -443,7 +443,8 @@
         },
         "paypal": {
           "enabled": true,
-          "fallbackUrl": "https://paypal.me/bendolus"
+          "fallbackUrl": "https://paypal.me/bendolus",
+          "disablePayLater": true
         },
         "kofi": {
           "enabled": false,
