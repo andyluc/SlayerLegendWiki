@@ -47,12 +47,15 @@ Insert text here...
 ## <span class="text-green-700 dark:text-green-600">DEMON METAL </span><img src="/images/promotions/11-demonmetal.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle; width: 61px; height: 55px; margin:-10px 0 0 0;" data-inline="true" />
 Insert text here...
 
+## <span class="text-yellow-300 dark:text-yellow-200">DRAGONOS </span><img src="/images/promotions/12-dragonos.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle; width: 56px; height: 63px; margin:-10px 0 0 0;" data-inline="true" />
+Insert text here...
 
-## DRAGONOS
+## <span class="text-red-500 dark:text-red-400">RAGNABLOOD </span><img src="/images/promotions/13-ragnablood.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle; width: 64px; height: 64px; margin:-10px 0 0 0;" data-inline="true" />
+Insert text here...
 
-## RAGNABLOOD
+## <span class="text-gray-300 dark:text-gray-400">WARFROST </span><img src="/images/promotions/14-winterfrost.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle; width: 58px; height: 61px; margin:-10px 0 0 0;" data-inline="true" />
 
-## WARFROST
+
 
 ## DARK NOX
 
