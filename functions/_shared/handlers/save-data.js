@@ -1,4 +1,4 @@
-const { createLogger } = require('../../../src/utils/logger');
+import { createLogger } from '../../../src/utils/logger.js';
 const logger = createLogger('SaveData');
 
 /**

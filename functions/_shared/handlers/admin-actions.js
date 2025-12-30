@@ -5,26 +5,36 @@
  */
 
 import { getOctokit } from '../../../wiki-framework/src/services/github/api.js';
-import {
-  addAdmin as addAdminService,
-  removeAdmin as removeAdminService,
-  banUser as banUserService,
-  unbanUser as unbanUserService,
-  getAdmins,
-  getBannedUsers,
-  getCurrentUserAdminStatus
-} from '../../../wiki-framework/src/services/github/admin.js';
+
+// Lazy-load admin module to avoid top-level await issues (admin.js imports botService.js)
+let adminModule = null;
+async function getAdminModule() {
+  if (!adminModule) {
+    adminModule = await import('../../../wiki-framework/src/services/github/admin.js');
+  }
+  return adminModule;
+}
+
+// Lazy-load donator registry to avoid top-level await issues
+let donatorRegistryModule = null;
+async function getDonatorRegistry() {
+  if (!donatorRegistryModule) {
+    donatorRegistryModule = await import('../../../wiki-framework/src/services/github/donatorRegistry.js');
+  }
+  return donatorRegistryModule;
+}
 
 /**
  * Handle admin action requests
  * @param {Object} adapter - Platform adapter (Netlify, Cloudflare, etc)
+ * @param {Object} configAdapter - Config adapter instance
  * @returns {Promise<Response>} API response
  */
-export async function handleAdminAction(adapter) {
+export async function handleAdminAction(adapter, configAdapter) {
   console.log('[Admin Actions] Request received');
 
   // Get repository info from config
-  const config = await adapter.getWikiConfig();
+  const config = configAdapter.getWikiConfig();
   const { owner, repo } = config.wiki.repository;
 
   // Authentication check
@@ -42,23 +52,33 @@ export async function handleAdminAction(adapter) {
 
     if (method === 'GET') {
       // GET endpoints for fetching lists
-      const action = adapter.getQueryParam('action');
+      const params = adapter.getQueryParams();
+      const action = params.action;
 
       switch (action) {
         case 'get-admins':
           console.log('[Admin Actions] Fetching admin list');
+          const { getAdmins } = await getAdminModule();
           const admins = await getAdmins(owner, repo, config);
           return adapter.createJsonResponse({ admins });
 
         case 'get-banned-users':
           console.log('[Admin Actions] Fetching banned users list');
+          const { getBannedUsers } = await getAdminModule();
           const bannedUsers = await getBannedUsers(owner, repo, config);
           return adapter.createJsonResponse({ bannedUsers });
 
         case 'get-admin-status':
           console.log('[Admin Actions] Checking current user admin status');
+          const { getCurrentUserAdminStatus } = await getAdminModule();
           const status = await getCurrentUserAdminStatus(owner, repo, config);
           return adapter.createJsonResponse(status);
+
+        case 'get-all-donators':
+          console.log('[Admin Actions] Fetching all donators');
+          const { getAllDonators } = await getDonatorRegistry();
+          const donators = await getAllDonators(owner, repo);
+          return adapter.createJsonResponse({ donators });
 
         default:
           return adapter.createJsonResponse({ error: 'Invalid action' }, 400);
@@ -68,7 +88,7 @@ export async function handleAdminAction(adapter) {
     if (method === 'POST') {
       // POST endpoints for mutations
       const body = await adapter.getBody();
-      const { action, username, reason, addedBy, removedBy, bannedBy, unbannedBy } = body;
+      const { action, username, reason, amount, addedBy, removedBy, bannedBy, unbannedBy } = body;
 
       // Verify authenticated user
       const octokit = getOctokit();
@@ -83,6 +103,7 @@ export async function handleAdminAction(adapter) {
             return adapter.createJsonResponse({ error: 'Username required' }, 400);
           }
           console.log(`[Admin Actions] Adding admin: ${username} by ${currentUsername}`);
+          const { addAdmin: addAdminService } = await getAdminModule();
           const updatedAdmins = await addAdminService(username, owner, repo, currentUsername, config);
           return adapter.createJsonResponse({
             success: true,
@@ -95,6 +116,7 @@ export async function handleAdminAction(adapter) {
             return adapter.createJsonResponse({ error: 'Username required' }, 400);
           }
           console.log(`[Admin Actions] Removing admin: ${username} by ${currentUsername}`);
+          const { removeAdmin: removeAdminService } = await getAdminModule();
           const updatedAdminsAfterRemoval = await removeAdminService(username, owner, repo, currentUsername, config);
           return adapter.createJsonResponse({
             success: true,
@@ -107,6 +129,7 @@ export async function handleAdminAction(adapter) {
             return adapter.createJsonResponse({ error: 'Username and reason required' }, 400);
           }
           console.log(`[Admin Actions] Banning user: ${username} by ${currentUsername}`);
+          const { banUser: banUserService } = await getAdminModule();
           const bannedUsers = await banUserService(username, reason, owner, repo, currentUsername, config);
           return adapter.createJsonResponse({
             success: true,
@@ -119,11 +142,71 @@ export async function handleAdminAction(adapter) {
             return adapter.createJsonResponse({ error: 'Username required' }, 400);
           }
           console.log(`[Admin Actions] Unbanning user: ${username} by ${currentUsername}`);
+          const { unbanUser: unbanUserService } = await getAdminModule();
           const bannedUsersAfterUnban = await unbanUserService(username, owner, repo, currentUsername, config);
           return adapter.createJsonResponse({
             success: true,
             message: `Successfully unbanned ${username}`,
             bannedUsers: bannedUsersAfterUnban
+          });
+
+        case 'assign-donator-badge':
+          if (!username) {
+            return adapter.createJsonResponse({ error: 'Username required' }, 400);
+          }
+          console.log(`[Admin Actions] Assigning donator badge: ${username} by ${currentUsername}`);
+
+          // Get user ID from GitHub
+          let userId;
+          try {
+            const { data: targetUser } = await octokit.rest.users.getByUsername({ username });
+            userId = targetUser.id;
+          } catch (error) {
+            return adapter.createJsonResponse({ error: `User not found: ${username}` }, 404);
+          }
+
+          // Create donator status
+          const donatorStatus = {
+            isDonator: true,
+            donatedAt: new Date().toISOString(),
+            badge: config.features?.donation?.badge?.badge || '💎',
+            color: config.features?.donation?.badge?.color || '#ffd700',
+            assignedBy: `admin:${currentUsername}`,
+          };
+
+          if (amount) donatorStatus.amount = amount;
+          if (reason) donatorStatus.reason = reason;
+
+          const { saveDonatorStatus } = await getDonatorRegistry();
+          await saveDonatorStatus(owner, repo, username, userId, donatorStatus);
+
+          return adapter.createJsonResponse({
+            success: true,
+            message: `Successfully assigned donator badge to ${username}`,
+            donatorStatus
+          });
+
+        case 'remove-donator-badge':
+          if (!username) {
+            return adapter.createJsonResponse({ error: 'Username required' }, 400);
+          }
+          console.log(`[Admin Actions] Removing donator badge: ${username} by ${currentUsername}`);
+
+          // Get user ID from GitHub (optional for removal)
+          let userIdForRemoval;
+          try {
+            const { data: targetUser } = await octokit.rest.users.getByUsername({ username });
+            userIdForRemoval = targetUser.id;
+          } catch (error) {
+            console.warn(`[Admin Actions] Could not fetch user ID for ${username}, proceeding with username only`);
+          }
+
+          const { removeDonatorStatus } = await getDonatorRegistry();
+          await removeDonatorStatus(owner, repo, username, userIdForRemoval);
+
+          return adapter.createJsonResponse({
+            success: true,
+            message: `Successfully removed donator badge from ${username}`
           });
 
         default:

@@ -1,5 +1,4 @@
-const { createLogger } = require('../../../src/utils/logger');
-const logger = createLogger('DeleteData');
+import { createLogger } from '../../../src/utils/logger.js';
 
 /**
  * Delete Data Handler (Platform-Agnostic)
@@ -24,6 +23,8 @@ import {
   validateItemId,
 } from '../validation.js';
 import { Octokit } from '@octokit/rest';
+
+const logger = createLogger('DeleteData');
 
 /**
  * Handle delete data request

@@ -3,18 +3,18 @@
  * Handles video file uploads to CDN and creates PRs for approval
  */
 
-const { createLogger } = require('../../../wiki-framework/src/utils/logger');
+import { createLogger } from '../../../wiki-framework/src/utils/logger.js';
 const logger = createLogger('VideoUploadHandler');
 
 // Import leo-profanity for content moderation
-const LeoProfanity = require('leo-profanity');
+import LeoProfanity from 'leo-profanity';
 
 // Import validation utilities
-const {
+import {
   validatePageTitle,
   validatePageContent,
   validateEmail,
-} = require('../validation');
+} from '../validation.js';
 
 /**
  * Handle video upload request (server-side only)
@@ -135,7 +135,7 @@ async function handleVideoUpload(params) {
       // Check rate limit (5 video uploads per email per 24 hours)
       const { hashEmail } = await import('../utils.js');
       const emailHash = await hashEmail(userEmail);
-      const { createWikiStorage } = require('../createWikiStorage.js');
+      const { createWikiStorage } = await import('../createWikiStorage.js');
       const storage = await createWikiStorage(adapter, config);
       const rateLimitKey = `video-upload-rate:${emailHash}`;
 
