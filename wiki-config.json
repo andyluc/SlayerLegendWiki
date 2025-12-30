@@ -446,7 +446,7 @@
           "fallbackUrl": "https://paypal.me/bendolus"
         },
         "kofi": {
-          "enabled": true,
+          "enabled": false,
           "username": "bendol",
           "url": "https://ko-fi.com/bendol"
         }
