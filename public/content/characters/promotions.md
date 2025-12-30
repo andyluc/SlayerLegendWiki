@@ -8,6 +8,7 @@ tags:
   - progression
 category: Characters
 date: 2025-12-21T00:00:00.000Z
+order: 0
 ---
 # <span class="text-gray-900 dark:text-gray-100">PROMOTION OVERVIEW</span><img src="/images/emoticons/Emoticon_1.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 110px; height: 110px; margin:-5px 0 0 0;" data-inline="true" />
 
