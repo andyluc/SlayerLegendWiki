@@ -20,8 +20,10 @@ Here are the promotions currently available.
 
 ## <span class="text-gray-600 dark:text-gray-400">IRON </span><img src="/images/promotions/2-iron.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle; width: 25px; height: 29px; margin:-10px 0 0 0;" data-inline="true" />
 
-## <span class="text-gray-300 dark:text-gray-400">SILVER</span>
+## <span class="text-gray-300 dark:text-gray-400">SILVER </span><img src="/images/promotions/3-silver.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle; width: 38px; height: 33px; margin:-10px 0 0 0;" data-inline="true" />
 
-## <span class="text-amber-600 dark:text-amber-400">GOLD</span>
+## <span class="text-yellow-500 dark:text-yellow-400">GOLD </span><img src="/images/promotions/4-gold.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle; width: 37px; height: 34px; margin:-10px 0 0 0;" data-inline="true" />
 
-##
+## Mithril
+
+## Orichalchum
