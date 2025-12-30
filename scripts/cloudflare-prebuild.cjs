@@ -18,6 +18,19 @@ const isProduction = branch === 'main' || !branch; // Treat unknown as productio
 
 console.log(`\n📦 Cloudflare Prebuild - Branch: ${branch || 'unknown'}\n`);
 
+// ALWAYS run prebuild steps (cache check, version injection, search index, sitemap)
+console.log('🔧 Running prebuild steps...\n');
+try {
+  execSync('node scripts/checkCommitForCachePurge.js', { stdio: 'inherit' });
+  execSync('node scripts/injectVersion.js', { stdio: 'inherit' });
+  execSync('node scripts/buildSearchIndex.js', { stdio: 'inherit' });
+  execSync('node scripts/generate-sitemap.js', { stdio: 'inherit' });
+  console.log('\n✅ Prebuild steps complete!\n');
+} catch (error) {
+  console.error('\n❌ Prebuild steps failed!\n');
+  process.exit(error.status || 1);
+}
+
 if (!isProduction) {
   console.log(`✅ Preview deploy detected (branch: ${branch})`);
   console.log(`⏭️  Skipping tests automatically\n`);
