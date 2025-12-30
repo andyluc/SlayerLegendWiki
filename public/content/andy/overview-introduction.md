@@ -1,10 +1,7 @@
 ---
 id: overview-introduction
 title: Overview & Introduction
-description: >-
-  This section offers a brief overview of the progression guide and includes a
-  table of contents to support navigation through the remaining sections.
-description: Brief summary and table of contents for progression guide
+description: This section offers a brief overview of the progression guide and includes a table of contents to support navigation through the remaining sections.
 tags:
   - guide
 category: Progression
