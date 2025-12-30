@@ -14,17 +14,23 @@ import {
   getBannedUsers,
   getCurrentUserAdminStatus
 } from '../../../wiki-framework/src/services/github/admin.js';
+import {
+  getAllDonators,
+  saveDonatorStatus,
+  removeDonatorStatus
+} from '../../../wiki-framework/src/services/github/donatorRegistry.js';
 
 /**
  * Handle admin action requests
  * @param {Object} adapter - Platform adapter (Netlify, Cloudflare, etc)
+ * @param {Object} configAdapter - Config adapter instance
  * @returns {Promise<Response>} API response
  */
-export async function handleAdminAction(adapter) {
+export async function handleAdminAction(adapter, configAdapter) {
   console.log('[Admin Actions] Request received');
 
   // Get repository info from config
-  const config = await adapter.getWikiConfig();
+  const config = configAdapter.getWikiConfig();
   const { owner, repo } = config.wiki.repository;
 
   // Authentication check
@@ -42,7 +48,8 @@ export async function handleAdminAction(adapter) {
 
     if (method === 'GET') {
       // GET endpoints for fetching lists
-      const action = adapter.getQueryParam('action');
+      const params = adapter.getQueryParams();
+      const action = params.action;
 
       switch (action) {
         case 'get-admins':
@@ -60,6 +67,11 @@ export async function handleAdminAction(adapter) {
           const status = await getCurrentUserAdminStatus(owner, repo, config);
           return adapter.createJsonResponse(status);
 
+        case 'get-all-donators':
+          console.log('[Admin Actions] Fetching all donators');
+          const donators = await getAllDonators(owner, repo);
+          return adapter.createJsonResponse({ donators });
+
         default:
           return adapter.createJsonResponse({ error: 'Invalid action' }, 400);
       }
@@ -68,7 +80,7 @@ export async function handleAdminAction(adapter) {
     if (method === 'POST') {
       // POST endpoints for mutations
       const body = await adapter.getBody();
-      const { action, username, reason, addedBy, removedBy, bannedBy, unbannedBy } = body;
+      const { action, username, reason, amount, addedBy, removedBy, bannedBy, unbannedBy } = body;
 
       // Verify authenticated user
       const octokit = getOctokit();
@@ -124,6 +136,63 @@ export async function handleAdminAction(adapter) {
             success: true,
             message: `Successfully unbanned ${username}`,
             bannedUsers: bannedUsersAfterUnban
+          });
+
+        case 'assign-donator-badge':
+          if (!username) {
+            return adapter.createJsonResponse({ error: 'Username required' }, 400);
+          }
+          console.log(`[Admin Actions] Assigning donator badge: ${username} by ${currentUsername}`);
+
+          // Get user ID from GitHub
+          let userId;
+          try {
+            const { data: targetUser } = await octokit.rest.users.getByUsername({ username });
+            userId = targetUser.id;
+          } catch (error) {
+            return adapter.createJsonResponse({ error: `User not found: ${username}` }, 404);
+          }
+
+          // Create donator status
+          const donatorStatus = {
+            isDonator: true,
+            donatedAt: new Date().toISOString(),
+            badge: config.features?.donation?.badge?.badge || '💎',
+            color: config.features?.donation?.badge?.color || '#ffd700',
+            assignedBy: `admin:${currentUsername}`,
+          };
+
+          if (amount) donatorStatus.amount = amount;
+          if (reason) donatorStatus.reason = reason;
+
+          await saveDonatorStatus(owner, repo, username, userId, donatorStatus);
+
+          return adapter.createJsonResponse({
+            success: true,
+            message: `Successfully assigned donator badge to ${username}`,
+            donatorStatus
+          });
+
+        case 'remove-donator-badge':
+          if (!username) {
+            return adapter.createJsonResponse({ error: 'Username required' }, 400);
+          }
+          console.log(`[Admin Actions] Removing donator badge: ${username} by ${currentUsername}`);
+
+          // Get user ID from GitHub (optional for removal)
+          let userIdForRemoval;
+          try {
+            const { data: targetUser } = await octokit.rest.users.getByUsername({ username });
+            userIdForRemoval = targetUser.id;
+          } catch (error) {
+            console.warn(`[Admin Actions] Could not fetch user ID for ${username}, proceeding with username only`);
+          }
+
+          await removeDonatorStatus(owner, repo, username, userIdForRemoval);
+
+          return adapter.createJsonResponse({
+            success: true,
+            message: `Successfully removed donator badge from ${username}`
           });
 
         default:

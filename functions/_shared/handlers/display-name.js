@@ -8,7 +8,7 @@
  * DELETE /api/display-name               - Admin: Reset user's display name
  */
 
-const { createLogger } = require('../../../src/utils/logger');
+import { createLogger } from '../../../src/utils/logger.js';
 import { createWikiStorage } from '../createWikiStorage.js';
 import { Octokit } from '@octokit/rest';
 

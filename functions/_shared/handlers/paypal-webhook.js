@@ -1,0 +1,325 @@
+import { createLogger } from '../../../src/utils/logger.js';
+
+/**
+ * PayPal Webhook Handler (Platform-Agnostic)
+ * Handles PayPal webhook events for automated donator badge assignment
+ *
+ * POST /api/paypal-webhook
+ * Headers: {
+ *   paypal-transmission-id: <webhook-id>,
+ *   paypal-transmission-time: <timestamp>,
+ *   paypal-transmission-sig: <signature>,
+ *   paypal-cert-url: <cert-url>,
+ *   paypal-auth-algo: <algorithm>
+ * }
+ * Body: {
+ *   event_type: 'PAYMENT.SALE.COMPLETED',
+ *   resource: { ... payment data ... }
+ * }
+ *
+ * SECURITY: Verifies PayPal signature before processing
+ * USER IDENTIFICATION: Extracts GitHub username from custom field or matches email
+ */
+
+import crypto from 'crypto';
+import { Octokit } from '@octokit/rest';
+
+const logger = createLogger('PayPalWebhook');
+
+/**
+ * Verify PayPal webhook signature
+ * @param {string} transmissionId - PayPal transmission ID
+ * @param {string} transmissionTime - PayPal transmission time
+ * @param {string} webhookId - Your webhook ID from PayPal
+ * @param {string} eventBody - Raw webhook event body
+ * @param {string} certUrl - PayPal cert URL
+ * @param {string} transmissionSig - PayPal signature
+ * @param {string} authAlgo - Auth algorithm (e.g., 'SHA256withRSA')
+ * @returns {Promise<boolean>} True if signature is valid
+ */
+async function verifyPayPalSignature(
+  transmissionId,
+  transmissionTime,
+  webhookId,
+  eventBody,
+  certUrl,
+  transmissionSig,
+  authAlgo
+) {
+  try {
+    // Build expected signature string
+    const expectedString = `${transmissionId}|${transmissionTime}|${webhookId}|${crypto
+      .createHash('sha256')
+      .update(eventBody)
+      .digest('base64')}`;
+
+    // Fetch PayPal certificate
+    const certResponse = await fetch(certUrl);
+    if (!certResponse.ok) {
+      logger.error('Failed to fetch PayPal certificate', { status: certResponse.status });
+      return false;
+    }
+
+    const cert = await certResponse.text();
+
+    // Verify signature using certificate
+    const verifier = crypto.createVerify('SHA256');
+    verifier.update(expectedString);
+    const isValid = verifier.verify(cert, transmissionSig, 'base64');
+
+    logger.debug('PayPal signature verification', { isValid });
+    return isValid;
+  } catch (error) {
+    logger.error('PayPal signature verification error', { error: error.message });
+    return false;
+  }
+}
+
+/**
+ * Extract GitHub username from PayPal payment
+ * Tries multiple methods based on API version:
+ * 1. Orders API v2: custom_id field (from Smart Payment Buttons)
+ * 2. Legacy: custom or note fields (from older integrations)
+ * @param {Object} paymentResource - PayPal payment resource
+ * @param {Object} event - Full webhook event (for purchase_units access)
+ * @returns {string|null} GitHub username or null
+ */
+function extractGitHubUsername(paymentResource, event) {
+  // Method 1: Orders API v2 - custom_id (from Smart Payment Buttons)
+  if (paymentResource.custom_id) {
+    const username = paymentResource.custom_id;
+    if (username && username !== 'anonymous') {
+      logger.debug('Found username in custom_id', { username });
+      return username;
+    }
+  }
+
+  // Method 2: Purchase units custom_id (alternative location in Orders API)
+  if (paymentResource.purchase_units && Array.isArray(paymentResource.purchase_units)) {
+    for (const unit of paymentResource.purchase_units) {
+      if (unit.custom_id) {
+        const username = unit.custom_id;
+        if (username && username !== 'anonymous') {
+          logger.debug('Found username in purchase_units.custom_id', { username });
+          return username;
+        }
+      }
+    }
+  }
+
+  // Method 3: Legacy - custom field (older PayPal integrations)
+  if (paymentResource.custom) {
+    const custom = paymentResource.custom;
+    // Custom field format: "github:username" or just "username"
+    if (custom.startsWith('github:')) {
+      return custom.substring(7);
+    }
+    return custom;
+  }
+
+  // Method 4: Legacy - note field (alternative custom field)
+  if (paymentResource.note) {
+    const note = paymentResource.note;
+    if (note.startsWith('github:')) {
+      return note.substring(7);
+    }
+    return note;
+  }
+
+  logger.debug('No GitHub username found in payment');
+  return null;
+}
+
+/**
+ * Get donator badge config from wiki config
+ * @param {ConfigAdapter} configAdapter - Config adapter
+ * @param {PlatformAdapter} adapter - Platform adapter
+ * @returns {Object} Badge config
+ */
+function getDonatorBadgeConfig(configAdapter, adapter) {
+  try {
+    const wikiConfig = configAdapter.getWikiConfig(adapter);
+
+    // Default badge config
+    const defaultConfig = {
+      badge: '💎',
+      color: '#ffd700',
+      title: 'Donator',
+    };
+
+    // Check if donation badge is configured
+    if (wikiConfig?.features?.donation?.badge) {
+      return {
+        badge: wikiConfig.features.donation.badge.badge || defaultConfig.badge,
+        color: wikiConfig.features.donation.badge.color || defaultConfig.color,
+        title: wikiConfig.features.donation.badge.title || defaultConfig.title,
+      };
+    }
+
+    return defaultConfig;
+  } catch (error) {
+    logger.warn('Failed to load badge config, using defaults', { error: error.message });
+    return {
+      badge: '💎',
+      color: '#ffd700',
+      title: 'Donator',
+    };
+  }
+}
+
+/**
+ * Handle PayPal webhook request
+ * @param {PlatformAdapter} adapter - Platform adapter instance
+ * @param {ConfigAdapter} configAdapter - Config adapter instance
+ * @returns {Promise<Object>} Platform-specific response
+ */
+export async function handlePayPalWebhook(adapter, configAdapter) {
+  // Only accept POST requests
+  if (adapter.getMethod() !== 'POST') {
+    return adapter.createJsonResponse(405, { error: 'Method not allowed' });
+  }
+
+  try {
+    // Get webhook headers
+    const transmissionId = adapter.getHeader('paypal-transmission-id');
+    const transmissionTime = adapter.getHeader('paypal-transmission-time');
+    const transmissionSig = adapter.getHeader('paypal-transmission-sig');
+    const certUrl = adapter.getHeader('paypal-cert-url');
+    const authAlgo = adapter.getHeader('paypal-auth-algo');
+
+    // Get webhook ID from environment
+    const webhookId = adapter.getEnv('PAYPAL_WEBHOOK_ID');
+
+    if (!webhookId) {
+      logger.error('PAYPAL_WEBHOOK_ID not configured');
+      return adapter.createJsonResponse(500, { error: 'Server configuration error' });
+    }
+
+    // Get raw request body for signature verification
+    const rawBody = await adapter.getBody();
+
+    // Verify PayPal signature (SECURITY: Critical to prevent fake webhooks)
+    const isValid = await verifyPayPalSignature(
+      transmissionId,
+      transmissionTime,
+      webhookId,
+      rawBody,
+      certUrl,
+      transmissionSig,
+      authAlgo
+    );
+
+    if (!isValid) {
+      logger.error('Invalid PayPal webhook signature', { transmissionId });
+      return adapter.createJsonResponse(401, { error: 'Invalid signature' });
+    }
+
+    logger.info('PayPal webhook signature verified', { transmissionId });
+
+    // Parse webhook event
+    const event = JSON.parse(rawBody);
+    const eventType = event.event_type;
+    const resource = event.resource;
+
+    logger.info('Received PayPal webhook', { eventType, transmissionId });
+
+    // Only handle payment completion events
+    if (eventType !== 'PAYMENT.SALE.COMPLETED' && eventType !== 'PAYMENT.CAPTURE.COMPLETED') {
+      logger.debug('Ignoring non-payment event', { eventType });
+      return adapter.createJsonResponse(200, { success: true, message: 'Event ignored' });
+    }
+
+    // Extract GitHub username from payment
+    const githubUsername = extractGitHubUsername(resource, event);
+
+    if (!githubUsername) {
+      logger.warn('No GitHub username found in payment', { transmissionId });
+      // Still return 200 to acknowledge webhook (manual assignment can be done later)
+      return adapter.createJsonResponse(200, {
+        success: true,
+        message: 'Payment received but no GitHub username provided',
+      });
+    }
+
+    logger.info('Processing donator badge assignment', {
+      username: githubUsername,
+      amount: resource.amount?.total,
+      currency: resource.amount?.currency,
+      transactionId: resource.id,
+    });
+
+    // Get bot token from environment
+    const botToken = adapter.getEnv('WIKI_BOT_TOKEN');
+    if (!botToken) {
+      logger.error('WIKI_BOT_TOKEN not configured');
+      return adapter.createJsonResponse(500, { error: 'Server configuration error' });
+    }
+
+    // Get repo info from environment
+    const owner = adapter.getEnv('WIKI_REPO_OWNER') || adapter.getEnv('VITE_WIKI_REPO_OWNER');
+    const repo = adapter.getEnv('WIKI_REPO_NAME') || adapter.getEnv('VITE_WIKI_REPO_NAME');
+
+    if (!owner || !repo) {
+      logger.error('Repository config missing');
+      return adapter.createJsonResponse(500, { error: 'Server configuration error' });
+    }
+
+    // Initialize Octokit with bot token
+    const octokit = new Octokit({ auth: botToken });
+
+    // Get user ID from GitHub (required for donator registry)
+    let userId;
+    try {
+      const { data: githubUser } = await octokit.rest.users.getByUsername({
+        username: githubUsername,
+      });
+      userId = githubUser.id;
+    } catch (error) {
+      logger.error('Failed to fetch GitHub user', { username: githubUsername, error: error.message });
+      return adapter.createJsonResponse(200, {
+        success: false,
+        message: 'Failed to fetch GitHub user',
+      });
+    }
+
+    // Import donatorRegistry service dynamically (ESM module)
+    const { saveDonatorStatus } = await import(
+      '../../../wiki-framework/src/services/github/donatorRegistry.js'
+    );
+
+    // Get badge config
+    const badgeConfig = getDonatorBadgeConfig(configAdapter, adapter);
+
+    // Build donator status object
+    const donatorStatus = {
+      isDonator: true,
+      donatedAt: new Date().toISOString(),
+      amount: parseFloat(resource.amount?.total) || undefined,
+      badge: badgeConfig.badge,
+      color: badgeConfig.color,
+      assignedBy: 'paypal-webhook',
+      transactionId: resource.id,
+    };
+
+    // Save donator status to registry
+    await saveDonatorStatus(owner, repo, githubUsername, userId, donatorStatus);
+
+    logger.info('Donator badge assigned successfully', {
+      username: githubUsername,
+      transactionId: resource.id,
+    });
+
+    return adapter.createJsonResponse(200, {
+      success: true,
+      message: 'Donator badge assigned',
+      username: githubUsername,
+    });
+  } catch (error) {
+    logger.error('PayPal webhook error', { error: error.message, stack: error.stack });
+    // Return 200 to prevent PayPal retries (log error for manual investigation)
+    return adapter.createJsonResponse(200, {
+      success: false,
+      error: 'Internal error',
+    });
+  }
+}

@@ -160,7 +160,17 @@
       "Bash(Get-Content \"C:\\\\Users\\\\dolb9\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Projects-slayerlegend-wiki\\\\tasks\\\\b12a233.output\" -Tail 50)",
       "Bash(Start-Sleep -Seconds 15)",
       "Bash(Get-Content \"C:\\\\Users\\\\dolb9\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Projects-slayerlegend-wiki\\\\tasks\\\\b073b13.output\" -Tail 30)",
-      "Bash(Get-ChildItem -Path \"functions\" -Filter \"*.js\" -File)"
+      "Bash(Get-ChildItem -Path \"functions\" -Filter \"*.js\" -File)",
+      "Bash(Test-Path \"netlify\\\\functions\")",
+      "Bash(git diff:*)",
+      "Bash(Get-Content \"C:\\\\Projects\\\\slayerlegend\\\\wiki\\\\public\\\\data\\\\image-index.json\")",
+      "Bash(for file in *.js)",
+      "Bash(Remove-Item -Path \".netlify\\\\functions-serve\" -Recurse -Force -ErrorAction SilentlyContinue)",
+      "Bash(Remove-Item -Path \".netlify\\\\state\" -Recurse -Force -ErrorAction SilentlyContinue)",
+      "Bash(Write-Host \"Netlify caches cleared\")",
+      "Bash(netlify --version:*)",
+      "Bash(npx netlify:*)",
+      "Bash(Test-Path \"C:\\\\Projects\\\\slayerlegend\\\\wiki\\\\netlify\\\\functions\\\\package.json\")",
     ]
   }
 }

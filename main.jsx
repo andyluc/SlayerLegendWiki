@@ -440,7 +440,6 @@ const SpiritBuilderPage = React.lazy(() => import('./src/pages/SpiritBuilderPage
 const MySpiritCollectionPage = React.lazy(() => import('./src/pages/MySpiritCollectionPage.jsx'));
 const MyCollectionsPage = React.lazy(() => import('./src/pages/MyCollectionsPage.jsx'));
 const SoulWeaponEngravingBuilderPage = React.lazy(() => import('./src/pages/SoulWeaponEngravingBuilderPage.jsx'));
-const DonatePage = React.lazy(() => import('./src/pages/DonatePage.jsx'));
 const ContentCreatorsPage = React.lazy(() => import('./wiki-framework/src/pages/ContentCreatorsPage.jsx'));
 const SkillStonesPage = React.lazy(() => import('./src/pages/SkillStonesPage.jsx'));
 
@@ -479,11 +478,6 @@ const baseRoutes = [
   {
     path: 'spirits/viewer',
     component: <SpiritSpriteDemoPage />,
-    suspense: true
-  },
-  {
-    path: 'donate',
-    component: <DonatePage />,
     suspense: true
   },
   {
