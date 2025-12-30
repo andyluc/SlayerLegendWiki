@@ -11,7 +11,7 @@ date: 2025-12-21T00:00:00.000Z
 ---
 # <span class="text-gray-900 dark:text-gray-100">PROMOTION OVERVIEW</span><img src="/images/emoticons/Emoticon_1.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 110px; height: 110px; margin:-5px 0 0 0;" data-inline="true" />
 
-<span style="text-decoration: underline;">TESTING</span>
+<u>Test</u>
 
 
 ## <span class="text-gray-600 dark:text-gray-400">STONE </span><img src="/images/promotions/0-stone.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 27px; height: 30px; margin:-10px 0 0 0;" data-inline="true" />
