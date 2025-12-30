@@ -358,9 +358,9 @@ export async function handleGithubBot(adapter, configAdapter, cryptoAdapter) {
       case 'get-pending-video-guide-deletions':
         return await handleGetPendingVideoGuideDeletions(adapter, octokit, body);
       case 'assign-donator-badge':
-        return await handleAssignDonatorBadge(adapter, octokit, body);
+        return await handleAssignDonatorBadge(adapter, octokit, body, botToken);
       case 'remove-donator-badge':
-        return await handleRemoveDonatorBadge(adapter, octokit, body);
+        return await handleRemoveDonatorBadge(adapter, octokit, body, botToken);
       default:
         return adapter.createJsonResponse(400, { error: `Unknown action: ${action}` });
     }
@@ -3682,7 +3682,7 @@ async function handleGetPendingVideoGuideDeletions(adapter, octokit, { owner, re
  * Required: owner, repo, username, userId, adminUsername, userToken
  * Optional: amount, transactionId, reason
  */
-async function handleAssignDonatorBadge(adapter, octokit, { owner, repo, username, userId, adminUsername, userToken, amount, transactionId, reason }) {
+async function handleAssignDonatorBadge(adapter, octokit, { owner, repo, username, userId, adminUsername, userToken, amount, transactionId, reason }, botToken) {
   if (!owner || !repo || !username || !adminUsername || !userToken) {
     return adapter.createJsonResponse(400, {
       error: 'Missing required fields: owner, repo, username, adminUsername, userToken'
@@ -3742,9 +3742,9 @@ async function handleAssignDonatorBadge(adapter, octokit, { owner, repo, usernam
     if (transactionId) donatorStatus.transactionId = transactionId;
     if (reason) donatorStatus.reason = reason;
 
-    // Save donator status
+    // Save donator status (pass bot token for serverless context)
     const { saveDonatorStatus } = await getDonatorRegistry();
-    await saveDonatorStatus(owner, repo, username, targetUserId, donatorStatus);
+    await saveDonatorStatus(owner, repo, username, targetUserId, donatorStatus, botToken);
 
     logger.info('Donator badge assigned via bot', { username, userId: targetUserId, assignedBy: adminUsername });
 
@@ -3764,7 +3764,7 @@ async function handleAssignDonatorBadge(adapter, octokit, { owner, repo, usernam
  * Required: owner, repo, username, adminUsername, userToken
  * Optional: userId, reason
  */
-async function handleRemoveDonatorBadge(adapter, octokit, { owner, repo, username, userId, adminUsername, userToken, reason }) {
+async function handleRemoveDonatorBadge(adapter, octokit, { owner, repo, username, userId, adminUsername, userToken, reason }, botToken) {
   if (!owner || !repo || !username || !adminUsername || !userToken) {
     return adapter.createJsonResponse(400, {
       error: 'Missing required fields: owner, repo, username, adminUsername, userToken'
@@ -3809,9 +3809,9 @@ async function handleRemoveDonatorBadge(adapter, octokit, { owner, repo, usernam
       }
     }
 
-    // Remove donator status
+    // Remove donator status (pass bot token for serverless context)
     const { removeDonatorStatus } = await getDonatorRegistry();
-    await removeDonatorStatus(owner, repo, username, targetUserId);
+    await removeDonatorStatus(owner, repo, username, targetUserId, botToken);
 
     logger.info('Donator badge removed via bot', { username, userId: targetUserId, removedBy: adminUsername, reason });
 

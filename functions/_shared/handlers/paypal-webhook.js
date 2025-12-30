@@ -395,8 +395,8 @@ export async function handlePayPalWebhook(adapter, configAdapter) {
       transactionId: resource.id,
     };
 
-    // Save donator status to registry
-    await saveDonatorStatus(owner, repo, githubUsername, userId, donatorStatus);
+    // Save donator status to registry (pass bot token from environment)
+    await saveDonatorStatus(owner, repo, githubUsername, userId, donatorStatus, botToken);
 
     logger.info('Donator badge assigned successfully', {
       username: githubUsername,
