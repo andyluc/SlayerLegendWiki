@@ -495,18 +495,26 @@ jobs:
                 return contributor;
               });
 
+              // Filter out contributors with zero contributions (unmerged PRs, etc.)
+              const activeContributors = formatted.filter(contributor => contributor.contributions > 0);
+
               // Sort by score (descending), fallback to contributions if equal
-              formatted.sort((a, b) => {
+              activeContributors.sort((a, b) => {
                 if (b.score !== a.score) {
                   return b.score - a.score;
                 }
                 return b.contributions - a.contributions;
               });
 
-              console.log(`✅ Enhanced ${contributorMap.size} registered + ${anonymousMap.size} anonymous contributors`);
-              console.log(`   Total: ${formatted.length} contributors`);
+              const filteredCount = formatted.length - activeContributors.length;
+              if (filteredCount > 0) {
+                console.log(`   🧹 Filtered out ${filteredCount} contributor(s) with zero contributions`);
+              }
 
-              return formatted;
+              console.log(`✅ Enhanced ${contributorMap.size} registered + ${anonymousMap.size} anonymous contributors`);
+              console.log(`   Total: ${activeContributors.length} active contributors`);
+
+              return activeContributors;
             }
 
             /**
@@ -849,17 +857,25 @@ jobs:
                 return contributor;
               });
 
+              // Filter out contributors with zero contributions (unmerged PRs, etc.)
+              const activeContributors = contributors.filter(contributor => contributor.contributions > 0);
+
               // Sort by score (descending), fallback to contributions if equal
-              contributors.sort((a, b) => {
+              activeContributors.sort((a, b) => {
                 if (b.score !== a.score) {
                   return b.score - a.score;
                 }
                 return b.contributions - a.contributions;
               });
 
+              const filteredCount = contributors.length - activeContributors.length;
+              if (filteredCount > 0) {
+                console.log(`   🧹 Filtered out ${filteredCount} contributor(s) with zero contributions`);
+              }
+
               console.log(`✅ Found ${contributorMap.size} registered + ${anonymousMap.size} anonymous contributors`);
-              console.log(`   Total: ${contributors.length} contributors`);
-              return contributors;
+              console.log(`   Total: ${activeContributors.length} active contributors`);
+              return activeContributors;
             }
 
             /**
@@ -935,16 +951,24 @@ jobs:
                 score: calculateContributorScore(contributor),
               }));
 
+              // Filter out contributors with zero contributions (unmerged PRs, etc.)
+              const activeContributors = contributors.filter(contributor => contributor.contributions > 0);
+
               // Sort by score (descending), fallback to contributions if equal
-              contributors.sort((a, b) => {
+              activeContributors.sort((a, b) => {
                 if (b.score !== a.score) {
                   return b.score - a.score;
                 }
                 return b.contributions - a.contributions;
               });
 
-              console.log(`✅ Found ${contributors.length} unique contributors in date range`);
-              return contributors;
+              const filteredCount = contributors.length - activeContributors.length;
+              if (filteredCount > 0) {
+                console.log(`   🧹 Filtered out ${filteredCount} contributor(s) with zero contributions`);
+              }
+
+              console.log(`✅ Found ${activeContributors.length} unique active contributors in date range`);
+              return activeContributors;
             }
 
             // Calculate date ranges
