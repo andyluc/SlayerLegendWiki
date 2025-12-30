@@ -254,3 +254,9 @@ h1 {
 h2 {
   margin-bottom: 0.64rem !important; /* Reduced from ~1.0666667em (40% reduction) */
 }
+
+/* Reduce margin between list items by 5% */
+li {
+  margin-top: 0.2375rem !important; /* Reduced from ~0.25rem (5% reduction) */
+  margin-bottom: 0.2375rem !important; /* Reduced from ~0.25rem (5% reduction) */
+}

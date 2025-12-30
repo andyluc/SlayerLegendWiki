@@ -170,7 +170,8 @@
       "Bash(Write-Host \"Netlify caches cleared\")",
       "Bash(netlify --version:*)",
       "Bash(npx netlify:*)",
-      "Bash(Test-Path \"C:\\\\Projects\\\\slayerlegend\\\\wiki\\\\netlify\\\\functions\\\\package.json\")"
+      "Bash(Test-Path \"C:\\\\Projects\\\\slayerlegend\\\\wiki\\\\netlify\\\\functions\\\\package.json\")",
+      "Bash(npx postcss:*)"
     ]
   }
 }

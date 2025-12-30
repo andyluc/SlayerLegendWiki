@@ -4,15 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Quick Links
 
+### Core Documentation
 - **[Repository Permissions](.claude/repository-permissions.md)** - Branch protection, bot setup, security configuration
 - **[Cloudflare Pages Deployment](.claude/cloudflare-pages-deployment.md)** - Build configuration, test execution, environment variables
-- **[CDN Repository Setup](.claude/plans/cdn-repo-setup.md)** - Video CDN repository setup with Git LFS
 - **[Deployment Platforms](.claude/deployment-platforms.md)** - Netlify vs Cloudflare comparison, video upload limits
-- **[Architecture Guide](.claude/architecture.md)** - Framework structure, submodules, what lives where
-- **[Registry Patterns](.claude/registries.md)** - Content renderer, route, and data browser registries
-- **[Development Guide](.claude/development.md)** - Commands, debugging, git workflow
-- **[Features Reference](.claude/features.md)** - Components, hooks, and framework capabilities
-- **[Configuration](.claude/configuration.md)** - Config files, environment setup, deployment
+- **[Security Audit Report](.claude/security-audit-report.md)** - HTML injection protections, XSS prevention, security layers
+
+### Additional Resources
+- **[PayPal Webhook Setup](.claude/paypal-webhook-setup.md)** - PayPal integration for donations
+- **[Serverless Caching Audit](.claude/serverless-caching-audit.md)** - Caching strategies and implementation
+- **[HTML Security Validation](.claude/memory/HTML-SECURITY-VALIDATION-WORKFLOW.md)** - Automated security testing workflow
 
 ## Project Overview
 
@@ -28,15 +29,78 @@ This is a **parent wiki project** built using the [GitHub Wiki Framework](https:
 - Data files for Data Browser
 - Pickers for page editor
 
-**READ FROM THE LOGS AT ANY TIME:** The logs are located in `wiki-framework/logs/debug.log`
-- These are remote logs for development
-- Check the `public/wiki-config.json` to confirm that `enableRemoteLoggingInDev` is `true`, if so you know you can listen for the logs
-- The hotreload will apply your changes so in the case where there isn't anything required from the developer, start reviewing the logs for what you need
-- The developer will cancel this if they need something else
-- If there is no activity in the logs after 3 minutes, cancel the background task to stop viewing the logs (developer is like AFK)
-- This is CRITICAL for fast development!
+## Logging System
 
-See **[Registry Patterns](.claude/registries.md)** for details.
+The project has TWO logging systems that should be monitored during development:
+
+### 1. Client-Side Logs (Browser/Frontend)
+**Location:** `wiki-framework/logs/debug.log`
+
+- These are remote logs written by the client-side JavaScript
+- **Requirement:** Check `public/wiki-config.json` to confirm `enableRemoteLoggingInDev: true`
+- **When to check:** For frontend issues (React components, UI interactions, client-side logic)
+- **How to read:** `tail -f wiki-framework/logs/debug.log` (use `-f` to follow in real-time)
+- **Auto-cancellation:** If no activity for 3+ minutes, stop monitoring (user is AFK)
+
+**Example command:**
+```bash
+tail -50 wiki-framework/logs/debug.log  # Last 50 lines
+tail -f wiki-framework/logs/debug.log   # Follow in real-time
+```
+
+### 2. Server-Side Logs (Wrangler/Cloudflare Functions)
+**Location:** `.wrangler/server.log`
+
+- All Wrangler output (stdout/stderr) is captured to this file in real-time
+- These logs include:
+  - `[WRANGLER]` - Cloudflare Worker/Function logs
+  - `[VITE]` - Vite dev server logs (from the WRANGLER process output)
+  - `[ERROR]` - Critical errors in serverless functions
+  - `[WARNING]` - Non-critical warnings
+  - `[INFO]` - Informational messages
+  - Stack traces with file paths and line numbers
+- **When to check:** For backend/API issues (serverless functions, database operations, authentication)
+
+**How to monitor (TWO methods):**
+
+**Method 1: Read log file directly (Claude can do this)**
+```bash
+tail -50 .wrangler/server.log   # Last 50 lines
+tail -f .wrangler/server.log    # Follow in real-time (use Ctrl+C to stop)
+npm run logs:wrangler           # Shortcut for tail -f
+```
+
+**Method 2: Ask user for terminal output**
+- If log file doesn't exist or is empty, ask user to share terminal output
+
+**Example Wrangler error format:**
+```
+[WRANGLER] ✘ [ERROR] [HandlerName] Error message {
+[WRANGLER]     error: 'Detailed error description',
+[WRANGLER]     stack: 'TypeError: ...\n' +
+[WRANGLER]       '    at functionName (file:///path/to/file.js:123:45)\n' +
+[WRANGLER]       ...
+[WRANGLER]   }
+[WRANGLER] [wrangler:info] POST /api/endpoint 500 Internal Server Error (7ms)
+```
+
+### Best Practice Workflow
+
+**For backend/API debugging:**
+1. ✅ Read `.wrangler/server.log` directly using `tail -50 .wrangler/server.log`
+2. ✅ Look for `[ERROR]`, `[WARNING]`, or `[DEBUG]` messages
+3. ✅ Read error messages and stack traces
+4. ✅ Identify the file and line number from stack trace
+5. ✅ Fix the issue
+6. ✅ Monitor logs in real-time with `tail -f .wrangler/server.log` (run in background with `run_in_background: true`)
+7. ✅ Ask user to test and verify fix
+
+**For frontend debugging:**
+1. ✅ Read `wiki-framework/logs/debug.log` for client-side errors
+2. ✅ Use `tail -f` to monitor in real-time
+3. ✅ Look for logger.error() and logger.warn() messages
+
+**CRITICAL:** Always check server logs when API endpoints return 500, 403, 401, or other error status codes!
 
 ## Quick Start
 
@@ -126,8 +190,6 @@ Parent Project (this repo)       Framework Submodule
 
 **IMPORTANT:** Always edit the **root** `wiki-config.json`, never `public/wiki-config.json`
 
-See **[Architecture Guide](.claude/architecture.md)** for complete details.
-
 ## Common Tasks
 
 ### Adding New Content
@@ -138,9 +200,7 @@ See **[Architecture Guide](.claude/architecture.md)** for complete details.
 ### Adding Game-Specific Component
 1. Create component in `src/components/`
 2. Register in `main.jsx` if needed for markdown rendering
-3. Use Content Renderer Registry pattern
-
-See **[Development Guide](.claude/development.md)** for workflows.
+3. Use Content Renderer Registry pattern (see `main.jsx` for examples)
 
 ### Modifying Framework
 **DO NOT** edit `wiki-framework/` directly. Instead:
@@ -157,6 +217,40 @@ See **[Development Guide](.claude/development.md)** for workflows.
 5. **Restart dev server** after configuration changes (config watcher should pick up changes automatically)
 6. **Use frontmatter** on all markdown files for proper indexing
 7. **Never bypass HTML sanitization** - Don't use `dangerouslySetInnerHTML`
+
+## Security
+
+The wiki has **comprehensive, multi-layer protection** against HTML injection and XSS attacks:
+
+### Client-Side Protection
+- ✅ **`rehype-sanitize`** - Strips dangerous HTML on every render
+- ✅ **Whitelist-based** - Only explicitly allowed elements/attributes
+- ✅ **Protocol filtering** - Blocks `javascript:`, `data:`, `blob:` URLs
+- **Location**: `wiki-framework/src/components/wiki/PageViewer.jsx:74-107`
+
+### Server-Side Validation
+- ✅ **Automated PR checks** - Scans for 14 dangerous patterns
+- ✅ **Blocks merges** - Critical issues prevent PR approval
+- ✅ **Security labels** - Adds `security:warning` label
+- **Workflow**: `.github/workflows/html-security-validation.yml`
+
+### What's Blocked
+- `<script>` tags, event handlers (`onclick`, etc.)
+- `javascript:` URLs, data URIs with HTML
+- `<iframe>`, `<object>`, `<embed>`, `<form>` tags
+- Inline styles with JavaScript
+- Suspicious class names (non-Tailwind)
+
+### What's Allowed
+- `<span class="text-*">` for Tailwind text colors
+- `<img src="...">` with safe protocols only
+- `<div align="...">` for text alignment
+- Headings with `id` for anchor links
+- Standard markdown elements
+
+**See**: [Security Audit Report](.claude/security-audit-report.md) for complete analysis.
+
+**Documentation**: `wiki-framework/SECURITY.md`
 
 ## Coding Standards
 
@@ -318,15 +412,7 @@ See **[Repository Permissions](.claude/repository-permissions.md)** for complete
 
 ## Documentation
 
-For detailed information on specific topics, see:
-
-- **[Repository Permissions](.claude/repository-permissions.md)** - Branch protection, bot setup, security
-- **[CDN Repository Setup](.claude/plans/cdn-repo-setup.md)** - Video CDN setup with Git LFS
-- **[Architecture](.claude/architecture.md)** - Full architecture details
-- **[Registries](.claude/registries.md)** - Registry pattern documentation
-- **[Development](.claude/development.md)** - Development workflows
-- **[Features](.claude/features.md)** - Framework features reference
-- **[Configuration](.claude/configuration.md)** - Config and deployment
+For detailed information on specific topics, see the **Quick Links** section at the top of this file.
 
 ## Getting Help
 

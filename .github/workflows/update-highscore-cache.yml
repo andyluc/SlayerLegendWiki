@@ -471,10 +471,10 @@ jobs:
                         }
                       }
 
-                      // Add to contributor stats
+                      // Add to contributor stats (1 contribution per PR, not per commit)
                       if (contributorMap.has(userId)) {
                         const contributor = contributorMap.get(userId);
-                        contributor.contributions++;
+                        contributor.contributions++;  // 1 per PR to avoid gaming the system
                         contributor.additions += additions;
                         contributor.deletions += deletions;
                         linkedPRCount++;
@@ -816,10 +816,10 @@ jobs:
                         }
                       }
 
-                      // Add to contributor stats
+                      // Add to contributor stats (1 contribution per PR, not per commit)
                       if (contributorMap.has(userKey)) {
                         const contributor = contributorMap.get(userKey);
-                        contributor.contributions++;
+                        contributor.contributions++;  // 1 per PR to avoid gaming the system
                         contributor.additions += additions;
                         contributor.deletions += deletions;
                         linkedPRCount++;
@@ -834,7 +834,7 @@ jobs:
                             userId: userId,
                             login: userData.login,
                             avatarUrl: userData.avatar_url,
-                            contributions: 1,
+                            contributions: 1,  // 1 per PR to avoid gaming the system
                             additions,
                             deletions,
                             profileUrl: userData.html_url,

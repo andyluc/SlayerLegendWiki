@@ -497,6 +497,27 @@
       },
       "showInSidebar": true,
       "sidebarPosition": "top"
+    },
+    "profilePictures": {
+      "enabled": true,
+      "maxFileSizeMB": 3,
+      "allowedFormats": ["jpg", "jpeg", "png", "webp", "gif"],
+      "outputFormat": "webp",
+      "outputQuality": 85,
+      "outputDimensions": { "width": 512, "height": 512 },
+      "moderation": {
+        "enabled": false,
+        "provider": "openai-vision"
+      },
+      "cdn": {
+        "provider": "github",
+        "github": {
+          "owner": "BenDol",
+          "repo": "SlayerLegendCDN",
+          "path": "avatars",
+          "servingMode": "jsdelivr"
+        }
+      }
     }
   },
   "theme": {
