@@ -5,7 +5,7 @@ import SkillStoneSelector from './SkillStoneSelector';
 import SavedBuildsPanel from './SavedBuildsPanel';
 import ValidatedInput from './ValidatedInput';
 import { encodeBuild, decodeBuild } from '../../wiki-framework/src/components/wiki/BuildEncoder';
-import { useAuthStore, getToken } from '../../wiki-framework/src/store/authStore';
+import { useAuthStore } from '../../wiki-framework/src/store/authStore';
 import { setCache } from '../utils/buildCache';
 import { saveBuild as saveSharedBuild, loadBuild as loadSharedBuild, generateShareUrl } from '../../wiki-framework/src/services/github/buildShare';
 import { useDraftStorage } from '../../wiki-framework/src/hooks/useDraftStorage';
@@ -466,7 +466,7 @@ const SkillStoneBuilder = forwardRef(({ isModal = false, initialBuild = null, on
     try {
       const serializedBuild = serializeBuild({ ...build, name: buildName });
 
-      const token = getToken();
+      const token = useAuthStore.getState().getToken();
       const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
         headers: {

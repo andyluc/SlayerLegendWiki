@@ -5,7 +5,7 @@ import SkillSelector from './SkillSelector';
 import SavedBuildsPanel from './SavedBuildsPanel';
 import ValidatedInput from './ValidatedInput';
 import { encodeBuild, decodeBuild } from '../../wiki-framework/src/components/wiki/BuildEncoder';
-import { useAuthStore, getToken } from '../../wiki-framework/src/store/authStore';
+import { useAuthStore } from '../../wiki-framework/src/store/authStore';
 import { setCache } from '../utils/buildCache';
 import { saveBuild as saveSharedBuild, loadBuild as loadSharedBuild, generateShareUrl } from '../../wiki-framework/src/services/github/buildShare';
 import { useDraftStorage } from '../../wiki-framework/src/hooks/useDraftStorage';
@@ -404,7 +404,7 @@ const SkillBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave 
             slots: serializedBuild.slots,
           };
 
-          const token = getToken();
+          const token = useAuthStore.getState().getToken();
           await fetch(getSaveDataEndpoint(), {
             method: 'POST',
             headers: {

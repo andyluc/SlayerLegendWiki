@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Loader, Trash2, Clock, CheckCircle2, LogIn, ChevronDown, ChevronUp, Copy, Pencil } from 'lucide-react';
-import { useAuthStore, getToken } from '../../wiki-framework/src/store/authStore';
+import { useAuthStore } from '../../wiki-framework/src/store/authStore';
 import { useWikiConfig } from '../../wiki-framework/src/hooks/useWikiConfig';
 import { useLoginFlow } from '../../wiki-framework/src/hooks/useLoginFlow';
 import LoginModal from '../../wiki-framework/src/components/auth/LoginModal';
@@ -170,7 +170,7 @@ const SavedBuildsPanel = ({
         slots: currentBuild.slots,
       };
 
-      const token = getToken();
+      const token = useAuthStore.getState().getToken();
       const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
         headers: {
@@ -249,7 +249,7 @@ const SavedBuildsPanel = ({
       // Convert buildType to cache key (e.g., 'skill-builds' -> 'skill_builds')
       const cacheKey = buildType.replace(/-/g, '_');
 
-      const token = getToken();
+      const token = useAuthStore.getState().getToken();
       const response = await fetch(getDeleteDataEndpoint(), {
         method: 'POST',
         headers: {
@@ -297,7 +297,7 @@ const SavedBuildsPanel = ({
       delete buildDataCopy.updatedAt;
       buildDataCopy.name = copyName;
 
-      const token = getToken();
+      const token = useAuthStore.getState().getToken();
       const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
         headers: {
@@ -353,7 +353,7 @@ const SavedBuildsPanel = ({
     try {
       const updatedBuild = { ...build, name: validation.sanitized };
 
-      const token = getToken();
+      const token = useAuthStore.getState().getToken();
       const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
         headers: {

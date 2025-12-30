@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronDown, ChevronUp, Trash2, Upload, AlertCircle, Tag, Copy, Pencil } from 'lucide-react';
 import SpiritSprite from './SpiritSprite';
-import { useAuthStore, getToken } from '../../wiki-framework/src/store/authStore';
+import { useAuthStore } from '../../wiki-framework/src/store/authStore';
 import { getCache, setCache, clearCache } from '../utils/buildCache';
 import { getSaveDataEndpoint, getLoadDataEndpoint, getDeleteDataEndpoint } from '../utils/apiEndpoints.js';
 import { getUserLoadouts } from '../services/battleLoadouts';
@@ -252,7 +252,7 @@ const SavedSpiritBuildsPanel = ({
     setDeletingId(buildId);
 
     try {
-      const token = getToken();
+      const token = useAuthStore.getState().getToken();
       const response = await fetch(getDeleteDataEndpoint(), {
         method: 'POST',
         headers: {
@@ -305,7 +305,7 @@ const SavedSpiritBuildsPanel = ({
       delete buildDataCopy.updatedAt;
       buildDataCopy.name = copyName;
 
-      const token = getToken();
+      const token = useAuthStore.getState().getToken();
       const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
         headers: {
@@ -364,7 +364,7 @@ const SavedSpiritBuildsPanel = ({
     try {
       const updatedBuild = { ...build, name: validation.sanitized };
 
-      const token = getToken();
+      const token = useAuthStore.getState().getToken();
       const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
         headers: {

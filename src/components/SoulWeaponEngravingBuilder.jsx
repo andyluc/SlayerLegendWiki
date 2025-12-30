@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import { Share2, Download, Upload, Settings, Trash2, Check, Loader, RefreshCw, RotateCw, Lock, X, CheckCircle, CheckCircle2, Zap, Edit, Send, Save } from 'lucide-react';
-import { useAuthStore, getToken } from '../../wiki-framework/src/store/authStore';
+import { useAuthStore } from '../../wiki-framework/src/store/authStore';
 import { useDraftStorage } from '../../wiki-framework/src/hooks/useDraftStorage';
 import { encodeBuild, decodeBuild } from '../../wiki-framework/src/components/wiki/BuildEncoder';
 import { saveBuild as saveSharedBuild, loadBuild as loadSharedBuild, generateShareUrl } from '../../wiki-framework/src/services/github/buildShare';
@@ -2069,7 +2069,7 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
 
       // Call save-data function with type 'grid-submission'
       // Authenticated users will have their username attached, otherwise anonymous
-      const token = isAuthenticated ? getToken() : null;
+      const token = isAuthenticated ? useAuthStore.getState().getToken() : null;
       const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
         headers: {
@@ -2560,7 +2560,7 @@ const SoulWeaponEngravingBuilder = forwardRef(({ isModal = false, initialBuild =
         inventory: serializedBuild.inventory
       };
 
-      const token = getToken();
+      const token = useAuthStore.getState().getToken();
       const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
         headers: {

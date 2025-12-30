@@ -5,7 +5,7 @@ import SpiritComponent from './SpiritComponent';
 import SoulWeaponEngravingGrid from './SoulWeaponEngravingGrid';
 import SkillStone from './SkillStone';
 import BattleLoadoutModal from './BattleLoadoutModal';
-import { useAuthStore, getToken } from '../../wiki-framework/src/store/authStore';
+import { useAuthStore } from '../../wiki-framework/src/store/authStore';
 import { loadBuild, saveBuild, generateShareUrl } from '../../wiki-framework/src/services/github/buildShare';
 import {
   deserializeLoadout,
@@ -336,7 +336,7 @@ const BattleLoadoutCard = ({ identifier, mode = 'detailed', showActions = true }
         serializedData: serialized
       });
 
-      const token = getToken();
+      const token = useAuthStore.getState().getToken();
       const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
         headers: {

@@ -6,7 +6,7 @@ import SavedSpiritBuildsPanel from './SavedSpiritBuildsPanel';
 import SavedSpiritsGallery from './SavedSpiritsGallery';
 import ValidatedInput from './ValidatedInput';
 import { encodeBuild, decodeBuild } from '../../wiki-framework/src/components/wiki/BuildEncoder';
-import { useAuthStore, getToken } from '../../wiki-framework/src/store/authStore';
+import { useAuthStore } from '../../wiki-framework/src/store/authStore';
 import { useConfigStore } from '../../wiki-framework/src/store/configStore';
 import { setCache, getCache } from '../utils/buildCache';
 import { saveBuild as saveSharedBuild, loadBuild as loadSharedBuild, generateShareUrl } from '../../wiki-framework/src/services/github/buildShare';
@@ -742,7 +742,7 @@ const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave
 
       // Save to my-spirits collection
       const endpoint = getSaveDataEndpoint();
-      const token = getToken();
+      const token = useAuthStore.getState().getToken();
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -886,7 +886,7 @@ const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave
         skillEnhancementLevel: slot.skillEnhancementLevel
       };
 
-      const token = getToken();
+      const token = useAuthStore.getState().getToken();
       const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
         headers: {
@@ -1081,7 +1081,7 @@ const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave
           const serializedBuild = serializeBuild({ slots: newSlots });
           serializedBuild.name = buildName;
 
-          const token = getToken();
+          const token = useAuthStore.getState().getToken();
           await fetch(getSaveDataEndpoint(), {
             method: 'POST',
             headers: {
@@ -1335,7 +1335,7 @@ const SpiritBuilder = forwardRef(({ isModal = false, initialBuild = null, onSave
         slots: serializedBuild.slots, // Only store { spiritId, level, awakeningLevel, etc. }
       };
 
-      const token = getToken();
+      const token = useAuthStore.getState().getToken();
       const response = await fetch(getSaveDataEndpoint(), {
         method: 'POST',
         headers: {
