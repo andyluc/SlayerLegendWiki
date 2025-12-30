@@ -21,7 +21,6 @@ import { createLogger } from '../../../src/utils/logger.js';
  * USER IDENTIFICATION: Extracts GitHub username from custom field or matches email
  */
 
-import crypto from 'crypto';
 import { Octokit } from '@octokit/rest';
 
 const logger = createLogger('PayPalWebhook');
@@ -47,11 +46,17 @@ async function verifyPayPalSignature(
   authAlgo
 ) {
   try {
-    // Build expected signature string
-    const expectedString = `${transmissionId}|${transmissionTime}|${webhookId}|${crypto
-      .createHash('sha256')
-      .update(eventBody)
-      .digest('base64')}`;
+    // Hash event body using Web Crypto API
+    const bodyEncoder = new TextEncoder();
+    const bodyData = bodyEncoder.encode(eventBody);
+    const bodyHashBuffer = await crypto.subtle.digest('SHA-256', bodyData);
+    const bodyHashArray = Array.from(new Uint8Array(bodyHashBuffer));
+    const bodyHashBase64 = btoa(String.fromCharCode(...bodyHashArray));
+
+    // Build expected signature string according to PayPal spec
+    const expectedString = `${transmissionId}|${transmissionTime}|${webhookId}|${bodyHashBase64}`;
+
+    logger.debug('Verifying PayPal signature', { transmissionId, certUrl });
 
     // Fetch PayPal certificate
     const certResponse = await fetch(certUrl);
@@ -60,17 +65,53 @@ async function verifyPayPalSignature(
       return false;
     }
 
-    const cert = await certResponse.text();
+    const certPEM = await certResponse.text();
 
-    // Verify signature using certificate
-    const verifier = crypto.createVerify('SHA256');
-    verifier.update(expectedString);
-    const isValid = verifier.verify(cert, transmissionSig, 'base64');
+    // Extract certificate content (remove PEM headers/footers)
+    const pemHeader = '-----BEGIN CERTIFICATE-----';
+    const pemFooter = '-----END CERTIFICATE-----';
+    const pemContents = certPEM
+      .replace(pemHeader, '')
+      .replace(pemFooter, '')
+      .replace(/\s/g, '');
+
+    // Convert base64 cert to ArrayBuffer
+    const binaryDerString = atob(pemContents);
+    const binaryDer = new Uint8Array(binaryDerString.length);
+    for (let i = 0; i < binaryDerString.length; i++) {
+      binaryDer[i] = binaryDerString.charCodeAt(i);
+    }
+
+    // Import the certificate as a public key using Web Crypto API
+    const publicKey = await crypto.subtle.importKey(
+      'spki',
+      binaryDer.buffer,
+      {
+        name: 'RSASSA-PKCS1-v1_5',
+        hash: 'SHA-256',
+      },
+      false,
+      ['verify']
+    );
+
+    // Convert signature from base64 to ArrayBuffer
+    const signatureBytes = Uint8Array.from(atob(transmissionSig), c => c.charCodeAt(0));
+
+    // Convert expected string to ArrayBuffer
+    const dataBytes = new TextEncoder().encode(expectedString);
+
+    // Verify signature using Web Crypto API
+    const isValid = await crypto.subtle.verify(
+      'RSASSA-PKCS1-v1_5',
+      publicKey,
+      signatureBytes,
+      dataBytes
+    );
 
     logger.debug('PayPal signature verification', { isValid });
     return isValid;
   } catch (error) {
-    logger.error('PayPal signature verification error', { error: error.message });
+    logger.error('PayPal signature verification error', { error: error.message, stack: error.stack });
     return false;
   }
 }
@@ -221,23 +262,30 @@ export async function handlePayPalWebhook(adapter, configAdapter) {
     // Get raw request body for signature verification
     const rawBody = await adapter.getBody();
 
-    // Verify PayPal signature (SECURITY: Critical to prevent fake webhooks)
-    const isValid = await verifyPayPalSignature(
-      transmissionId,
-      transmissionTime,
-      webhookId,
-      rawBody,
-      certUrl,
-      transmissionSig,
-      authAlgo
-    );
+    // Allow skipping signature verification in development/sandbox (NOT RECOMMENDED for production)
+    const skipVerification = adapter.getEnv('PAYPAL_SKIP_SIGNATURE_VERIFICATION') === 'true';
 
-    if (!isValid) {
-      logger.error('Invalid PayPal webhook signature', { transmissionId });
-      return adapter.createJsonResponse(401, { error: 'Invalid signature' });
+    if (skipVerification) {
+      logger.warn('⚠️ PayPal signature verification SKIPPED (development mode)', { transmissionId });
+    } else {
+      // Verify PayPal signature (SECURITY: Critical to prevent fake webhooks)
+      const isValid = await verifyPayPalSignature(
+        transmissionId,
+        transmissionTime,
+        webhookId,
+        rawBody,
+        certUrl,
+        transmissionSig,
+        authAlgo
+      );
+
+      if (!isValid) {
+        logger.error('Invalid PayPal webhook signature', { transmissionId });
+        return adapter.createJsonResponse(401, { error: 'Invalid signature' });
+      }
+
+      logger.info('PayPal webhook signature verified', { transmissionId });
     }
-
-    logger.info('PayPal webhook signature verified', { transmissionId });
 
     // Parse webhook event
     const event = JSON.parse(rawBody);
