@@ -41,7 +41,7 @@ order: 0
 
 | **Luck (LUK)** <img src="/images/icons/icon_growth_lv05_1.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 40px; height: 40px; margin: 0 0.25em;" data-inline="true" /> | **Accuracy (ACC)** <img src="/images/icons/icon_growth_lv06_1.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 40px; height: 40px; margin: 0 0.25em;" data-inline="true" />| **Dodge** <img src="/images/icons/icon_growth_lv07_1.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 40px; height: 40px; margin: 0 0.25em;" data-inline="true" />|
 |----------|----------|----------|
-|Insert text here.|Insert text here.|Insert text here.|
+|This attribute determines the amount of gold you receive from defeating monsters.|This attribute determines the accuracy of your attacks.|This attribute determines how often you can evade enemy attacks.|
  
 
 # <span class="text-gray-900 dark:text-gray-100"><u>Growing Knowledge</u></span>
