@@ -32,24 +32,3 @@ Hello! Welcome to the Slayer Legend guide created by me (Andy). This guide is de
 So, you’ve created your character, huh? Don’t worry, you’ll be able to customize your Slayer Legend avatar as you obtain new outfits, and you can change your name once you reach level 100.
 
 From this point on, I’ll be skipping ahead to stage 340 (Ether Promotion), which marks the beginning of mid game. Anything before that is considered early game and is generally easy to progress through without much trouble. If you need help during these stages, I recommend checking the main Slayer Legend discord. Here are some important considerations and unlocks during this period:
-
-# Page Title
-
-This page provides an overview and detailed information about the topic.
-
-## Introduction
-
-Add your introduction here. Explain what this page covers and why it's important.
-
-## Main Content
-
-Add the main content sections here. You can include:
-
-- Key concepts and definitions
-- Step-by-step guides or instructions
-- Important tips and best practices
-- Examples and use cases
-
-## Additional Information
-
-Include any supplementary details, notes, or related information.

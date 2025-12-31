@@ -45,6 +45,8 @@ async function parseMultipartFormData(event) {
   // Parse multipart data
   const parts = parseMultipartBody(body, boundary);
 
+  logger.info('Total parts parsed', { count: parts.length });
+
   // Separate fields and files
   const fields = {};
   const files = {};
@@ -65,8 +67,13 @@ async function parseMultipartFormData(event) {
       });
     } else {
       // It's a text field
-      fields[part.name] = part.data.toString('utf-8');
-      logger.debug('Field parsed', { name: part.name });
+      const value = part.data.toString('utf-8').trim(); // Trim whitespace and CRLF
+      fields[part.name] = value;
+      logger.debug('Field parsed', {
+        name: part.name,
+        value: value.substring(0, 100), // Log first 100 chars
+        length: value.length
+      });
     }
   }
 
@@ -107,12 +114,7 @@ function parseMultipartBody(body, boundary) {
     // Extract part between boundaries
     const partBuffer = body.slice(position, nextBoundary);
 
-    // Check if this is the end boundary
-    if (body.slice(nextBoundary, nextBoundary + endBoundaryBuffer.length).equals(endBoundaryBuffer)) {
-      break;
-    }
-
-    // Parse part
+    // Parse part FIRST (before checking for end boundary)
     try {
       const part = parsePart(partBuffer);
       if (part) {
@@ -122,7 +124,13 @@ function parseMultipartBody(body, boundary) {
       logger.warn('Failed to parse part', { error: error.message });
     }
 
+    // Move to next boundary
     position = nextBoundary + boundaryBuffer.length;
+
+    // Check if the CURRENT boundary (that we just moved to) is the end boundary
+    if (body.slice(nextBoundary, nextBoundary + endBoundaryBuffer.length).equals(endBoundaryBuffer)) {
+      break;
+    }
   }
 
   logger.debug('Multipart parsing complete', { partCount: parts.length });

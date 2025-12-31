@@ -311,6 +311,9 @@
     "preserveDraftsOnUpdate": true,
     "forceRelogOnUpdate": false,
     "enableRemoteLoggingInDev": true,
+    "branchIndicator": {
+      "enabled": false
+    },
     "developmentBanner": {
       "enabled": true,
       "expiryMinutes": 60
@@ -420,6 +423,7 @@
     },
     "donation": {
       "enabled": true,
+      "minAmount": 5,
       "prompt": {
         "minTimeOnSite": 60,
         "minPagesViewed": 3,
@@ -497,6 +501,76 @@
       },
       "showInSidebar": true,
       "sidebarPosition": "top"
+    },
+    "profilePictures": {
+      "enabled": true,
+      "maxFileSizeMB": 3,
+      "allowedFormats": ["jpg", "jpeg", "png", "webp", "gif"],
+      "outputFormat": "webp",
+      "outputQuality": 85,
+      "outputDimensions": { "width": 512, "height": 512 },
+      "moderation": {
+        "enabled": true,
+        "provider": "openai-vision"
+      },
+      "cdn": {
+        "provider": "github",
+        "github": {
+          "owner": "BenDol",
+          "repo": "SlayerLegendCDN",
+          "path": "avatars",
+          "servingMode": "jsdelivr"
+        }
+      }
+    },
+    "imageUploads": {
+      "enabled": true,
+      "maxFileSizeMB": 10,
+      "allowedFormats": ["jpg", "jpeg", "png", "webp", "gif"],
+      "categories": [
+        "characters",
+        "equipment",
+        "stages",
+        "companions",
+        "skills",
+        "resources",
+        "bosses",
+        "guides",
+        "other"
+      ],
+      "requireAuthentication": false,
+      "moderation": {
+        "enabled": true,
+        "provider": "openai-vision",
+        "checkAnonymous": true,
+        "checkAuthenticated": true
+      },
+      "rateLimit": {
+        "enabled": true,
+        "maxUploadsPerDay": 10,
+        "windowHours": 24,
+        "anonymousOnly": true
+      },
+      "processing": {
+        "generateWebP": true,
+        "webpQuality": 85,
+        "maxDimensions": {
+          "width": 2048,
+          "height": 2048
+        },
+        "autoResize": true,
+        "preserveOriginal": true
+      },
+      "cdn": {
+        "provider": "github",
+        "github": {
+          "owner": "BenDol",
+          "repo": "SlayerLegendCDN",
+          "basePath": "user-content/images",
+          "servingMode": "jsdelivr",
+          "indexUrl": "https://cdn.jsdelivr.net/gh/BenDol/SlayerLegendCDN@main/user-content/images/image-index.json"
+        }
+      }
     }
   },
   "theme": {

@@ -8,7 +8,32 @@
 
 // Handle skill selection from picker
 export const handleSkillSelect = (data, editorApi) => {
-  const { skill, mode, alignment } = data;
+  const { skill, skillList, mode, alignment } = data;
+
+  // Handle multiple skills (multiselect mode)
+  if (skillList && skillList.length > 0) {
+    const skillSyntaxes = skillList.map(sk => `{{skill:${sk.name}:${mode}}}`);
+    let combinedSyntax = skillSyntaxes.join('\n\n');
+
+    // Apply alignment wrapper if needed
+    if (alignment && alignment !== 'none') {
+      let style;
+      if (alignment === 'center') {
+        style = 'display: flex; justify-content: center;';
+      } else if (alignment === 'left') {
+        style = 'display: flex; justify-content: flex-start;';
+      } else if (alignment === 'right') {
+        style = 'display: flex; justify-content: flex-end;';
+      }
+      combinedSyntax = `<div style="${style}">\n\n${combinedSyntax}\n\n</div>`;
+    }
+
+    editorApi.insertAtCursor(`\n\n${combinedSyntax}  \n\n`);
+    return;
+  }
+
+  // Handle single skill (original behavior)
+  if (!skill) return;
 
   // Insert skill syntax into content
   // Format: {{skill:Fire Slash:detailed}} or {{skill:1:compact}}
@@ -34,7 +59,32 @@ export const handleSkillSelect = (data, editorApi) => {
 
 // Handle equipment selection from picker
 export const handleEquipmentSelect = (data, editorApi) => {
-  const { equipment, mode, alignment } = data;
+  const { equipment, equipmentList, mode, alignment } = data;
+
+  // Handle multiple equipment (multiselect mode)
+  if (equipmentList && equipmentList.length > 0) {
+    const equipmentSyntaxes = equipmentList.map(equip => `{{equipment:${equip.name}:${mode}}}`);
+    let combinedSyntax = equipmentSyntaxes.join('\n\n');
+
+    // Apply alignment wrapper if needed
+    if (alignment && alignment !== 'none') {
+      let style;
+      if (alignment === 'center') {
+        style = 'display: flex; justify-content: center;';
+      } else if (alignment === 'left') {
+        style = 'display: flex; justify-content: flex-start;';
+      } else if (alignment === 'right') {
+        style = 'display: flex; justify-content: flex-end;';
+      }
+      combinedSyntax = `<div style="${style}">\n\n${combinedSyntax}\n\n</div>`;
+    }
+
+    editorApi.insertAtCursor(`\n\n${combinedSyntax}  \n\n`);
+    return;
+  }
+
+  // Handle single equipment (original behavior)
+  if (!equipment) return;
 
   // Insert equipment syntax into content
   // Format: {{equipment:Innocence:detailed}} or {{equipment:1:compact}}
@@ -60,7 +110,33 @@ export const handleEquipmentSelect = (data, editorApi) => {
 
 // Handle spirit selection from picker
 export const handleSpiritSelect = (data, editorApi) => {
-  const { spirit, mode, alignment, level, inline = true } = data;
+  const { spirit, spiritList, mode, alignment, level, inline = true } = data;
+
+  // Handle multiple spirits (multiselect mode)
+  if (spiritList && spiritList.length > 0) {
+    const displayType = inline ? 'inline' : 'block';
+    const spiritSyntaxes = spiritList.map(sp => `{{spirit:${sp.name}:${mode}:${level}:${displayType}}}`);
+    let combinedSyntax = spiritSyntaxes.join('\n\n');
+
+    // Apply alignment wrapper if needed
+    if (alignment && alignment !== 'none') {
+      let style;
+      if (alignment === 'center') {
+        style = 'display: flex; justify-content: center;';
+      } else if (alignment === 'left') {
+        style = 'display: flex; justify-content: flex-start;';
+      } else if (alignment === 'right') {
+        style = 'display: flex; justify-content: flex-end;';
+      }
+      combinedSyntax = `<div style="${style}">\n\n${combinedSyntax}\n\n</div>`;
+    }
+
+    editorApi.insertAtCursor(`\n\n${combinedSyntax}  \n\n`);
+    return;
+  }
+
+  // Handle single spirit (original behavior)
+  if (!spirit) return;
 
   // Insert spirit syntax into content
   // Format: {{spirit:Loar:detailed:4:inline}} or {{spirit:Loar:compact:4:block}}

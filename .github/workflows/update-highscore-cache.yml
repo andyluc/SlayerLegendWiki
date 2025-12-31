@@ -141,6 +141,31 @@ jobs:
             }
 
             /**
+             * Filter commit stats to only count changes to content files
+             * Only counts additions/deletions for files inside public/content/**
+             * @param {Object} detailedCommit - Full commit data from repos.getCommit()
+             * @returns {Object} Filtered stats { additions, deletions }
+             */
+            function getContentFileStats(detailedCommit) {
+              if (!detailedCommit.files || detailedCommit.files.length === 0) {
+                return { additions: 0, deletions: 0 };
+              }
+
+              let additions = 0;
+              let deletions = 0;
+
+              for (const file of detailedCommit.files) {
+                // Only count files inside public/content/
+                if (file.filename && file.filename.startsWith('public/content/')) {
+                  additions += file.additions || 0;
+                  deletions += file.deletions || 0;
+                }
+              }
+
+              return { additions, deletions };
+            }
+
+            /**
              * Parse anonymous contribution from bot commit message
              * Returns { name, emailHash, verified } or null if not anonymous/verified
              *
@@ -334,9 +359,10 @@ jobs:
                       ref: commit.sha,
                     });
 
-                    const stats = detailedCommit.stats || {};
-                    const additions = stats.additions || 0;
-                    const deletions = stats.deletions || 0;
+                    // Only count additions/deletions for files in public/content/
+                    const stats = getContentFileStats(detailedCommit);
+                    const additions = stats.additions;
+                    const deletions = stats.deletions;
 
                     // Check if this is a bot commit (anonymous contribution)
                     if (login === BOT_USERNAME) {
@@ -444,37 +470,33 @@ jobs:
                         pull_number: pr.number,
                       });
 
-                      let additions = detailedPR.additions || 0;
-                      let deletions = detailedPR.deletions || 0;
+                      // Count only additions/deletions for files in public/content/
+                      let additions = 0;
+                      let deletions = 0;
 
-                      // If additions/deletions are missing (bot PRs), fetch from commits
-                      if (!additions && !deletions) {
-                        try {
-                          const { data: commits } = await github.rest.pulls.listCommits({
-                            owner: context.repo.owner,
-                            repo: context.repo.repo,
-                            pull_number: pr.number,
-                            per_page: 100,
-                          });
+                      // Fetch PR files to get content-specific stats
+                      try {
+                        const { data: prFiles } = await github.rest.pulls.listFiles({
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          pull_number: pr.number,
+                          per_page: 100,
+                        });
 
-                          for (const commit of commits) {
-                            const { data: commitData } = await github.rest.repos.getCommit({
-                              owner: context.repo.owner,
-                              repo: context.repo.repo,
-                              ref: commit.sha,
-                            });
-                            additions += commitData.stats?.additions || 0;
-                            deletions += commitData.stats?.deletions || 0;
+                        for (const file of prFiles) {
+                          if (file.filename && file.filename.startsWith('public/content/')) {
+                            additions += file.additions || 0;
+                            deletions += file.deletions || 0;
                           }
-                        } catch (commitError) {
-                          console.warn(`⚠️ Failed to fetch commits for PR #${pr.number}:`, commitError.message);
                         }
+                      } catch (fileError) {
+                        console.warn(`⚠️ Failed to fetch files for PR #${pr.number}:`, fileError.message);
                       }
 
-                      // Add to contributor stats
+                      // Add to contributor stats (1 contribution per PR, not per commit)
                       if (contributorMap.has(userId)) {
                         const contributor = contributorMap.get(userId);
-                        contributor.contributions++;
+                        contributor.contributions++;  // 1 per PR to avoid gaming the system
                         contributor.additions += additions;
                         contributor.deletions += deletions;
                         linkedPRCount++;
@@ -661,10 +683,10 @@ jobs:
                     ref: commit.sha,
                   });
 
-                  // Calculate stats from commit
-                  const stats = detailedCommit.stats || {};
-                  const additions = stats.additions || 0;
-                  const deletions = stats.deletions || 0;
+                  // Only count additions/deletions for files in public/content/
+                  const stats = getContentFileStats(detailedCommit);
+                  const additions = stats.additions;
+                  const deletions = stats.deletions;
 
                   // Check if this is a bot commit (anonymous contribution)
                   if (login === BOT_USERNAME) {
@@ -789,37 +811,33 @@ jobs:
                         pull_number: pr.number,
                       });
 
-                      let additions = detailedPR.additions || 0;
-                      let deletions = detailedPR.deletions || 0;
+                      // Count only additions/deletions for files in public/content/
+                      let additions = 0;
+                      let deletions = 0;
 
-                      // If additions/deletions are missing (bot PRs), fetch from commits
-                      if (!additions && !deletions) {
-                        try {
-                          const { data: commits } = await github.rest.pulls.listCommits({
-                            owner: context.repo.owner,
-                            repo: context.repo.repo,
-                            pull_number: pr.number,
-                            per_page: 100,
-                          });
+                      // Fetch PR files to get content-specific stats
+                      try {
+                        const { data: prFiles } = await github.rest.pulls.listFiles({
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          pull_number: pr.number,
+                          per_page: 100,
+                        });
 
-                          for (const commit of commits) {
-                            const { data: commitData } = await github.rest.repos.getCommit({
-                              owner: context.repo.owner,
-                              repo: context.repo.repo,
-                              ref: commit.sha,
-                            });
-                            additions += commitData.stats?.additions || 0;
-                            deletions += commitData.stats?.deletions || 0;
+                        for (const file of prFiles) {
+                          if (file.filename && file.filename.startsWith('public/content/')) {
+                            additions += file.additions || 0;
+                            deletions += file.deletions || 0;
                           }
-                        } catch (commitError) {
-                          console.warn(`⚠️ Failed to fetch commits for PR #${pr.number}:`, commitError.message);
                         }
+                      } catch (fileError) {
+                        console.warn(`⚠️ Failed to fetch files for PR #${pr.number}:`, fileError.message);
                       }
 
-                      // Add to contributor stats
+                      // Add to contributor stats (1 contribution per PR, not per commit)
                       if (contributorMap.has(userKey)) {
                         const contributor = contributorMap.get(userKey);
-                        contributor.contributions++;
+                        contributor.contributions++;  // 1 per PR to avoid gaming the system
                         contributor.additions += additions;
                         contributor.deletions += deletions;
                         linkedPRCount++;
@@ -834,7 +852,7 @@ jobs:
                             userId: userId,
                             login: userData.login,
                             avatarUrl: userData.avatar_url,
-                            contributions: 1,
+                            contributions: 1,  // 1 per PR to avoid gaming the system
                             additions,
                             deletions,
                             profileUrl: userData.html_url,

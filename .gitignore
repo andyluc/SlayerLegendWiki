@@ -35,6 +35,7 @@ dist
 # Generated files (auto-copied from root)
 public/search-index.json
 public/wiki-config.json
+functions/_shared/wiki-config.json
 
 # OS files
 Thumbs.db
