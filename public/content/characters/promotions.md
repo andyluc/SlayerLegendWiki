@@ -13,23 +13,23 @@ order: 0
 # <span class="text-gray-900 dark:text-gray-100"><u>PROMOTION OVERVIEW</u></span>
 **Here are the current promotions and the boosts they provide upon completion.**
 
-## <span class="text-gray-600 dark:text-gray-400">STONE</span><img src="/images/promotions/0-stone.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 27px; height: 30px; margin:-10px 0 0 0;" data-inline="true" />
-**ATK X1 HP X1**
 
-## <span class="text-yellow-800 dark:text-yellow-600">BRONZE</span><img src="/images/promotions/1-bronze.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle; width: 32px; height: 30px; margin:-10px 0 0 0;" data-inline="true" />
-**ATK X2 HP X2**
-
-## <span class="text-gray-600 dark:text-gray-400">IRON</span><img src="/images/promotions/2-iron.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle; width: 25px; height: 29px; margin:-10px 0 0 0;" data-inline="true" />
-**ATK X5 HP X5**
-
-## <span class="text-gray-300 dark:text-gray-400">SILVER</span><img src="/images/promotions/3-silver.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle; width: 38px; height: 33px; margin:-10px 0 0 0;" data-inline="true" />
-**ATK X18 HP X18**
-
-## <span class="text-yellow-500 dark:text-yellow-400">GOLD</span><img src="/images/promotions/4-gold.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 33px; height: 30px; margin:-10px 0 0 0;" data-inline="true" />
-**ATK X25 HP X25**
-
-## <span class="text-cyan-400 dark:text-cyan-300">MITHRIL</span><img src="/images/promotions/5-mithril.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 31px; height: 30px; margin:-10px 0 0 0;" data-inline="true" />
-**ATK X100 HP X100**
+| PROMOTION | BOOST
+|----------|----------|
+| **<span class="text-gray-600 dark:text-gray-400">STONE </span>**<img src="/images/promotions/0-stone.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 27px; height: 30px; margin:-10px 0 0 0;" data-inline="true" />   |**ATK X1 HP X1**|
+| **<span class="text-yellow-800 dark:text-yellow-600">BRONZE </span>**<img src="/images/promotions/1-bronze.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle; width: 32px; height: 30px; margin:-10px 0 0 0;" data-inline="true" />   |**ATK X2 HP X2**|
+|**<span class="text-gray-600 dark:text-gray-400">IRON </span>**<img src="/images/promotions/2-iron.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle; width: 25px; height: 29px; margin:-10px 0 0 0;" data-inline="true" />|**ATK X5 HP X5**|
+|**<span class="text-gray-300 dark:text-gray-400">SILVER </span>**<img src="/images/promotions/3-silver.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle; width: 38px; height: 33px; margin:-10px 0 0 0;" data-inline="true" />|**ATK X18 HP X18**|
+|**<span class="text-yellow-500 dark:text-yellow-400">GOLD </span>**<img src="/images/promotions/4-gold.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 33px; height: 30px; margin:-10px 0 0 0;" data-inline="true" />|**ATK X25 HP X25**|
+|**<span class="text-cyan-400 dark:text-cyan-300">MITHRIL </span>**<img src="/images/promotions/5-mithril.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 31px; height: 30px; margin:-10px 0 0 0;" data-inline="true" />|**ATK X100 HP X100**|
+|cell | cell |
+|cell | cell |
+|cell | cell |
+|cell | cell |
+|cell | cell |
+|cell | cell |
+|cell | cell |
+|cell | cell |
 
 ## <span class="text-purple-600 dark:text-purple-400">ORICHALCHUM</span><img src="/images/promotions/6-orichalcum.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 36px; height: 40px; margin:-10px 0 0 0;" data-inline="true" />
 **ATK X300 HP X300**
