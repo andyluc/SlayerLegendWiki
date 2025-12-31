@@ -236,6 +236,28 @@ async function handleSetDisplayName(adapter, configAdapter, data) {
     return adapter.createJsonResponse(400, { error: ERROR_MESSAGES.MODERATION_FAILED });
   }
 
+  // Prepare history array - add old display name to history if it exists
+  let history = userData?.history || [];
+  if (userData?.displayName && userData.displayName !== displayName) {
+    // Push the old display name to history
+    history.unshift({
+      displayName: userData.displayName,
+      changedAt: userData.lastChanged || new Date().toISOString()
+    });
+
+    // Keep only last 5 entries
+    if (history.length > 5) {
+      history = history.slice(0, 5);
+    }
+
+    logger.debug('Added old display name to history', {
+      userId,
+      oldName: userData.displayName,
+      newName: displayName,
+      historySize: history.length
+    });
+  }
+
   // Prepare display name data
   const displayNameData = {
     userId: Number(userId),
@@ -243,7 +265,8 @@ async function handleSetDisplayName(adapter, configAdapter, data) {
     displayName,
     lastChanged: new Date().toISOString(),
     changeCount: (userData?.changeCount || 0) + 1,
-    bannedNames: userData?.bannedNames || []
+    bannedNames: userData?.bannedNames || [],
+    history: history
   };
 
   // Save display name data
@@ -355,7 +378,8 @@ async function handleBanDisplayName(adapter, configAdapter, data) {
       displayName: null,
       lastChanged: null,
       changeCount: 0,
-      bannedNames: []
+      bannedNames: [],
+      history: []
     };
   }
 

@@ -323,6 +323,8 @@ export async function handleGithubBot(adapter, configAdapter, cryptoAdapter) {
         return await handleCreateIssueReport(adapter, octokit, body);
       case 'save-user-snapshot':
         return await handleSaveUserSnapshot(adapter, octokit, body);
+      case 'create-user-snapshot':
+        return await handleCreateUserSnapshot(adapter, octokit, body);
       case 'send-verification-email':
         return await handleSendVerificationEmail(adapter, configAdapter, cryptoAdapter, octokit, body);
       case 'verify-email':
@@ -3822,6 +3824,328 @@ async function handleRemoveDonatorBadge(adapter, octokit, { owner, repo, usernam
   } catch (error) {
     logger.error('Failed to remove donator badge', { username, error: error.message });
     return adapter.createJsonResponse(500, { error: error.message });
+  }
+}
+
+/**
+ * Create user snapshot automatically (no authentication required)
+ * Builds snapshot from scratch by fetching all user PRs and stats
+ * Required: username
+ * Optional: userId (for faster lookup)
+ */
+async function handleCreateUserSnapshot(adapter, octokit, body) {
+  const { owner, repo, username, userId } = body;
+
+  if (!username) {
+    return adapter.createJsonResponse(400, { error: 'Missing required field: username' });
+  }
+
+  const SNAPSHOT_LABEL = 'user-snapshot';
+  const SNAPSHOT_TITLE_PREFIX = '[User Snapshot]';
+  const MAX_PRS_IN_SNAPSHOT = 100;
+  const BOT_USERNAME = adapter.getEnv('WIKI_BOT_USERNAME') || adapter.getEnv('VITE_WIKI_BOT_USERNAME') || 'slayer-wiki-bot';
+
+  try {
+    logger.info('Creating user snapshot', { username, userId });
+
+    // Skip bot account
+    if (username === BOT_USERNAME) {
+      logger.info('Skipping snapshot for bot account', { username });
+      return adapter.createJsonResponse(200, {
+        success: true,
+        skipped: true,
+        reason: 'Bot accounts do not get snapshots'
+      });
+    }
+
+    // Check if snapshot already exists
+    const { data: existingIssues } = await octokit.rest.issues.listForRepo({
+      owner,
+      repo,
+      labels: SNAPSHOT_LABEL,
+      state: 'open',
+      per_page: 100,
+    });
+
+    let existingSnapshot = null;
+
+    // Search by user ID first (permanent identifier)
+    if (userId) {
+      existingSnapshot = existingIssues.find(issue =>
+        issue.labels.some(label =>
+          (typeof label === 'string' && label === `user-id:${userId}`) ||
+          (typeof label === 'object' && label.name === `user-id:${userId}`)
+        )
+      );
+    }
+
+    // Fallback: search by username in title
+    if (!existingSnapshot) {
+      existingSnapshot = existingIssues.find(
+        issue => issue.title === `${SNAPSHOT_TITLE_PREFIX} ${username}`
+      );
+    }
+
+    // If snapshot exists and is recent (< 1 hour), return it
+    if (existingSnapshot) {
+      try {
+        const snapshotData = JSON.parse(existingSnapshot.body);
+        const lastUpdated = new Date(snapshotData.lastUpdated);
+        const ageInMinutes = (Date.now() - lastUpdated.getTime()) / 1000 / 60;
+
+        if (ageInMinutes < 60) {
+          logger.info('Recent snapshot already exists', { username, ageInMinutes: ageInMinutes.toFixed(1) });
+          return adapter.createJsonResponse(200, {
+            success: true,
+            alreadyExists: true,
+            snapshot: snapshotData,
+            issueNumber: existingSnapshot.number,
+            ageInMinutes: ageInMinutes.toFixed(1)
+          });
+        }
+      } catch (err) {
+        logger.warn('Failed to parse existing snapshot', { error: err.message });
+      }
+    }
+
+    // Fetch user data to get permanent user ID
+    const { data: userData } = await octokit.rest.users.getByUsername({
+      username,
+    });
+
+    logger.info('Fetched user data', { username, userId: userData.id });
+
+    // Fetch all PRs by this user (direct PRs + linked anonymous edits)
+    logger.info('Fetching pull requests', { username });
+    const allPRs = [];
+    let page = 1;
+    let hasMore = true;
+
+    while (hasMore) {
+      const { data: prs } = await octokit.rest.pulls.list({
+        owner,
+        repo,
+        state: 'all',
+        per_page: 100,
+        page,
+      });
+
+      // Filter PRs by this user (direct PRs + linked anonymous edits)
+      const userPRs = prs.filter(pr => {
+        // Direct PR from user
+        const isDirectPR = pr.user.login === username;
+
+        // Linked anonymous PR (has user-id label)
+        const isLinkedPR = pr.labels.some(label => {
+          const labelName = typeof label === 'string' ? label : label.name;
+          return labelName === `user-id:${userData.id}`;
+        });
+
+        return isDirectPR || isLinkedPR;
+      });
+      allPRs.push(...userPRs);
+
+      hasMore = prs.length === 100;
+      page++;
+    }
+
+    logger.info('Found pull requests', { username, count: allPRs.length });
+
+    // Fetch detailed data for each PR
+    logger.info('Fetching detailed PR data', { username });
+    const detailedPRs = [];
+
+    for (const pr of allPRs) {
+      try {
+        const { data: detailedPR } = await octokit.rest.pulls.get({
+          owner,
+          repo,
+          pull_number: pr.number,
+        });
+
+        // If stats are missing, fetch from commits
+        if (!detailedPR.additions && !detailedPR.deletions) {
+          try {
+            const { data: commits } = await octokit.rest.pulls.listCommits({
+              owner,
+              repo,
+              pull_number: pr.number,
+              per_page: 100,
+            });
+
+            let totalAdditions = 0;
+            let totalDeletions = 0;
+            let totalFiles = 0;
+
+            for (const commit of commits) {
+              const { data: commitData } = await octokit.rest.repos.getCommit({
+                owner,
+                repo,
+                ref: commit.sha,
+              });
+
+              totalAdditions += commitData.stats?.additions || 0;
+              totalDeletions += commitData.stats?.deletions || 0;
+              totalFiles += commitData.files?.length || 0;
+            }
+
+            detailedPR.additions = totalAdditions;
+            detailedPR.deletions = totalDeletions;
+            detailedPR.changed_files = totalFiles;
+          } catch (commitError) {
+            logger.warn('Failed to fetch commit stats', { prNumber: pr.number, error: commitError.message });
+          }
+        }
+
+        detailedPRs.push(detailedPR);
+      } catch (error) {
+        logger.warn('Failed to fetch PR details', { prNumber: pr.number, error: error.message });
+        detailedPRs.push(pr);
+      }
+    }
+
+    logger.info('Fetched detailed PR data', { username, count: detailedPRs.length });
+
+    // Calculate statistics (only count merged PRs for additions/deletions)
+    const mergedPRs = detailedPRs.filter(pr => pr.merged_at || pr.state === 'merged');
+    const stats = {
+      totalPRs: detailedPRs.length,
+      openPRs: detailedPRs.filter(pr => pr.state === 'open').length,
+      mergedPRs: mergedPRs.length,
+      closedPRs: detailedPRs.filter(pr => (pr.state === 'closed' || pr.state === 'merged') && !pr.merged_at).length,
+      totalAdditions: mergedPRs.reduce((sum, pr) => sum + (pr.additions || 0), 0),
+      totalDeletions: mergedPRs.reduce((sum, pr) => sum + (pr.deletions || 0), 0),
+      totalFiles: mergedPRs.reduce((sum, pr) => sum + (pr.changed_files || 0), 0),
+      mostRecentEdit: detailedPRs.length > 0
+        ? new Date(Math.max(...detailedPRs.map(pr => new Date(pr.created_at).getTime()))).toISOString()
+        : null,
+    };
+
+    // Build pull requests list (limit to most recent PRs)
+    const recentPRs = detailedPRs
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      .slice(0, MAX_PRS_IN_SNAPSHOT);
+
+    const pullRequests = recentPRs.map(pr => ({
+      number: pr.number,
+      title: pr.title,
+      state: pr.state,
+      created_at: pr.created_at,
+      updated_at: pr.updated_at,
+      merged_at: pr.merged_at,
+      closed_at: pr.closed_at,
+      additions: pr.additions,
+      deletions: pr.deletions,
+      changed_files: pr.changed_files,
+      html_url: pr.html_url,
+      user: {
+        login: pr.user.login,
+        id: pr.user.id,
+        avatar_url: pr.user.avatar_url,
+        html_url: pr.user.html_url,
+      },
+      labels: pr.labels.map(label => ({
+        name: typeof label === 'string' ? label : label.name,
+        color: typeof label === 'object' ? label.color : undefined,
+      })),
+    }));
+
+    // Build snapshot object
+    const snapshot = {
+      userId: userData.id,
+      username: userData.login,
+      lastUpdated: new Date().toISOString(),
+      stats,
+      pullRequests,
+      pullRequestsCount: detailedPRs.length,
+      pullRequestsStored: recentPRs.length,
+      pullRequestsTruncated: detailedPRs.length > MAX_PRS_IN_SNAPSHOT,
+      user: {
+        id: userData.id,
+        login: userData.login,
+        name: userData.name,
+        avatar_url: userData.avatar_url,
+        bio: userData.bio,
+      },
+    };
+
+    logger.info('Built snapshot', {
+      username,
+      totalPRs: stats.totalPRs,
+      mergedPRs: stats.mergedPRs,
+      additions: stats.totalAdditions,
+      deletions: stats.totalDeletions
+    });
+
+    // Save snapshot to issue
+    const issueTitle = `${SNAPSHOT_TITLE_PREFIX} ${username}`;
+    const issueBody = JSON.stringify(snapshot, null, 2);
+    const userIdLabel = `user-id:${userData.id}`;
+
+    let issue;
+
+    if (existingSnapshot) {
+      // Update existing snapshot
+      const { data: updatedIssue } = await octokit.rest.issues.update({
+        owner,
+        repo,
+        issue_number: existingSnapshot.number,
+        title: issueTitle,
+        body: issueBody,
+      });
+
+      // Add user ID label if missing
+      try {
+        await octokit.rest.issues.addLabels({
+          owner,
+          repo,
+          issue_number: existingSnapshot.number,
+          labels: [userIdLabel],
+        });
+      } catch (err) {
+        logger.warn('Failed to add user-id label', { error: err.message });
+      }
+
+      issue = updatedIssue;
+      logger.info('Updated user snapshot', { username, issueNumber: existingSnapshot.number });
+    } else {
+      // Create new snapshot
+      const { data: newIssue } = await octokit.rest.issues.create({
+        owner,
+        repo,
+        title: issueTitle,
+        body: issueBody,
+        labels: [SNAPSHOT_LABEL, userIdLabel, 'automated'],
+      });
+
+      // Lock the issue to prevent comments
+      try {
+        await octokit.rest.issues.lock({
+          owner,
+          repo,
+          issue_number: newIssue.number,
+          lock_reason: 'off-topic',
+        });
+      } catch (lockError) {
+        logger.warn('Failed to lock snapshot issue', { error: lockError.message });
+      }
+
+      issue = newIssue;
+      logger.info('Created user snapshot', { username, issueNumber: newIssue.number });
+    }
+
+    return adapter.createJsonResponse(200, {
+      success: true,
+      created: !existingSnapshot,
+      updated: !!existingSnapshot,
+      snapshot,
+      issueNumber: issue.number,
+      issueUrl: issue.html_url
+    });
+
+  } catch (error) {
+    logger.error('Failed to create user snapshot', { username, error: error.message, stack: error.stack });
+    return adapter.createJsonResponse(500, { error: error.message || 'Failed to create user snapshot' });
   }
 }
 

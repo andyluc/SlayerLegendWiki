@@ -56,6 +56,15 @@ export async function handleAdminAction(adapter, configAdapter) {
   // Set token for this request
   process.env.GITHUB_TOKEN = token;
 
+  // Get bot username and token from environment
+  const botUsername = adapter.getEnv('WIKI_BOT_USERNAME') || adapter.getEnv('VITE_WIKI_BOT_USERNAME');
+  const botToken = adapter.getEnv('WIKI_BOT_TOKEN') || adapter.getEnv('VITE_WIKI_BOT_TOKEN');
+
+  // Set bot token in process.env so botService can access it
+  if (botToken) {
+    process.env.WIKI_BOT_TOKEN = botToken;
+  }
+
   try {
     const method = adapter.getMethod();
 
@@ -68,13 +77,13 @@ export async function handleAdminAction(adapter, configAdapter) {
         case 'get-admins':
           console.log('[Admin Actions] Fetching admin list');
           const { getAdmins } = await getAdminModule();
-          const admins = await getAdmins(owner, repo, config);
+          const admins = await getAdmins(owner, repo, config, botUsername);
           return adapter.createJsonResponse(200, { admins });
 
         case 'get-banned-users':
           console.log('[Admin Actions] Fetching banned users list');
           const { getBannedUsers } = await getAdminModule();
-          const bannedUsers = await getBannedUsers(owner, repo, config);
+          const bannedUsers = await getBannedUsers(owner, repo, config, botUsername);
           return adapter.createJsonResponse(200, { bannedUsers });
 
         case 'get-admin-status':
@@ -83,10 +92,11 @@ export async function handleAdminAction(adapter, configAdapter) {
             hasGithubToken: !!process.env.GITHUB_TOKEN,
             tokenLength: process.env.GITHUB_TOKEN?.length,
             owner,
-            repo
+            repo,
+            botUsername
           });
           const { getCurrentUserAdminStatus } = await getAdminModule();
-          const status = await getCurrentUserAdminStatus(owner, repo, config);
+          const status = await getCurrentUserAdminStatus(owner, repo, config, botUsername);
           console.log('[Admin Actions] Status result:', status);
           return adapter.createJsonResponse(200, status);
 
@@ -252,7 +262,8 @@ export async function handleAdminAction(adapter, configAdapter) {
       error: error.message || 'Internal server error'
     });
   } finally {
-    // Clean up token
+    // Clean up tokens
     delete process.env.GITHUB_TOKEN;
+    delete process.env.WIKI_BOT_TOKEN;
   }
 }
