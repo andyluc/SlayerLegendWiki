@@ -311,6 +311,9 @@
     "preserveDraftsOnUpdate": true,
     "forceRelogOnUpdate": false,
     "enableRemoteLoggingInDev": true,
+    "branchIndicator": {
+      "enabled": false
+    },
     "developmentBanner": {
       "enabled": true,
       "expiryMinutes": 60
