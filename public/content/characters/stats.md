@@ -9,6 +9,7 @@ tags:
   - optimization
 category: Characters
 date: 2025-12-21T00:00:00.000Z
+order: 0
 ---
 # <span class="text-gray-900 dark:text-gray-100"><u>Stats</u></span>
 **Your stats are divided into two categories: main stats and critical stats.**
