@@ -186,7 +186,9 @@
       "Bash(Get-Content \"C:\\\\Projects\\\\slayerlegend\\\\wiki\\\\public\\\\wiki-config.json\")",
       "Bash(Select-String -Pattern \"imageUploads\" -Context 3)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "Bash(Select-String -Pattern \"error|Error|ERROR|warning\")"
+      "Bash(Select-String -Pattern \"error|Error|ERROR|warning\")",
+      "Bash(Get-Content \"C:/Projects/slayerlegend/wiki/public/data/image-index.json\")",
+      "Bash(Select-String -Pattern \"backgrounds\" -Context 2)"
     ]
   }
 }
