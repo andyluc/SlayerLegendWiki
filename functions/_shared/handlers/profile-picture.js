@@ -106,7 +106,7 @@ async function handlePostProfilePicture(adapter, configAdapter) {
   try {
     // Parse multipart form data
     const formData = await adapter.parseMultipartFormData();
-    const { imageFile, token, userId, username } = formData;
+    const { imageFile, token, userId, username, dryRun } = formData;
 
     // Validate required fields
     if (!imageFile || !token || !userId || !username) {
@@ -191,6 +191,23 @@ async function handlePostProfilePicture(adapter, configAdapter) {
         logger.warn('Image flagged by moderation', { userId });
         return adapter.createJsonResponse(422, { error: ERROR_MESSAGES.MODERATION_FAILED });
       }
+    }
+
+    // Dry run mode: Skip CDN upload and return mock data for testing
+    // (dryRun is already extracted from formData destructuring above)
+    const isDryRun = dryRun === 'true' || dryRun === true;
+    if (isDryRun) {
+      logger.info('DRY RUN: Skipping CDN upload (validation and moderation complete)', {
+        userId,
+        username
+      });
+
+      return adapter.createJsonResponse(200, {
+        success: true,
+        dryRun: true,
+        url: `/mock/cdn/avatars/${userId}.webp?v=${Date.now()}`,
+        message: 'Dry run complete - image validated and moderation passed (not uploaded to CDN)'
+      });
     }
 
     // Upload to CDN repository

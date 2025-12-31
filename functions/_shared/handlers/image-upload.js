@@ -35,6 +35,7 @@ import {
  * @param {Array<string>} params.tags - Image tags
  * @param {string} [params.userEmail] - Email (for anonymous)
  * @param {string} [params.verificationToken] - Verification token (for anonymous)
+ * @param {boolean} [params.dryRun] - If true, skip CDN upload (for testing moderation)
  * @param {Object} params.auth - Authentication info
  * @param {Object} params.config - Wiki configuration
  * @param {Object} params.adapter - Platform adapter
@@ -53,6 +54,7 @@ export async function handleImageUpload(params) {
     tags,
     userEmail,
     verificationToken,
+    dryRun = false,
     auth,
     config,
     adapter
@@ -63,7 +65,8 @@ export async function handleImageUpload(params) {
     originalSize: originalFile?.length || 0,
     webpSize: webpFile?.length || 0,
     authenticated: !!auth.user,
-    category
+    category,
+    dryRun
   });
 
   try {
@@ -92,7 +95,7 @@ export async function handleImageUpload(params) {
     validateImageFile(originalFile, originalMimeType, config);
 
     // Step 5: Check file sizes
-    const maxSizeMB = config?.imageUploads?.maxFileSizeMB || 10;
+    const maxSizeMB = config?.features?.imageUploads?.maxFileSizeMB || 10;
     const maxSizeBytes = maxSizeMB * 1024 * 1024;
 
     if (originalFile.length > maxSizeBytes) {
@@ -143,8 +146,8 @@ export async function handleImageUpload(params) {
       const storage = await createWikiStorage(adapter, config);
       const rateLimitKey = `image-upload-rate:${emailHash}`;
 
-      const maxUploads = config?.imageUploads?.rateLimit?.maxUploadsPerDay || 10;
-      const windowHours = config?.imageUploads?.rateLimit?.windowHours || 24;
+      const maxUploads = config?.features?.imageUploads?.rateLimit?.maxUploadsPerDay || 10;
+      const windowHours = config?.features?.imageUploads?.rateLimit?.windowHours || 24;
 
       try {
         const rateLimitData = await storage.read(rateLimitKey);
@@ -183,29 +186,60 @@ export async function handleImageUpload(params) {
       }
 
       // Content moderation for anonymous uploads
-      if (config?.imageUploads?.moderation?.enabled &&
-          config?.imageUploads?.moderation?.checkAnonymous) {
+      if (config?.features?.imageUploads?.moderation?.enabled &&
+          config?.features?.imageUploads?.moderation?.checkAnonymous) {
         logger.debug('Running content moderation for anonymous upload');
-        try {
-          await checkImageModeration(originalFile, adapter);
-          logger.debug('Content moderation passed');
-        } catch (error) {
-          logger.warn('Content moderation failed', { error: error.message });
-          throw new Error(`Content moderation failed: ${error.message}`);
+        const openaiApiKey = adapter.getEnv('OPENAI_API_KEY');
+        if (openaiApiKey) {
+          try {
+            const imageBase64 = originalFile.toString('base64');
+            const moderationResult = await checkImageModeration(imageBase64, openaiApiKey);
+            if (moderationResult.flagged) {
+              logger.warn('Image flagged by moderation (anonymous)', { userEmail });
+              throw new Error('Image failed content moderation check');
+            }
+            logger.debug('Content moderation passed');
+          } catch (error) {
+            logger.warn('Content moderation failed', { error: error.message });
+            throw new Error(`Content moderation failed: ${error.message}`);
+          }
+        } else {
+          logger.debug('OpenAI API key not configured, skipping moderation');
         }
       }
     }
 
     // Step 7: Content moderation for authenticated uploads (if enabled)
-    if (auth.user && config?.imageUploads?.moderation?.enabled &&
-        config?.imageUploads?.moderation?.checkAuthenticated) {
+    logger.debug('Checking authenticated moderation config', {
+      hasUser: !!auth.user,
+      hasConfig: !!config,
+      hasFeatures: !!config?.features,
+      hasImageUploads: !!config?.features?.imageUploads,
+      hasModeration: !!config?.features?.imageUploads?.moderation,
+      moderationEnabled: config?.features?.imageUploads?.moderation?.enabled,
+      checkAuthenticated: config?.features?.imageUploads?.moderation?.checkAuthenticated,
+      fullModeration: config?.features?.imageUploads?.moderation
+    });
+
+    if (auth.user && config?.features?.imageUploads?.moderation?.enabled &&
+        config?.features?.imageUploads?.moderation?.checkAuthenticated) {
       logger.debug('Running content moderation for authenticated upload');
-      try {
-        await checkImageModeration(originalFile, adapter);
-        logger.debug('Content moderation passed');
-      } catch (error) {
-        logger.warn('Content moderation failed', { error: error.message });
-        throw new Error(`Content moderation failed: ${error.message}`);
+      const openaiApiKey = adapter.getEnv('OPENAI_API_KEY');
+      if (openaiApiKey) {
+        try {
+          const imageBase64 = originalFile.toString('base64');
+          const moderationResult = await checkImageModeration(imageBase64, openaiApiKey);
+          if (moderationResult.flagged) {
+            logger.warn('Image flagged by moderation (authenticated)', { username: auth.user.login });
+            throw new Error('Image failed content moderation check');
+          }
+          logger.debug('Content moderation passed');
+        } catch (error) {
+          logger.warn('Content moderation failed', { error: error.message });
+          throw new Error(`Content moderation failed: ${error.message}`);
+        }
+      } else {
+        logger.debug('OpenAI API key not configured, skipping moderation');
       }
     }
 
@@ -231,6 +265,29 @@ export async function handleImageUpload(params) {
 
     // Step 9: Upload to CDN (direct commit to main branch)
     const imageId = generateImageId();
+
+    // Dry run mode: Skip CDN upload and return mock data for testing
+    if (dryRun) {
+      logger.info('DRY RUN: Skipping CDN upload (validation and moderation complete)', {
+        imageId,
+        uploadedBy,
+        category,
+        originalSize: originalFile.length,
+        webpSize: webpFile.length
+      });
+
+      return {
+        success: true,
+        dryRun: true,
+        imageId,
+        originalUrl: `/mock/cdn/${category}/${imageId}.${format}`,
+        webpUrl: `/mock/cdn/${category}/${imageId}.webp`,
+        metadataUrl: `/mock/cdn/${category}/${imageId}-metadata.json`,
+        dimensions,
+        message: 'Dry run complete - image validated and moderation passed (not uploaded to CDN)'
+      };
+    }
+
     const botToken = auth.botToken || adapter.getEnv('WIKI_BOT_TOKEN') || adapter.getEnv('VITE_WIKI_BOT_TOKEN');
 
     if (!botToken) {
@@ -308,38 +365,63 @@ async function uploadImagesToCDN(imageId, category, originalFile, originalFilena
 
     logger.debug('Uploading to CDN', { paths, commitMessage });
 
+    // Helper function to upload file with SHA check for overwrites
+    const uploadFile = async (path, content, description) => {
+      logger.debug(`Uploading ${description}`, { path, size: content.length });
+
+      try {
+        // Try to create the file (will fail if it already exists)
+        await octokit.rest.repos.createOrUpdateFileContents({
+          owner: cdnConfig.owner,
+          repo: cdnConfig.repo,
+          path,
+          message: commitMessage,
+          content: typeof content === 'string' ? content : content.toString('base64'),
+          branch: 'main'
+        });
+      } catch (error) {
+        // If file exists, get its SHA and update it
+        if (error.message?.includes('sha') || error.status === 422) {
+          logger.debug(`File exists, fetching SHA to update: ${path}`);
+
+          try {
+            const { data: existingFile } = await octokit.rest.repos.getContent({
+              owner: cdnConfig.owner,
+              repo: cdnConfig.repo,
+              path,
+              ref: 'main'
+            });
+
+            // Retry with SHA
+            await octokit.rest.repos.createOrUpdateFileContents({
+              owner: cdnConfig.owner,
+              repo: cdnConfig.repo,
+              path,
+              message: commitMessage,
+              content: typeof content === 'string' ? content : content.toString('base64'),
+              sha: existingFile.sha,
+              branch: 'main'
+            });
+
+            logger.debug(`Updated existing file: ${path}`);
+          } catch (getError) {
+            logger.error(`Failed to get existing file SHA: ${path}`, { error: getError.message });
+            throw new Error(`Failed to upload ${description}: ${getError.message}`);
+          }
+        } else {
+          throw error;
+        }
+      }
+    };
+
     // Upload original image
-    logger.debug('Uploading original image', { path: paths.original, size: originalFile.length });
-    await octokit.rest.repos.createOrUpdateFileContents({
-      owner: cdnConfig.owner,
-      repo: cdnConfig.repo,
-      path: paths.original,
-      message: commitMessage,
-      content: originalFile.toString('base64'),
-      branch: 'main'
-    });
+    await uploadFile(paths.original, originalFile, 'original image');
 
     // Upload WebP version
-    logger.debug('Uploading WebP image', { path: paths.webp, size: webpFile.length });
-    await octokit.rest.repos.createOrUpdateFileContents({
-      owner: cdnConfig.owner,
-      repo: cdnConfig.repo,
-      path: paths.webp,
-      message: commitMessage,
-      content: webpFile.toString('base64'),
-      branch: 'main'
-    });
+    await uploadFile(paths.webp, webpFile, 'WebP image');
 
     // Upload metadata JSON
-    logger.debug('Uploading metadata', { path: paths.metadata });
-    await octokit.rest.repos.createOrUpdateFileContents({
-      owner: cdnConfig.owner,
-      repo: cdnConfig.repo,
-      path: paths.metadata,
-      message: commitMessage,
-      content: Buffer.from(JSON.stringify(metadata, null, 2)).toString('base64'),
-      branch: 'main'
-    });
+    await uploadFile(paths.metadata, Buffer.from(JSON.stringify(metadata, null, 2)).toString('base64'), 'metadata');
 
     // Generate jsDelivr URLs
     const servingMode = cdnConfig.servingMode || 'jsdelivr';

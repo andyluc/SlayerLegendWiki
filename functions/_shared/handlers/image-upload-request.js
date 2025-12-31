@@ -128,7 +128,7 @@ export async function handleImageUploadRequest(adapter, configAdapter) {
       });
     }
 
-    const maxSizeMB = config?.imageUploads?.maxFileSizeMB || 10;
+    const maxSizeMB = config?.features?.imageUploads?.maxFileSizeMB || 10;
     const maxSizeBytes = maxSizeMB * 1024 * 1024;
 
     if (originalFile.size > maxSizeBytes) {
@@ -159,6 +159,7 @@ export async function handleImageUploadRequest(adapter, configAdapter) {
     const dimensionsString = formData.fields.dimensions;
     const userEmail = formData.fields.userEmail;
     const verificationToken = formData.fields.verificationToken;
+    const dryRun = formData.fields.dryRun === 'true' || formData.fields.dryRun === true;
 
     // Parse tags
     let tags = [];
@@ -207,6 +208,7 @@ export async function handleImageUploadRequest(adapter, configAdapter) {
       tags,
       userEmail,
       verificationToken,
+      dryRun,
       auth,
       config,
       adapter,
@@ -218,7 +220,8 @@ export async function handleImageUploadRequest(adapter, configAdapter) {
       category,
       uploadedBy: auth.user?.login || 'anonymous',
       originalSize: originalFile.size,
-      webpSize: webpFile.size
+      webpSize: webpFile.size,
+      dryRun
     });
 
     const result = await handleImageUpload(uploadParams);

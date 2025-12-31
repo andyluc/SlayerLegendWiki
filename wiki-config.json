@@ -509,7 +509,7 @@
       "outputQuality": 85,
       "outputDimensions": { "width": 512, "height": 512 },
       "moderation": {
-        "enabled": false,
+        "enabled": true,
         "provider": "openai-vision"
       },
       "cdn": {
@@ -539,10 +539,10 @@
       ],
       "requireAuthentication": false,
       "moderation": {
-        "enabled": false,
+        "enabled": true,
         "provider": "openai-vision",
         "checkAnonymous": true,
-        "checkAuthenticated": false
+        "checkAuthenticated": true
       },
       "rateLimit": {
         "enabled": true,
