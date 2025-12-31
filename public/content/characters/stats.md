@@ -15,7 +15,7 @@ order: 0
 **Your stats are divided into two categories: main stats and critical stats.**
 
 - **Your <span class="text-red-700 dark:text-red-300">main stats</span> are attributes that will be leveled most frequently throughout the game.**
-  - The current maximum level cap is 1,750,000.
+  - The current maximum level cap is 1750000.
   - Multiplier boosts are unlocked at levels 100000 and 1000000.
 - **Your <span class="text-blue-800 dark:text-blue-300">critical stats</span> refer to values that increase your critical hit rate and damage.**
   - Death Strike and Death Strike % are unlocked once your Critical Hit Rate reaches level 100.
