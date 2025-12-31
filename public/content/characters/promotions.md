@@ -1,7 +1,7 @@
 ---
 id: promotions
 title: Character Promotions
-description: Guide to promoting characters to increase their rank and unlock new abilities
+description: A brief overview of the available promotions and the stat boosts they grant upon completion.
 tags:
   - character
   - promotion
