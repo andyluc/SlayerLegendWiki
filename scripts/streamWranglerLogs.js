@@ -4,19 +4,22 @@
  */
 
 import { spawn } from 'child_process';
-import { createWriteStream } from 'fs';
-import { join } from 'path';
+import { createWriteStream, mkdirSync } from 'fs';
+import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const logFile = join(__dirname, '..', '.wrangler', 'server.log');
+const logDir = join(__dirname, '..', '.wrangler');
+const logFile = join(logDir, 'server.log');
 
 console.log('[Log Streamer] Starting Wrangler with log streaming...');
 console.log('[Log Streamer] Logs will be written to:', logFile);
 console.log('[Log Streamer] Tail logs with: tail -f .wrangler/server.log');
 console.log('');
+
+// Ensure .wrangler directory exists
+mkdirSync(logDir, { recursive: true });
 
 // Create log file stream
 const logStream = createWriteStream(logFile, { flags: 'a' });

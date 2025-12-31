@@ -174,7 +174,18 @@
       "Bash(npx postcss:*)",
       "Bash(Get-Content \"C:\\\\Users\\\\dolb9\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Projects-slayerlegend-wiki\\\\tasks\\\\b23a113.output\" -Tail 50)",
       "Bash(Select-String -Pattern \"admin|Admin|ADMIN|VITE_WIKI_BOT|error|Error|ERROR\" -Context 2,2)",
-      "Bash(Where-Object { $_ProcessName -match \"node|netlify\" })"
+      "Bash(Where-Object { $_ProcessName -match \"node|netlify\" })",
+      "Bash(if [ -d \"C:\\\\Projects\\\\slayerlegend\\\\cdn\\\\.github\\\\workflows\" ])",
+      "Bash(then ls -la \"C:\\\\Projects\\\\slayerlegend\\\\cdn\\\\.github\\\\workflows\")",
+      "Bash(else echo \"No workflows directory\")",
+      "Bash(fi)",
+      "Bash(git lfs:*)",
+      "Bash(Remove-Item \"C:\\\\Projects\\\\slayerlegend\\\\wiki\\\\functions\\\\_shared\\\\utils\\\\image-processing.js\")",
+      "Bash(for sha in 0aa96eeff035b831d3df005b5754168a7947433d b371fd144a2446a8ff63b0ac6fa3550897dcccfb 187b2209a229a6dc4dcd6ffea31766a14b5f0032)",
+      "Bash(do echo \"=== Commit $sha ===\")",
+      "Bash(Get-Content \"C:\\\\Projects\\\\slayerlegend\\\\wiki\\\\public\\\\wiki-config.json\")",
+      "Bash(Select-String -Pattern \"imageUploads\" -Context 3)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ]
   }
 }

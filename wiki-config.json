@@ -518,6 +518,55 @@
           "servingMode": "jsdelivr"
         }
       }
+    },
+    "imageUploads": {
+      "enabled": true,
+      "maxFileSizeMB": 10,
+      "allowedFormats": ["jpg", "jpeg", "png", "webp", "gif"],
+      "categories": [
+        "characters",
+        "equipment",
+        "stages",
+        "companions",
+        "skills",
+        "resources",
+        "bosses",
+        "guides",
+        "other"
+      ],
+      "requireAuthentication": false,
+      "moderation": {
+        "enabled": false,
+        "provider": "openai-vision",
+        "checkAnonymous": true,
+        "checkAuthenticated": false
+      },
+      "rateLimit": {
+        "enabled": true,
+        "maxUploadsPerDay": 10,
+        "windowHours": 24,
+        "anonymousOnly": true
+      },
+      "processing": {
+        "generateWebP": true,
+        "webpQuality": 85,
+        "maxDimensions": {
+          "width": 2048,
+          "height": 2048
+        },
+        "autoResize": true,
+        "preserveOriginal": true
+      },
+      "cdn": {
+        "provider": "github",
+        "github": {
+          "owner": "BenDol",
+          "repo": "SlayerLegendCDN",
+          "basePath": "user-content/images",
+          "servingMode": "jsdelivr",
+          "indexUrl": "https://cdn.jsdelivr.net/gh/BenDol/SlayerLegendCDN@main/user-content/images/image-index.json"
+        }
+      }
     }
   },
   "theme": {
