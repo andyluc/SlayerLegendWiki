@@ -15,8 +15,8 @@ order: 0
 **Your stats are divided into two categories: main stats and critical stats.**
 
 - **Your <span class="text-red-700 dark:text-red-300">main stats</span> are attributes that will be leveled most frequently throughout the game.**
-  - Current maximum level cap is 1,750,000
-  - Multiplier boost at level 100,000 and 1,000,000
+  - Current maximum level cap is 1750000
+  - Multiplier boost at level 100000 and 1000000
 - **Your <span class="text-blue-800 dark:text-blue-300">critical stats</span> refer to values that increase your critical hit rate and damage.**
   - Insert text here
 
