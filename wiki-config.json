@@ -423,6 +423,7 @@
     },
     "donation": {
       "enabled": true,
+      "minAmount": 5,
       "prompt": {
         "minTimeOnSite": 60,
         "minPagesViewed": 3,
