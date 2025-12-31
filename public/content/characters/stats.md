@@ -10,5 +10,15 @@ tags:
 category: Characters
 date: 2025-12-21T00:00:00.000Z
 ---
-# Character Stat
-Blah blah test insert insert.
+# <span class="text-gray-600 dark:text-gray-400">Stats</span>
+T
+
+Attack (ATK)
+Health Points (HP)
+HP Recovery
+Critical Damage (Crit Dmg)
+Critical Rate (Crit %)
+Death Strike
+Death Strike %
+
+# <span class="text-gray-600 dark:text-gray-400">Growth Points</span>
