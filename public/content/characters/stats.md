@@ -1,7 +1,7 @@
 ---
 id: stats
 title: Character Stats
-description: 'Complete guide to all character stats, their effects, scaling, and how to optimize stat distribution for different builds'
+description: A brief overview of the available stats and their effects.
 tags:
   - character
   - stats
