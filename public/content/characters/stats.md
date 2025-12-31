@@ -25,7 +25,7 @@ order: 0
 ## <span class="text-blue-800 dark:text-blue-300">Critical Stats</span>
 | **Critical Damage (Crit Dmg)** <img src="/images/icons/icon_growth04_1.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 40px; height: 40px; margin: 0 0.25em;" data-inline="true" /> | **Critical Hit Rate (Crit %)** <img src="/images/icons/icon_growth05_1.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 40px; height: 40px; margin: 0 0.25em;" data-inline="true" /> | **Death Strike** <img src="/images/icons/icon_growth06_1.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 40px; height: 40px; margin: 0 0.25em;" data-inline="true" /> | **Death Strike %** <img src="/images/icons/icon_growth06_1.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 40px; height: 40px; margin: 0 0.25em;" data-inline="true" /> | 
 |----------|----------|----------|----------|
-|This attribute determines how much critical damage you deal.|This attribute determines your critical hit chance.|This attribute enhances your critical damage and is unlocked once your critical hit rate reaches level 100.|This attribute determines your death strike hit chance and is unlocked once your critical hit rate reaches level 100.|         
+|This attribute determines how much critical damage you deal.|This attribute determines your critical hit chance.|This attribute enhances your critical damage.|This attribute determines your death strike hit chance.|         
 
 # <span class="text-gray-900 dark:text-gray-100"><u>Growth Points</u></span>
 
