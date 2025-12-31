@@ -14,8 +14,11 @@ order: 0
 # <span class="text-gray-900 dark:text-gray-100"><u>Stats</u></span>
 **Your stats are divided into two categories: main stats and critical stats.**
 
-- **Your main stats are attributes that will be leveled most frequently throughout the game. Currently, the maximum level cap is 1750000.**
-- **Your critical stats refer to values that increase your critical hit rate and damage.**
+- **Your <span class="text-red-700 dark:text-red-300">main stats</span> are attributes that will be leveled most frequently throughout the game.**
+  - Current maximum level cap is 1,750,000
+  - Multiplier boost at level 100,000 and 1,000,000
+- **Your <span class="text-blue-800 dark:text-blue-300">critical stats</span> refer to values that increase your critical hit rate and damage.**
+  - Insert text here
 
 ## <span class="text-red-700 dark:text-red-300">Main Stats</span>
 | **Attack (ATK)** <img src="/images/icons/icon_growth01_powerup 2_1.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 40px; height: 40px; margin: 0 0.25em;" data-inline="true" /> | **Health Points (HP)** <img src="/images/icons/icon_growth02_hpup_1.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 40px; height: 40px; margin: 0 0.25em;" data-inline="true" /> | **HP Recovery** <img src="/images/icons/icon_growth03_1.png" alt="" class="inline-image" style="display: inline-block; vertical-align: middle;width: 40px; height: 40px; margin: 0 0.25em;" data-inline="true" /> |
