@@ -9,7 +9,7 @@ category: Getting Started
 date: 2025-12-13T00:00:00.000Z
 order: 0
 background:
-  path: 'https://raw.githubusercontent.com/BenDol/SlayerLegendCDN/main/user-content/images/other/2025/12/88e12df288c8452dbda529144f5924ab.jpg'
+  path: /images/backgrounds/A Red Sunset Layer 01.png
   opacity: 0.2
   repeat: no-repeat
   size: cover
