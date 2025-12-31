@@ -31,5 +31,9 @@ order: 0
 |This attribute determines how much critical damage you deal.|This attribute determines your critical hit chance.|This attribute enhances your critical damage.|This attribute determines your death strike hit chance.|         
 
 # <span class="text-gray-900 dark:text-gray-100"><u>Growth Points</u></span>
+**These are additional stats you gain that are divided into two categories: main stats and miscellaneous stats.**
+- **<span class="text-red-700 dark:text-red-300">Main stats</span>**
+- **<span class="text-red-700 dark:text-red-300">Miscellaneous stats</span>**
 
 # <span class="text-gray-900 dark:text-gray-100"><u>Growing Knowledge</u></span>
+Insert text here..
